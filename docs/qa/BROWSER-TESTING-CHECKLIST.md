@@ -1,4 +1,5 @@
 # Browser Testing Checklist
+
 **Week 6 QA Testing**
 **Tester:** Quinn
 **Target:** Test all pages across 4 browsers
@@ -7,20 +8,21 @@
 
 ## 📊 Testing Matrix Overview
 
-| Page | Chrome | Safari macOS | Safari iOS | Firefox | Notes |
-|------|--------|--------------|------------|---------|-------|
-| Login | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Register | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Forgot Password | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Reset Password | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Dashboard | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Searches (List) | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Searches (Create) | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Searches (Edit) | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Alerts (List) | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
-| Settings | ✅ | ⏳ | ⏳ | ⏳ | Baseline |
+| Page              | Chrome | Safari macOS | Safari iOS | Firefox | Notes    |
+| ----------------- | ------ | ------------ | ---------- | ------- | -------- |
+| Login             | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Register          | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Forgot Password   | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Reset Password    | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Dashboard         | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Searches (List)   | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Searches (Create) | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Searches (Edit)   | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Alerts (List)     | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
+| Settings          | ✅     | ⏳           | ⏳         | ⏳      | Baseline |
 
 **Legend:**
+
 - ✅ Passed (no bugs)
 - ❌ Failed (bugs found, see bug reports)
 - ⏳ Not tested yet
@@ -48,6 +50,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ### Authentication Pages
 
 #### Login Page
+
 - [ ] Page loads without errors
 - [ ] Email input accepts text
 - [ ] Password input accepts text
@@ -66,6 +69,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Register Page
+
 - [ ] Page loads without errors
 - [ ] Email input validation works (valid format required)
 - [ ] Password input validation works (8+ chars required)
@@ -85,6 +89,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Forgot Password Page
+
 - [ ] Page loads without errors
 - [ ] Email input accepts text
 - [ ] Email validation works (valid format required)
@@ -101,6 +106,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Reset Password Page
+
 - [ ] Page loads without errors (with valid token)
 - [ ] Page shows error with invalid token
 - [ ] New password input accepts text
@@ -121,6 +127,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ### Authenticated Pages
 
 #### Dashboard
+
 - [ ] Page loads without errors
 - [ ] Stats cards display correct numbers
 - [ ] "Total Searches" stat card is clickable → /searches
@@ -143,6 +150,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Searches Page (List)
+
 - [ ] Page loads without errors
 - [ ] Search cards display with correct data
 - [ ] Active searches show "Active" badge
@@ -164,6 +172,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Searches Page (Create)
+
 - [ ] Page loads without errors
 - [ ] Series autocomplete works (type "spider")
 - [ ] Series autocomplete shows dropdown
@@ -196,6 +205,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Searches Page (Edit)
+
 - [ ] Page loads with pre-filled data
 - [ ] Series field shows correct series (read-only)
 - [ ] Issue number shows correct value
@@ -219,6 +229,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Alerts Page (List)
+
 - [ ] Page loads without errors
 - [ ] Alert cards display correctly
 - [ ] Direct Match badge (🎯) shows green
@@ -249,6 +260,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ---
 
 #### Settings Page
+
 - [ ] Page loads without errors
 - [ ] Tab navigation works (Account, Password, Notifications)
 - [ ] **Account Tab:**
@@ -325,6 +337,7 @@ You don't need to test Chrome - it's your baseline. If something doesn't work in
 ### Test All Pages (Same as Safari macOS)
 
 Use the same checklist as Safari macOS above, but focus on mobile-specific issues:
+
 - Layout breaks
 - Touch target sizes
 - Form input zoom
@@ -354,6 +367,7 @@ Use the same checklist as Safari macOS above, but focus on mobile-specific issue
 ### Test All Pages (Same as Safari macOS)
 
 Use the same checklist as Safari macOS above. Focus on:
+
 - Visual layout differences
 - Form element rendering
 - Dropdown styling
@@ -369,12 +383,14 @@ Use the same checklist as Safari macOS above. Focus on:
 After testing all browsers, fill this out:
 
 ### Browsers Tested
+
 - [x] Chrome 120+ (Baseline - tested by James)
 - [ ] Safari 17+ macOS
 - [ ] Safari 17+ iOS
 - [ ] Firefox 120+
 
 ### Pages Tested
+
 - [ ] Login (4/4 browsers)
 - [ ] Register (4/4 browsers)
 - [ ] Forgot Password (4/4 browsers)
@@ -387,12 +403,14 @@ After testing all browsers, fill this out:
 - [ ] Settings (4/4 browsers)
 
 ### Total Test Combinations
+
 - **Total:** 40 (10 pages × 4 browsers)
 - **Completed:** _[X/40]_
 - **Passed:** _[X/40]_
 - **Failed:** _[X/40]_
 
 ### Bugs Found by Severity
+
 - **Critical:** _[count]_ bugs
 - **High:** _[count]_ bugs
 - **Medium:** _[count]_ bugs
@@ -400,11 +418,13 @@ After testing all browsers, fill this out:
 - **Total:** _[count]_ bugs
 
 ### Recommendation
+
 - [ ] ✅ Ready for Week 7 (no critical bugs, minor issues only)
 - [ ] ⚠️ Needs fixes before Week 7 (some high-priority bugs)
 - [ ] ❌ Not ready (critical bugs found, needs another testing round)
 
 ### Notes
+
 _[Any general observations, patterns, or recommendations]_
 
 ---
@@ -412,6 +432,7 @@ _[Any general observations, patterns, or recommendations]_
 ## 💡 Testing Tips
 
 **Efficient Testing:**
+
 1. Test one browser completely before moving to next
 2. Use browser DevTools (F12) to check console errors
 3. Take screenshots of bugs immediately
@@ -419,6 +440,7 @@ _[Any general observations, patterns, or recommendations]_
 5. Clear browser cache between tests to avoid false positives
 
 **What to Look For:**
+
 - Visual differences (layout, spacing, colors)
 - Broken functionality (buttons don't work)
 - Console errors (JavaScript exceptions)
@@ -426,6 +448,7 @@ _[Any general observations, patterns, or recommendations]_
 - Missing features (something works in Chrome but not Safari)
 
 **When to Report:**
+
 - **Immediately:** Critical bugs (crashes, data loss)
 - **Same day:** High priority bugs (features don't work)
 - **End of day:** Medium/low priority bugs (cosmetic issues)

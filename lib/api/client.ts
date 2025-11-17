@@ -1,6 +1,24 @@
 import { createClient } from '@/lib/supabase/client'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+// Dynamically determine API URL based on current hostname
+// This allows mobile devices to connect to the backend server
+function getAPIBaseURL(): string {
+  // Server-side: use environment variable or default
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+  }
+
+  // Client-side: detect hostname and use same IP with port 3000
+  const hostname = window.location.hostname
+
+  // If localhost, use localhost:3000
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000'
+  }
+
+  // Otherwise, use same IP as frontend but port 3000 (for mobile/network access)
+  return `http://${hostname}:3000`
+}
 
 class APIError extends Error {
   constructor(
@@ -15,7 +33,9 @@ class APIError extends Error {
 }
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`
+  // Get API URL dynamically for each request (handles SSR + client-side)
+  const apiBaseURL = getAPIBaseURL()
+  const url = `${apiBaseURL}${endpoint}`
 
   // Get auth token from Supabase
   const supabase = createClient()

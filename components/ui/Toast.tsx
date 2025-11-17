@@ -37,11 +37,7 @@ function Toast({ toast, onClose }: ToastProps) {
 
   return (
     <div
-      className={`
-        pointer-events-auto mb-4 w-full max-w-md overflow-hidden rounded-lg shadow-lg transition-all
-        ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
-        ${bgColor}
-      `}
+      className={`pointer-events-auto mb-4 w-full max-w-md overflow-hidden rounded-lg shadow-lg transition-all ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'} ${bgColor} `}
     >
       <div className="p-4">
         <div className="flex items-start">

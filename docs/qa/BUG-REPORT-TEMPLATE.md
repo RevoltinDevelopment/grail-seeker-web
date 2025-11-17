@@ -1,4 +1,5 @@
 # Bug Report Template
+
 **Use this template for all Week 6 QA bug reports**
 
 ---
@@ -12,6 +13,7 @@
 ## 📋 Bug Information
 
 ### Title
+
 **One-line summary of the bug (50 chars max)**
 
 Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
@@ -19,7 +21,9 @@ Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
 ---
 
 ### Severity
+
 **Choose one:**
+
 - [ ] 🔴 **Critical** - App crashes, data loss, security issue, blocks all users
 - [ ] 🟠 **High** - Feature doesn't work, blocks major workflow, affects many users
 - [ ] 🟡 **Medium** - Feature partially works, workaround exists, affects some users
@@ -28,7 +32,9 @@ Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
 ---
 
 ### Category
+
 **Choose one:**
+
 - [ ] Browser Compatibility
 - [ ] Mobile Responsive
 - [ ] Form Validation
@@ -38,31 +44,35 @@ Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
 - [ ] Performance
 - [ ] Security
 - [ ] Data/Logic
-- [ ] Other: _______________
+- [ ] Other: ******\_\_\_******
 
 ---
 
 ## 🌍 Environment
 
 ### Browser
-- **Browser:** _____________ (e.g., Safari, Firefox, Chrome)
-- **Version:** _____________ (e.g., 17.2)
-- **Platform:** _____________ (e.g., macOS 14.1, iOS 17.2, Windows 11)
+
+- **Browser:** ******\_****** (e.g., Safari, Firefox, Chrome)
+- **Version:** ******\_****** (e.g., 17.2)
+- **Platform:** ******\_****** (e.g., macOS 14.1, iOS 17.2, Windows 11)
 
 ### Device (if mobile)
-- **Device:** _____________ (e.g., iPhone 14 Pro, iPad Air)
-- **Screen Size:** _____________ (e.g., 375px, 768px, 1920px)
+
+- **Device:** ******\_****** (e.g., iPhone 14 Pro, iPad Air)
+- **Screen Size:** ******\_****** (e.g., 375px, 768px, 1920px)
 
 ### Application
+
 - **Frontend URL:** http://localhost:3001
 - **Backend URL:** http://localhost:3000
-- **User Account:** _____________ (e.g., quinn.qa@grailseeker.io)
+- **User Account:** ******\_****** (e.g., quinn.qa@grailseeker.io)
 
 ---
 
 ## 🔍 Bug Details
 
 ### Description
+
 **What is the bug? Describe in 2-3 sentences.**
 
 Example:
@@ -71,9 +81,11 @@ Example:
 ---
 
 ### Steps to Reproduce
+
 **Numbered list of exact steps to recreate the bug**
 
 Example:
+
 1. Open Safari on iPhone (iOS 17.2)
 2. Navigate to http://localhost:3001/login
 3. Login with: quinn.qa@grailseeker.io
@@ -84,6 +96,7 @@ Example:
 ---
 
 ### Expected Behavior
+
 **What SHOULD happen?**
 
 Example:
@@ -92,6 +105,7 @@ Example:
 ---
 
 ### Actual Behavior
+
 **What ACTUALLY happens?**
 
 Example:
@@ -100,7 +114,9 @@ Example:
 ---
 
 ### Frequency
+
 **How often does this happen?**
+
 - [ ] Always (100% of the time)
 - [ ] Often (75% of the time)
 - [ ] Sometimes (50% of the time)
@@ -112,9 +128,11 @@ Example:
 ## 📸 Evidence
 
 ### Screenshots
+
 **Attach screenshots showing the bug**
 
 Example:
+
 ```
 [Screenshot 1: Grade dropdown showing 0.5]
 Filename: bug-w6-001-grade-dropdown.png
@@ -124,6 +142,7 @@ Filename: bug-w6-001-chrome-comparison.png
 ```
 
 **How to attach:**
+
 - Save screenshots to: `docs/qa/screenshots/`
 - Name them: `bug-w6-[NUMBER]-description.png`
 - Reference them here
@@ -131,9 +150,11 @@ Filename: bug-w6-001-chrome-comparison.png
 ---
 
 ### Console Errors
+
 **Copy any errors from browser console (F12 → Console)**
 
 Example:
+
 ```javascript
 TypeError: Cannot read property 'value' of null
     at GradeRangeSelector.tsx:45
@@ -145,9 +166,11 @@ TypeError: Cannot read property 'value' of null
 ---
 
 ### Network Errors
+
 **Copy any failed API requests (F12 → Network tab)**
 
 Example:
+
 ```
 GET http://localhost:3000/api/searches
 Status: 500 Internal Server Error
@@ -161,6 +184,7 @@ Response: {"error": "Database connection failed"}
 ## 🔬 Analysis
 
 ### Root Cause (if known)
+
 **Do you know what's causing this? (Optional)**
 
 Example:
@@ -171,6 +195,7 @@ Example:
 ---
 
 ### Impact
+
 **Who is affected and how?**
 
 Example:
@@ -179,6 +204,7 @@ Example:
 ---
 
 ### Suggested Fix (optional)
+
 **How would you fix this? (Optional)**
 
 Example:
@@ -194,6 +220,7 @@ to:
 ## 🔗 Related Information
 
 ### Related Bugs
+
 **Are there other bugs similar to this?**
 
 Example:
@@ -204,6 +231,7 @@ Example:
 ---
 
 ### Blocked By
+
 **Does this bug prevent testing other features?**
 
 Example:
@@ -214,6 +242,7 @@ Example:
 ---
 
 ### Workaround
+
 **Can users work around this bug?**
 
 Example:
@@ -226,9 +255,11 @@ Example:
 ## ✅ Testing Notes
 
 ### Tested In
+
 **What browsers/devices did you test?**
 
 Example:
+
 - [x] Safari iOS 17.2 (iPhone 14 Pro) - **BUG PRESENT**
 - [x] Safari macOS 14.1 - **BUG PRESENT**
 - [x] Chrome macOS - Works correctly (shows "Any")
@@ -237,6 +268,7 @@ Example:
 ---
 
 ### Regression Risk
+
 **Could fixing this break something else?**
 
 Example:
@@ -256,8 +288,8 @@ Example:
 ## 👤 Reporter Information
 
 - **Reported By:** Quinn (QA)
-- **Date:** _____________
-- **Time:** _____________
+- **Date:** ******\_******
+- **Time:** ******\_******
 - **Contact:** quinn@grailseeker.io (if questions)
 
 ---
@@ -267,6 +299,7 @@ Example:
 **Leave this section blank - James will fill it out**
 
 ### Status
+
 - [ ] 🆕 New (not reviewed)
 - [ ] ✅ Confirmed (reproduced by dev)
 - [ ] 🔧 In Progress (being fixed)
@@ -276,23 +309,28 @@ Example:
 - [ ] 🔄 Deferred (fix in future release)
 
 ### Assigned To
-**Developer:** _____________
+
+**Developer:** ******\_******
 
 ### Fix Commit
-**Git Commit:** _____________
+
+**Git Commit:** ******\_******
 
 ### Fixed In Version
-**Version:** _____________
+
+**Version:** ******\_******
 
 ### Verified By
-**Tester:** _____________
-**Date:** _____________
+
+**Tester:** ******\_******
+**Date:** ******\_******
 
 ---
 
 ## 📋 Quick Checklist
 
 Before submitting this bug report, verify:
+
 - [ ] Bug ID assigned (BUG-W6-XXX)
 - [ ] Severity selected
 - [ ] Category selected
@@ -310,6 +348,7 @@ Before submitting this bug report, verify:
 ## 📤 How to Submit
 
 **Option 1: Create GitHub Issue (Preferred)**
+
 1. Go to: https://github.com/RevoltinDevelopment/grail-seeker-web/issues
 2. Click "New Issue"
 3. Select "Bug Report" template
@@ -318,11 +357,13 @@ Before submitting this bug report, verify:
 6. Submit
 
 **Option 2: Save as Markdown File**
+
 1. Save this file as: `BUG-W6-XXX-short-description.md`
 2. Place in: `docs/qa/bugs/`
 3. Commit to git or send to James
 
 **Option 3: Send to James Directly**
+
 1. Copy this completed template
 2. Email or Slack to James
 3. Include screenshots as attachments
@@ -332,6 +373,7 @@ Before submitting this bug report, verify:
 ## 💡 Bug Reporting Tips
 
 **Good Bug Reports Have:**
+
 - Clear, specific titles
 - Exact steps to reproduce
 - Expected vs actual behavior
@@ -340,6 +382,7 @@ Before submitting this bug report, verify:
 - Tested in multiple browsers
 
 **Bad Bug Reports Have:**
+
 - Vague descriptions ("It doesn't work")
 - Missing steps to reproduce
 - No browser/device info
@@ -347,6 +390,7 @@ Before submitting this bug report, verify:
 - Mixed multiple bugs in one report
 
 **Remember:**
+
 - One bug per report
 - Be specific and detailed
 - Assume developer hasn't seen the bug

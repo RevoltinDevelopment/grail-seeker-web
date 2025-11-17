@@ -15,6 +15,7 @@ Grail Seeker uses a **hybrid navigation system** that adapts intelligently acros
 - **Avatar Dropdown** = Account actions (Settings, Logout)
 
 This approach solves critical UX problems:
+
 1. **Mobile overflow** - Long email addresses (e.g., irvingforbust@grailteam.testinator.com) no longer crush the layout
 2. **Consistent access** - Settings always available via avatar, not hidden on mobile
 3. **Professional design** - Centered logo on mobile, left-aligned on desktop
@@ -28,13 +29,15 @@ This approach solves critical UX problems:
 **Location:** `components/layout/Header.tsx`
 
 **Props:**
+
 ```typescript
 interface HeaderProps {
-  user: User  // Supabase User object
+  user: User // Supabase User object
 }
 ```
 
 **Key Features:**
+
 - Reusable across all authenticated pages
 - Responsive design with Tailwind breakpoints (`md:` = 768px)
 - Client-side state for menu toggles
@@ -52,17 +55,20 @@ interface HeaderProps {
 ```
 
 **Hamburger Menu (Left):**
+
 - Opens dropdown with app navigation
 - Shows: Dashboard | Searches | Alerts
 - Animated hamburger → X transition
 - Click outside or navigation closes menu
 
 **Logo (Center):**
+
 - ⚱️ Chalice icon + "Grail Seeker" text
 - Clickable link to /dashboard
 - Centered for balanced mobile design
 
 **Avatar (Right):**
+
 - Circular badge with user initials
 - Opens dropdown with:
   - Email address (full, not truncated)
@@ -77,11 +83,13 @@ interface HeaderProps {
 ```
 
 **Left Section:**
+
 - ⚱️ Chalice icon + "Grail Seeker" logo
 - Horizontal navigation: Dashboard | Searches | Alerts
 - Active page highlighted in collector-blue
 
 **Right Section:**
+
 - Avatar with initials
 - Dropdown with:
   - Email address
@@ -108,6 +116,7 @@ const getInitials = (email: string) => {
 ```
 
 **Examples:**
+
 - `irving.forbust@example.com` → "IF"
 - `john_doe@example.com` → "JD"
 - `collector@example.com` → "CO"
@@ -148,11 +157,12 @@ useEffect(() => {
 ### Menu State Management
 
 ```typescript
-const [mobileMenuOpen, setMobileMenuOpen] = useState(false)  // Hamburger menu
-const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)  // Avatar dropdown
+const [mobileMenuOpen, setMobileMenuOpen] = useState(false) // Hamburger menu
+const [avatarMenuOpen, setAvatarMenuOpen] = useState(false) // Avatar dropdown
 ```
 
 Both menus close when:
+
 - User clicks a navigation link
 - User clicks outside menu area
 - User clicks menu button again (toggle)
@@ -164,7 +174,9 @@ Both menus close when:
 All authenticated pages import and use the shared Header component:
 
 ### Dashboard
+
 **File:** `app/(authenticated)/dashboard/DashboardClient.tsx`
+
 ```tsx
 import Header from '@/components/layout/Header'
 
@@ -179,15 +191,21 @@ export default function DashboardClient({ user }: { user: User }) {
 ```
 
 ### Searches
+
 **File:** `app/(authenticated)/searches/SearchesClient.tsx`
+
 - Same pattern as Dashboard
 
 ### Alerts
+
 **File:** `app/(authenticated)/alerts/AlertsClient.tsx`
+
 - Same pattern as Dashboard
 
 ### Settings
+
 **File:** `app/(authenticated)/settings/SettingsClient.tsx`
+
 - Same pattern as Dashboard
 - Settings link appears in avatar dropdown (not top nav)
 
@@ -196,26 +214,29 @@ export default function DashboardClient({ user }: { user: User }) {
 ## Styling & Design Tokens
 
 ### Colors
+
 ```typescript
 // Tailwind classes used
-'text-collector-navy'    // Logo text
-'text-collector-blue'    // Active links, avatar background
-'bg-blue-50'             // Hover states
-'text-slate-700'         // Inactive links, body text
-'border-slate-200'       // Borders
+'text-collector-navy' // Logo text
+'text-collector-blue' // Active links, avatar background
+'bg-blue-50' // Hover states
+'text-slate-700' // Inactive links, body text
+'border-slate-200' // Borders
 ```
 
 ### Spacing
+
 ```typescript
-'gap-6'     // Between logo and nav links
-'gap-4'     // Between nav links
+'gap-6' // Between logo and nav links
+'gap-4' // Between nav links
 'px-4 py-4' // Header padding
 'h-10 w-10' // Avatar size
 ```
 
 ### Responsive Breakpoints
+
 ```typescript
-'md:flex'   // Show on tablet+ (768px+)
+'md:flex' // Show on tablet+ (768px+)
 'md:hidden' // Hide on tablet+
 ```
 
@@ -224,11 +245,13 @@ export default function DashboardClient({ user }: { user: User }) {
 ## Accessibility
 
 ### Keyboard Navigation
+
 - All interactive elements are focusable
 - Tab order: Logo → Nav Links → Avatar
 - Enter/Space activate buttons and links
 
 ### ARIA Labels
+
 ```tsx
 <button
   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -244,6 +267,7 @@ export default function DashboardClient({ user }: { user: User }) {
 ```
 
 ### Screen Readers
+
 - Logo includes `<h1>` for semantic heading
 - Nav wrapped in `<nav>` element
 - Button text describes action
@@ -253,16 +277,19 @@ export default function DashboardClient({ user }: { user: User }) {
 ## Performance Considerations
 
 ### Code Splitting
+
 - Header component ~8KB gzipped
 - Shared across all pages (loaded once)
 - No heavy dependencies
 
 ### Re-render Optimization
+
 - Menu state isolated to Header component
 - `usePathname()` only re-renders on route change
 - No prop drilling - user object passed directly
 
 ### Bundle Size
+
 ```
 Header component:        ~8KB
 Dependencies:
@@ -277,6 +304,7 @@ Total incremental:       ~8KB
 ## Testing Checklist
 
 ### Desktop (≥ 768px)
+
 - [ ] Logo displays with chalice icon
 - [ ] Navigation links visible (Dashboard, Searches, Alerts)
 - [ ] Active page highlighted
@@ -287,6 +315,7 @@ Total incremental:       ~8KB
 - [ ] Click outside closes avatar menu
 
 ### Mobile (< 768px)
+
 - [ ] Hamburger menu visible
 - [ ] Logo centered
 - [ ] Avatar visible
@@ -298,6 +327,7 @@ Total incremental:       ~8KB
 - [ ] Navigation works (closes menu on click)
 
 ### All Viewports
+
 - [ ] Active page detection works
 - [ ] Logout redirects to /login
 - [ ] All links navigate correctly
@@ -310,6 +340,7 @@ Total incremental:       ~8KB
 ## Future Enhancements
 
 ### Potential Improvements
+
 1. **Notifications badge** - Show unread alert count on avatar
 2. **Quick search** - Add search input to header
 3. **Keyboard shortcuts** - Cmd+K for navigation
@@ -317,7 +348,9 @@ Total incremental:       ~8KB
 5. **User profile photo** - Replace initials with uploaded image
 
 ### Mobile Native App
+
 The Header logic (excluding UI) can be reused in React Native:
+
 - Avatar initials function
 - Active page detection
 - Menu state management
@@ -328,15 +361,19 @@ The Header logic (excluding UI) can be reused in React Native:
 ## Troubleshooting
 
 ### Issue: Menus don't close
+
 **Solution:** Check click-outside detection is set up correctly. Verify `avatarRef` is attached to the dropdown container.
 
 ### Issue: Active page not highlighted
+
 **Solution:** Verify `usePathname()` returns expected path. Check pathname comparison logic.
 
 ### Issue: Avatar shows wrong initials
+
 **Solution:** Check user email format. Test `getInitials()` function with edge cases.
 
 ### Issue: Layout breaks on small screens
+
 **Solution:** Test at 360px width (smallest modern phone). Ensure Tailwind responsive classes are correct.
 
 ---
@@ -352,6 +389,6 @@ The Header logic (excluding UI) can be reused in React Native:
 
 ## Change Log
 
-| Date | Version | Changes | Author |
-|------|---------|---------|--------|
-| 2025-11-05 | 1.0 | Initial hybrid navigation implementation | James (Developer) |
+| Date       | Version | Changes                                  | Author            |
+| ---------- | ------- | ---------------------------------------- | ----------------- |
+| 2025-11-05 | 1.0     | Initial hybrid navigation implementation | James (Developer) |

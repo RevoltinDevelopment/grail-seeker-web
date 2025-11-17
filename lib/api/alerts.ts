@@ -4,7 +4,7 @@ import { apiClient } from './client'
 export interface AlertFilters {
   limit?: number
   offset?: number
-  platform?: 'ebay' | 'heritage' | 'mycomicshop' | 'all'
+  platform?: 'ebay' | 'heritage' | 'comiclink' | 'all'
   matchType?: 'direct_match' | 'near_miss' | 'all'
 }
 

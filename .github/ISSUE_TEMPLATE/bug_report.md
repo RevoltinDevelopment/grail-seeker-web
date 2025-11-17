@@ -28,27 +28,26 @@ assignees: ''
 ## 🔍 Bug Details
 
 ### Description
+
 <!-- Describe the bug in 2-3 sentences -->
 
-
-
 ### Steps to Reproduce
+
 1.
 2.
 3.
 4.
 
 ### Expected Behavior
+
 <!-- What SHOULD happen? -->
 
-
-
 ### Actual Behavior
+
 <!-- What ACTUALLY happens? -->
 
-
-
 ### Frequency
+
 - [ ] Always (100%)
 - [ ] Often (75%)
 - [ ] Sometimes (50%)
@@ -60,18 +59,21 @@ assignees: ''
 ## 📸 Evidence
 
 ### Screenshots
+
 <!-- Attach screenshots here or link to them -->
 
-
-
 ### Console Errors
+
 <!-- Copy errors from browser console (F12 → Console) -->
+
 ```javascript
 
 ```
 
 ### Network Errors
+
 <!-- Copy failed API requests (F12 → Network) -->
+
 ```
 
 ```
@@ -81,25 +83,23 @@ assignees: ''
 ## 🔬 Analysis
 
 ### Impact
+
 <!-- Who is affected and how? -->
 
-
-
 ### Workaround
+
 <!-- Can users work around this bug? -->
 
-
-
 ### Root Cause (if known)
+
 <!-- Optional: Do you know what's causing this? -->
-
-
 
 ---
 
 ## ✅ Testing Notes
 
 **Tested In:**
+
 - [ ] Chrome (macOS) -
 - [ ] Safari (macOS) -
 - [ ] Safari (iOS) -

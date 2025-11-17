@@ -22,7 +22,7 @@ const config: Config = {
         // Platform Brand Colors
         'ebay-red': '#E53238',
         'heritage-bronze': '#8B4513',
-        'mycomicshop-green': '#059669',
+        'comiclink-purple': '#6366F1',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

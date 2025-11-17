@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+import { PhoneInput } from '@/components/ui/PhoneInput'
 import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
@@ -28,7 +29,7 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -38,8 +39,6 @@ export default function RegisterPage() {
         },
       },
     })
-
-    console.log('Sign up response:', { data, error })
 
     if (error) {
       setError(error.message)
@@ -201,16 +200,10 @@ export default function RegisterPage() {
                 >
                   Phone Number
                 </label>
-                <input
-                  id="phoneNumber"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                  placeholder="+1 (555) 123-4567"
-                />
-                <p className="mt-1 text-xs text-slate-600">For SMS alerts only</p>
+                <PhoneInput value={phoneNumber} onChange={setPhoneNumber} required />
+                <p className="mt-1 text-xs text-slate-600">
+                  Used for SMS alert notifications. Saved in international format (E.164).
+                </p>
               </div>
 
               <div className="flex items-start">

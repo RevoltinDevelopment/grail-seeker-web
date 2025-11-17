@@ -294,12 +294,7 @@ export default function CreateSearchPage() {
 
                 <label className="flex items-center opacity-50">
                   <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-                  <span className="ml-2 text-sm">MyComicShop (Coming Q1 2026)</span>
-                </label>
-
-                <label className="flex items-center opacity-50">
-                  <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-                  <span className="ml-2 text-sm">ComicLink (Coming 2026)</span>
+                  <span className="ml-2 text-sm">ComicLink (Coming Q1 2026)</span>
                 </label>
               </div>
 

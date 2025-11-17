@@ -2,23 +2,19 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { AlertCard } from '@/components/alerts/AlertCard'
+import { useToast } from '@/contexts/ToastContext'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useSearches } from '@/hooks/useSearches'
-import { useToast } from '@/contexts/ToastContext'
-import Header from '@/components/layout/Header'
-import type { User } from '@supabase/supabase-js'
 
-export default function DashboardClient({ user }: { user: User }) {
+export default function DashboardClient() {
   const { showToast } = useToast()
   const { searches, isLoading: isLoadingSearches } = useSearches()
-  const { alerts, isLoading: isLoadingAlerts } = useAlerts({ limit: 3 }, { enableToasts: true })
+  const { alerts, isLoading: isLoadingAlerts } = useAlerts({ limit: 2 }, { enableToasts: true })
 
   // Listen for new alert events and show toasts
   useEffect(() => {
-    const handleNewAlert = (event: Event) => {
-      const customEvent = event as CustomEvent
-      const alert = customEvent.detail?.alert
-
+    const handleNewAlert = () => {
       showToast(
         '🎯 New Grail Found!',
         `A new match has been found for one of your searches. Check your alerts to see details.`,
@@ -41,29 +37,21 @@ export default function DashboardClient({ user }: { user: User }) {
   // Calculate stats
   const activeSearchesCount = searches.filter((s) => s.isActive).length
   const totalAlertsCount = searches.reduce((sum, s) => sum + (s.alertCount || 0), 0)
-  const recentAlerts = alerts.slice(0, 3)
+  const recentAlerts = alerts.slice(0, 2)
 
   if (isLoadingSearches || isLoadingAlerts) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header user={user} />
-
-        <main className="container-custom py-12">
-          <div className="py-12 text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-            <p className="mt-4 text-slate-600">Loading dashboard...</p>
-          </div>
-        </main>
+      <div className="container-custom py-12">
+        <div className="py-12 text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+          <p className="mt-4 text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header user={user} />
-
-      {/* Main Content */}
-      <main className="container-custom py-12">
+    <div className="container-custom py-12">
         <div className="mb-8">
           <h2 className="mb-2 text-3xl font-bold">Dashboard</h2>
           <p className="text-slate-600">Your grail hunting overview</p>
@@ -150,69 +138,7 @@ export default function DashboardClient({ user }: { user: User }) {
           ) : (
             <div className="space-y-4">
               {recentAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-collector-blue hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="mb-1 text-lg font-semibold">
-                        {alert.search.series.title} #{alert.search.issueNumber}
-                      </h3>
-                      <p className="mb-3 text-sm text-slate-600">{alert.listing.title}</p>
-
-                      <div className="mb-3 flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-600">Price:</span>
-                          <span className="font-semibold text-collector-navy">
-                            ${alert.listing.price.toLocaleString()}
-                          </span>
-                        </div>
-                        {alert.listing.grade && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-600">Grade:</span>
-                            <span className="font-semibold">{alert.listing.grade}</span>
-                          </div>
-                        )}
-                        {alert.listing.gradingAuthority && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-600">Graded by:</span>
-                            <span className="font-semibold uppercase">
-                              {alert.listing.gradingAuthority}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {alert.isDirectMatch && (
-                          <span className="inline-flex items-center rounded-full bg-success-green px-2 py-1 text-xs font-semibold text-white">
-                            ✓ Direct Match
-                          </span>
-                        )}
-                        <span className="text-xs text-slate-500">
-                          {new Date(alert.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {alert.listing.url && (
-                      <a
-                        href={alert.listing.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-4 whitespace-nowrap rounded-md bg-collector-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-800"
-                      >
-                        View on eBay →
-                      </a>
-                    )}
-                  </div>
-                </div>
+                <AlertCard key={alert.id} alert={alert} />
               ))}
             </div>
           )}
@@ -289,16 +215,15 @@ export default function DashboardClient({ user }: { user: User }) {
 
         {/* Quick Actions */}
         {searches.length > 0 && (
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8">
             <Link
               href="/searches/new"
-              className="rounded-md bg-collector-blue px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-800"
+              className="block w-full rounded-md bg-collector-blue px-4 py-2.5 text-center font-semibold text-white transition-colors hover:bg-blue-800 md:inline-block md:w-auto md:px-6 md:py-3"
             >
               + Create New Search
             </Link>
           </div>
         )}
-      </main>
     </div>
   )
 }

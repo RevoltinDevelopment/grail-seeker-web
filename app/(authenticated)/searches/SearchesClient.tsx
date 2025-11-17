@@ -2,13 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useSearches } from '@/hooks/useSearches'
-import Header from '@/components/layout/Header'
-import type { User } from '@supabase/supabase-js'
 
-export default function SearchesClient({ user }: { user: User }) {
-  const router = useRouter()
+export default function SearchesClient() {
   const { searches, isLoading, deleteSearch, updateSearchStatus } = useSearches()
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
@@ -23,29 +19,20 @@ export default function SearchesClient({ user }: { user: User }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header user={user} />
-
-        {/* Loading State */}
-        <main className="container-custom py-12">
-          <div className="py-12 text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-            <p className="mt-4 text-slate-600">Loading searches...</p>
-          </div>
-        </main>
+      <div className="container-custom py-12">
+        <div className="py-12 text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+          <p className="mt-4 text-slate-600">Loading searches...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header user={user} />
-
-      {/* Main Content */}
-      <main className="container-custom py-12">
-        <div className="mb-8 flex items-center justify-between">
+    <div className="container-custom py-12">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="mb-2 text-3xl font-bold">My Searches</h2>
+            <h2 className="mb-2 text-3xl font-bold">Searches</h2>
             <p className="text-slate-600">
               {searches.length > 0
                 ? `Showing ${searches.length} active ${searches.length === 1 ? 'search' : 'searches'}`
@@ -54,9 +41,9 @@ export default function SearchesClient({ user }: { user: User }) {
           </div>
           <Link
             href="/searches/new"
-            className="rounded-md bg-collector-blue px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-800"
+            className="w-full rounded-md bg-collector-blue px-4 py-2.5 text-center font-semibold text-white transition-colors hover:bg-blue-800 md:w-auto md:px-6 md:py-3"
           >
-            + Create Search
+            + Create New Search
           </Link>
         </div>
 
@@ -152,7 +139,7 @@ export default function SearchesClient({ user }: { user: User }) {
                       Heritage (Q1)
                     </span>
                     <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                      MyComicShop (Q1)
+                      ComicLink (Q1)
                     </span>
                   </div>
                 </div>
@@ -211,7 +198,6 @@ export default function SearchesClient({ user }: { user: User }) {
             ))}
           </div>
         )}
-      </main>
     </div>
   )
 }

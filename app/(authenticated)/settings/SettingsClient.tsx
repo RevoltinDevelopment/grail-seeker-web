@@ -1,23 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { PhoneInput } from '@/components/ui/PhoneInput'
 import { createClient } from '@/lib/supabase/client'
-import Header from '@/components/layout/Header'
+import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
-interface SettingsClientProps {
-  user: User
-}
-
-export default function SettingsClient({ user }: SettingsClientProps) {
+export default function SettingsClient() {
+  const router = useRouter()
+  const supabase = createClient()
   const [activeTab, setActiveTab] = useState<'account' | 'password' | 'notifications'>('account')
+  const [user, setUser] = useState<User | null>(null)
+
+  // Get user on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUser(user)
+      else router.push('/login')
+    })
+  }, [router, supabase])
+
+  if (!user) {
+    return (
+      <div className="container-custom py-12">
+        <div className="py-12 text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+          <p className="mt-4 text-slate-600">Loading settings...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header user={user} />
-
-      {/* Main Content */}
-      <main className="container-custom py-8">
+    <div className="container-custom py-8">
         {/* Page Header */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-950">Settings</h2>
@@ -66,7 +81,6 @@ export default function SettingsClient({ user }: SettingsClientProps) {
           {activeTab === 'password' && <PasswordTab />}
           {activeTab === 'notifications' && <NotificationsTab user={user} />}
         </div>
-      </main>
     </div>
   )
 }
@@ -74,9 +88,7 @@ export default function SettingsClient({ user }: SettingsClientProps) {
 // Account Tab Component
 function AccountTab({ user }: { user: User }) {
   const [email, setEmail] = useState(user.email || '')
-  const [phoneNumber, setPhoneNumber] = useState(
-    (user.user_metadata?.phone_number as string) || ''
-  )
+  const [phoneNumber, setPhoneNumber] = useState((user.user_metadata?.phone_number as string) || '')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -144,10 +156,29 @@ function AccountTab({ user }: { user: User }) {
     const supabase = createClient()
 
     try {
-      // Delete user data (backend should handle cascade)
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
+      // Get session token for API call
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      if (deleteError) throw deleteError
+      if (!session) {
+        throw new Error('No active session')
+      }
+
+      // Call backend API to delete account (requires service role)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to delete account')
+      }
 
       // Sign out and redirect
       await supabase.auth.signOut()
@@ -196,16 +227,10 @@ function AccountTab({ user }: { user: User }) {
             <label htmlFor="phoneNumber" className="mb-2 block text-sm font-medium text-slate-950">
               Phone Number
             </label>
-            <input
-              id="phoneNumber"
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-              placeholder="+1 (555) 123-4567"
-            />
-            <p className="mt-1 text-xs text-slate-600">Used for SMS alert notifications</p>
+            <PhoneInput value={phoneNumber} onChange={setPhoneNumber} required />
+            <p className="mt-1 text-xs text-slate-600">
+              Used for SMS alert notifications. Number saved in international format (E.164).
+            </p>
           </div>
 
           <div>
@@ -446,7 +471,7 @@ function PasswordTab() {
 }
 
 // Notifications Tab Component
-function NotificationsTab({ user }: { user: User }) {
+function NotificationsTab({ user: _user }: { user: User }) {
   const [enableSMS, setEnableSMS] = useState(true)
   const [enableNearMiss, setEnableNearMiss] = useState(true)
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)

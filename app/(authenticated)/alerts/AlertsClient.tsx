@@ -5,15 +5,13 @@ import Link from 'next/link'
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { AlertFilters } from '@/components/alerts/AlertFilters'
 import { useAlerts } from '@/hooks/useAlerts'
-import Header from '@/components/layout/Header'
-import type { User } from '@supabase/supabase-js'
 
 const INITIAL_LOAD = 20
 const LOAD_MORE_SIZE = 20
 
-export default function AlertsClient({ user }: { user: User }) {
+export default function AlertsClient() {
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD)
-  const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'mycomicshop'>('all')
+  const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'comiclink'>('all')
   const [matchType, setMatchType] = useState<'all' | 'direct_match' | 'near_miss'>('all')
 
   const { alerts, pagination, isLoading } = useAlerts({
@@ -24,7 +22,7 @@ export default function AlertsClient({ user }: { user: User }) {
   })
 
   // Reset loaded count when filters change
-  const handlePlatformChange = (newPlatform: 'all' | 'ebay' | 'heritage' | 'mycomicshop') => {
+  const handlePlatformChange = (newPlatform: 'all' | 'ebay' | 'heritage' | 'comiclink') => {
     setPlatform(newPlatform)
     setLoadedCount(INITIAL_LOAD)
   }
@@ -44,41 +42,24 @@ export default function AlertsClient({ user }: { user: User }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <Header user={user} />
-
-        {/* Loading State */}
-        <main className="container-custom py-12">
-          <div className="py-12 text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-            <p className="mt-4 text-slate-600">Loading alerts...</p>
-          </div>
-        </main>
+      <div className="container-custom py-12">
+        <div className="py-12 text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+          <p className="mt-4 text-slate-600">Loading alerts...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header user={user} />
-
-      {/* Main Content */}
-      <main className="container-custom py-12">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h2 className="mb-2 text-3xl font-bold">All Alerts</h2>
-            <p className="text-slate-600">
-              {totalAlerts > 0
-                ? `Showing ${displayedCount} of ${totalAlerts} ${totalAlerts === 1 ? 'alert' : 'alerts'}`
-                : 'Your grail discoveries'}
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="rounded-md border-2 border-collector-blue px-4 py-2 text-sm font-semibold text-collector-blue transition-colors hover:bg-blue-50"
-          >
-            ← Back to Dashboard
-          </Link>
+    <div className="container-custom py-12">
+        <div className="mb-8">
+          <h2 className="mb-2 text-3xl font-bold">All Alerts</h2>
+          <p className="text-slate-600">
+            {totalAlerts > 0
+              ? `Showing ${displayedCount} of ${totalAlerts} ${totalAlerts === 1 ? 'alert' : 'alerts'}`
+              : 'Your grail discoveries'}
+          </p>
         </div>
 
         {/* Filter Controls */}
@@ -143,7 +124,6 @@ export default function AlertsClient({ user }: { user: User }) {
             </button>
           </div>
         )}
-      </main>
     </div>
   )
 }

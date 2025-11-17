@@ -1,9 +1,9 @@
 'use client'
 
 interface AlertFiltersProps {
-  platform: 'all' | 'ebay' | 'heritage' | 'mycomicshop'
+  platform: 'all' | 'ebay' | 'heritage' | 'comiclink'
   matchType: 'all' | 'direct_match' | 'near_miss'
-  onPlatformChange: (platform: 'all' | 'ebay' | 'heritage' | 'mycomicshop') => void
+  onPlatformChange: (platform: 'all' | 'ebay' | 'heritage' | 'comiclink') => void
   onMatchTypeChange: (matchType: 'all' | 'direct_match' | 'near_miss') => void
 }
 
@@ -29,14 +29,14 @@ export function AlertFilters({
             id="platform-filter"
             value={platform}
             onChange={(e) =>
-              onPlatformChange(e.target.value as 'all' | 'ebay' | 'heritage' | 'mycomicshop')
+              onPlatformChange(e.target.value as 'all' | 'ebay' | 'heritage' | 'comiclink')
             }
             className="w-full rounded-md border-2 border-slate-300 px-4 py-2 pr-10 text-sm outline-none transition-colors focus:border-collector-blue focus:ring-2 focus:ring-collector-blue/20 sm:w-auto"
           >
             <option value="all">All Platforms</option>
             <option value="ebay">eBay</option>
             <option value="heritage">Heritage (Coming Q1 2026)</option>
-            <option value="mycomicshop">MyComicShop (Coming Q1 2026)</option>
+            <option value="comiclink">ComicLink (Coming Q1 2026)</option>
           </select>
         </div>
 

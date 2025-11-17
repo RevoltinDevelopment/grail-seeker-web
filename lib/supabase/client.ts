@@ -1,20 +1,17 @@
 import { createBrowserClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
-
-// Singleton instance to prevent multiple client creations
-let client: SupabaseClient | undefined
 
 export function createClient() {
-  // Return existing client if already created
-  if (client) {
-    return client
+  // Validate environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+    )
   }
 
-  // Create new client only if it doesn't exist
-  client = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  return client
+  // Create and return client - no singleton needed for browser client
+  // @supabase/ssr handles caching internally
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
