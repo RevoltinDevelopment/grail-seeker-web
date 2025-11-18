@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-import type { User } from '@supabase/supabase-js'
-
 import { PhoneInput } from '@/components/ui/PhoneInput'
 import { createClient } from '@/lib/supabase/client'
+
+import type { User } from '@supabase/supabase-js'
 
 export default function SettingsClient() {
   const router = useRouter()
