@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PhoneInput } from '@/components/ui/PhoneInput'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
+
+import { PhoneInput } from '@/components/ui/PhoneInput'
+import { createClient } from '@/lib/supabase/client'
 
 export default function SettingsClient() {
   const router = useRouter()
