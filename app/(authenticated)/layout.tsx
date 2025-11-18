@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-
 import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
 import { createClient } from '@/lib/supabase/server'
