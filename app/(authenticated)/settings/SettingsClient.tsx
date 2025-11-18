@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+
 import type { User } from '@supabase/supabase-js'
 
 import { PhoneInput } from '@/components/ui/PhoneInput'
