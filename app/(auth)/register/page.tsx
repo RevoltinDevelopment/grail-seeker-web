@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [agreedToSmsConsent, setAgreedToSmsConsent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -23,6 +24,12 @@ export default function RegisterPage() {
 
     if (!agreedToTerms) {
       setError('You must agree to the Terms of Service')
+      setLoading(false)
+      return
+    }
+
+    if (!agreedToSmsConsent) {
+      setError('You must agree to receive SMS notifications')
       setLoading(false)
       return
     }
@@ -208,6 +215,21 @@ export default function RegisterPage() {
 
               <div className="flex items-start">
                 <input
+                  id="sms-consent"
+                  type="checkbox"
+                  checked={agreedToSmsConsent}
+                  onChange={(e) => setAgreedToSmsConsent(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                />
+                <label htmlFor="sms-consent" className="ml-2 text-sm text-slate-700">
+                  I agree to receive text messages from{' '}
+                  <strong>Grail Seeker IO, LLC</strong> with alerts when my grail comics are
+                  found. Message frequency varies. Reply STOP to opt out.
+                </label>
+              </div>
+
+              <div className="flex items-start">
+                <input
                   id="terms"
                   type="checkbox"
                   checked={agreedToTerms}
@@ -224,7 +246,7 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={loading || !agreedToTerms}
+                disabled={loading || !agreedToTerms || !agreedToSmsConsent}
                 className="w-full rounded-md bg-collector-blue py-3 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? 'Creating account...' : 'Sign Up'}
