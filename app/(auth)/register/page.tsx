@@ -246,7 +246,15 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={loading || !agreedToTerms || !agreedToSmsConsent}
+                disabled={
+                  loading ||
+                  !email ||
+                  !password ||
+                  password.length < 8 ||
+                  !phoneNumber ||
+                  !agreedToTerms ||
+                  !agreedToSmsConsent
+                }
                 className="w-full rounded-md bg-collector-blue py-3 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? 'Creating account...' : 'Sign Up'}

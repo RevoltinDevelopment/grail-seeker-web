@@ -101,13 +101,6 @@ export function PhoneInput({ value, onChange, required, className }: PhoneInputP
     }
   }, [countryCode, nationalNumber, value, onChange])
 
-  // Update local state when external value changes
-  useEffect(() => {
-    const { countryCode: newCode, nationalNumber: newNumber } = parseE164(value)
-    if (newCode !== countryCode) setCountryCode(newCode)
-    if (newNumber !== nationalNumber) setNationalNumber(newNumber)
-  }, [value, countryCode, nationalNumber])
-
   const handleNationalNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNationalNumber(e.target.value)
   }
