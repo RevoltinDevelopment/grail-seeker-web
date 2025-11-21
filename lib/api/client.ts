@@ -8,7 +8,12 @@ function getAPIBaseURL(): string {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
   }
 
-  // Client-side: detect hostname and use same IP with port 3000
+  // Client-side: If we have an environment variable, use it (production/staging)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+
+  // Client-side development: detect hostname and use same IP with port 3000
   const hostname = window.location.hostname
 
   // If localhost, use localhost:3000
@@ -16,7 +21,7 @@ function getAPIBaseURL(): string {
     return 'http://localhost:3000'
   }
 
-  // Otherwise, use same IP as frontend but port 3000 (for mobile/network access)
+  // Otherwise, use same IP as frontend but port 3000 (for mobile/network access on local network)
   return `http://${hostname}:3000`
 }
 
