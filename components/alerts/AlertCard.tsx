@@ -1,5 +1,5 @@
-import type { Alert } from '@/types/alert.types'
 import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
+import type { Alert } from '@/types/alert.types'
 
 interface AlertCardProps {
   alert: Alert
