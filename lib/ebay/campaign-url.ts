@@ -36,17 +36,17 @@ export function buildEbayCampaignUrl(
   // See: https://partnernetwork.ebay.com/tools
   const roverBaseUrl = 'https://rover.ebay.com/rover/1/711-53200-19255-0/1'
 
-  // Build query parameters
-  const params = new URLSearchParams({
-    ff3: '4', // eBay Rover version
-    pub: campaign, // Publisher/Campaign ID
-    toolid: '10001', // Tool ID (standard for links)
-    campid: campaign, // Campaign ID
-    customid: '', // Optional custom tracking parameter
-    mpre: itemUrl, // Target URL (eBay item page)
-  })
+  // Build query parameters manually to avoid double-encoding the mpre URL
+  const params = [
+    'ff3=4',
+    `pub=${campaign}`,
+    'toolid=10001',
+    `campid=${campaign}`,
+    'customid=',
+    `mpre=${itemUrl}`, // Don't encode - eBay Rover expects unencoded URL
+  ].join('&')
 
-  return `${roverBaseUrl}?${params.toString()}`
+  return `${roverBaseUrl}?${params}`
 }
 
 /**
@@ -73,14 +73,15 @@ export function buildEbaySearchUrl(
   const searchUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`
   const roverBaseUrl = 'https://rover.ebay.com/rover/1/711-53200-19255-0/1'
 
-  const params = new URLSearchParams({
-    ff3: '4',
-    pub: campaign,
-    toolid: '10001',
-    campid: campaign,
-    customid: '',
-    mpre: searchUrl,
-  })
+  // Build query parameters manually to avoid double-encoding the mpre URL
+  const params = [
+    'ff3=4',
+    `pub=${campaign}`,
+    'toolid=10001',
+    `campid=${campaign}`,
+    'customid=',
+    `mpre=${searchUrl}`,
+  ].join('&')
 
-  return `${roverBaseUrl}?${params.toString()}`
+  return `${roverBaseUrl}?${params}`
 }
