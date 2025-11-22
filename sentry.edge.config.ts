@@ -2,8 +2,6 @@ import * as Sentry from '@sentry/nextjs'
 
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN
 
-// Temporarily disabled for Edge Runtime compatibility
-// Will re-enable after resolving Supabase + Sentry Edge conflict
 Sentry.init({
   dsn: SENTRY_DSN,
 
@@ -16,6 +14,6 @@ Sentry.init({
   // Environment
   environment: process.env.NODE_ENV,
 
-  // Disabled temporarily for Edge Runtime compatibility
-  enabled: false, // Changed from: process.env.NODE_ENV === 'production'
+  // Only enable in production
+  enabled: process.env.NODE_ENV === 'production',
 })
