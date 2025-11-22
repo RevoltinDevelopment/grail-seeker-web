@@ -29,24 +29,16 @@ export function buildEbayCampaignUrl(
     return `https://www.ebay.com/itm/${itemId}`
   }
 
-  // eBay item URL
+  // Use eBay Partner Network link with proper mkevt parameter
+  // Format based on eBay's current affiliate link structure
   const itemUrl = `https://www.ebay.com/itm/${itemId}`
 
-  // eBay Rover URL for US site (711)
-  // See: https://partnernetwork.ebay.com/tools
-  const roverBaseUrl = 'https://rover.ebay.com/rover/1/711-53200-19255-0/1'
-
-  // Build query parameters manually to avoid double-encoding the mpre URL
-  const params = [
-    'ff3=4',
-    `pub=${campaign}`,
-    'toolid=10001',
-    `campid=${campaign}`,
-    'customid=',
-    `mpre=${itemUrl}`, // Don't encode - eBay Rover expects unencoded URL
-  ].join('&')
-
-  return `${roverBaseUrl}?${params}`
+  // Add EPN tracking parameters to direct item URL
+  // mkcid=1 means "affiliate link"
+  // mkrid is the market/routing ID for US (711-53200-19255-0)
+  // campid is your campaign ID
+  // mkevt=1 means "item page view"
+  return `${itemUrl}?mkcid=1&mkrid=711-53200-19255-0&siteid=0&campid=${campaign}&customid=&toolid=10001&mkevt=1`
 }
 
 /**
