@@ -16,6 +16,7 @@ export interface Alert {
     gradingAuthority: string | null
     url: string | null
     platform: string
+    ebayItemId: string | null
   }
   isDirectMatch: boolean
   notificationSent: boolean

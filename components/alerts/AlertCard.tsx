@@ -1,10 +1,17 @@
 import type { Alert } from '@/types/alert.types'
+import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
 
 interface AlertCardProps {
   alert: Alert
 }
 
 export function AlertCard({ alert }: AlertCardProps) {
+  // Build eBay campaign tracking URL if we have an eBay item ID
+  const listingUrl =
+    alert.listing.platform === 'ebay' && alert.listing.ebayItemId
+      ? buildEbayCampaignUrl(alert.listing.ebayItemId)
+      : alert.listing.url
+
   return (
     <div
       className={`rounded-lg border border-l-4 border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md ${
@@ -79,14 +86,14 @@ export function AlertCard({ alert }: AlertCardProps) {
           </div>
         </div>
 
-        {alert.listing.url && (
+        {listingUrl && (
           <a
-            href={alert.listing.url}
+            href={listingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="whitespace-nowrap rounded-md bg-collector-blue px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-800 sm:ml-4"
           >
-            View Listing →
+            View on eBay →
           </a>
         )}
       </div>
