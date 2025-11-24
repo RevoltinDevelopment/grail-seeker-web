@@ -213,19 +213,35 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <div className="flex items-start">
-                <input
-                  id="sms-consent"
-                  type="checkbox"
-                  checked={agreedToSmsConsent}
-                  onChange={(e) => setAgreedToSmsConsent(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
-                />
-                <label htmlFor="sms-consent" className="ml-2 text-sm text-slate-700">
-                  I agree to receive text messages from{' '}
-                  <strong>Grail Seeker IO, LLC</strong> with alerts when my grail comics are
-                  found. Message frequency varies. Reply STOP to opt out.
-                </label>
+              {/* SMS Consent - Required for Twilio Compliance */}
+              <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start">
+                  <input
+                    id="sms-consent"
+                    type="checkbox"
+                    checked={agreedToSmsConsent}
+                    onChange={(e) => setAgreedToSmsConsent(e.target.checked)}
+                    className="mt-1 h-5 w-5 flex-shrink-0 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                    required
+                  />
+                  <label htmlFor="sms-consent" className="ml-3 text-sm text-slate-800 leading-relaxed">
+                    I agree to receive SMS notifications from Grail Seeker when my saved searches
+                    match available items. By checking this box, I provide{' '}
+                    <strong className="font-semibold text-slate-900">express written consent</strong>{' '}
+                    to receive automated text messages at the phone number provided. Message frequency
+                    varies based on search activity (average 1-5 messages per week). Message and data
+                    rates may apply. Reply STOP to opt-out at any time. Reply HELP for assistance.
+                  </label>
+                </div>
+                <div className="mt-2 ml-8 text-xs text-slate-600">
+                  <Link href="/privacy" className="text-collector-blue hover:underline">
+                    Privacy Policy
+                  </Link>
+                  {' | '}
+                  <Link href="/terms" className="text-collector-blue hover:underline">
+                    Terms of Service
+                  </Link>
+                </div>
               </div>
 
               <div className="flex items-start">
