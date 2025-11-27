@@ -225,12 +225,17 @@ export default function RegisterPage() {
                     required
                   />
                   <label htmlFor="sms-consent" className="ml-3 text-sm text-slate-800 leading-relaxed">
-                    I agree to receive SMS notifications from Grail Seeker when my saved searches
-                    match available items. By checking this box, I provide{' '}
+                    I agree to subscribe to Grail Seeker's{' '}
+                    <strong className="font-semibold text-slate-900">SMS delivery service</strong>. This service
+                    delivers search results{' '}
+                    <strong className="font-semibold text-slate-900">exclusively via SMS text messages</strong>{' '}
+                    to the phone number provided. By checking this box, I provide{' '}
                     <strong className="font-semibold text-slate-900">express written consent</strong>{' '}
-                    to receive automated text messages at the phone number provided. Message frequency
-                    varies based on search activity (average 1-5 messages per week). Message and data
-                    rates may apply. Reply STOP to opt-out at any time. Reply HELP for assistance.
+                    to receive automated text message deliveries from Grail Seeker IO, LLC.
+                    <br /><br />
+                    Service delivery frequency varies based on marketplace activity (average 1-5 deliveries
+                    per week). Message and data rates may apply. Reply STOP to cancel service at any time.
+                    Reply HELP for assistance.
                   </label>
                 </div>
                 <div className="mt-2 ml-8 text-xs text-slate-600">
