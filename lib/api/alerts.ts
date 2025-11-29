@@ -6,6 +6,7 @@ export interface AlertFilters {
   offset?: number
   platform?: 'ebay' | 'heritage' | 'comiclink' | 'all'
   matchType?: 'direct_match' | 'near_miss' | 'all'
+  searchId?: string
 }
 
 export const alertsAPI = {
@@ -23,6 +24,9 @@ export const alertsAPI = {
     }
     if (params?.matchType && params.matchType !== 'all') {
       queryParams.append('matchType', params.matchType)
+    }
+    if (params?.searchId) {
+      queryParams.append('searchId', params.searchId)
     }
     const queryString = queryParams.toString()
     const url = queryString ? `/api/alerts?${queryString}` : '/api/alerts'
