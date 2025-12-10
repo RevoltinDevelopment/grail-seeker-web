@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+
 import { PhoneInput } from '@/components/ui/PhoneInput'
+import { APIError } from '@/lib/api/client'
+import { getUserPreferences, sendTestSms, updateUserPreferences } from '@/lib/api/user'
 import { createClient } from '@/lib/supabase/client'
+
 import type { User } from '@supabase/supabase-js'
 
 export default function SettingsClient() {
@@ -33,54 +37,54 @@ export default function SettingsClient() {
 
   return (
     <div className="container-custom py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-950">Settings</h2>
-          <p className="mt-2 text-slate-600">Manage your account and preferences</p>
-        </div>
+      {/* Page Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-950">Settings</h2>
+        <p className="mt-2 text-slate-600">Manage your account and preferences</p>
+      </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('account')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'account'
-                  ? 'border-collector-blue text-collector-blue'
-                  : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-              }`}
-            >
-              Account
-            </button>
-            <button
-              onClick={() => setActiveTab('password')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'password'
-                  ? 'border-collector-blue text-collector-blue'
-                  : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-              }`}
-            >
-              Password
-            </button>
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                activeTab === 'notifications'
-                  ? 'border-collector-blue text-collector-blue'
-                  : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-              }`}
-            >
-              Notifications
-            </button>
-          </nav>
-        </div>
+      {/* Tabs */}
+      <div className="mb-6 border-b border-slate-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('account')}
+            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'account'
+                ? 'border-collector-blue text-collector-blue'
+                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
+            }`}
+          >
+            Account
+          </button>
+          <button
+            onClick={() => setActiveTab('password')}
+            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'password'
+                ? 'border-collector-blue text-collector-blue'
+                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
+            }`}
+          >
+            Password
+          </button>
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'notifications'
+                ? 'border-collector-blue text-collector-blue'
+                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
+            }`}
+          >
+            Notifications
+          </button>
+        </nav>
+      </div>
 
-        {/* Tab Content */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          {activeTab === 'account' && <AccountTab user={user} />}
-          {activeTab === 'password' && <PasswordTab />}
-          {activeTab === 'notifications' && <NotificationsTab user={user} />}
-        </div>
+      {/* Tab Content */}
+      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        {activeTab === 'account' && <AccountTab user={user} />}
+        {activeTab === 'password' && <PasswordTab />}
+        {activeTab === 'notifications' && <NotificationsTab user={user} key={activeTab} />}
+      </div>
     </div>
   )
 }
@@ -471,15 +475,69 @@ function PasswordTab() {
 }
 
 // Notifications Tab Component
-function NotificationsTab({ user: _user }: { user: User }) {
+function NotificationsTab({ user }: { user: User }) {
   const [enableSMS, setEnableSMS] = useState(true)
   const [enableNearMiss, setEnableNearMiss] = useState(true)
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
   const [quietHoursStart, setQuietHoursStart] = useState('22:00')
   const [quietHoursEnd, setQuietHoursEnd] = useState('08:00')
+  const [smsConsentGiven, setSmsConsentGiven] = useState(false)
+  const [smsConsentTimestamp, setSmsConsentTimestamp] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingPreferences, setLoadingPreferences] = useState(true)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [testSmsLoading, setTestSmsLoading] = useState(false)
+
+  // Load preferences from API on mount
+  useEffect(() => {
+    async function loadPreferences() {
+      try {
+        const prefs = await getUserPreferences()
+        setEnableSMS(prefs.smsNotificationsEnabled)
+        setEnableNearMiss(prefs.nearMissEnabled)
+        setQuietHoursEnabled(prefs.quietHoursEnabled)
+        setQuietHoursStart(prefs.quietHoursStart.slice(0, 5)) // Convert "22:00:00" to "22:00"
+        setQuietHoursEnd(prefs.quietHoursEnd.slice(0, 5)) // Convert "08:00:00" to "08:00"
+        setSmsConsentGiven(prefs.smsConsentGiven || false)
+        setSmsConsentTimestamp(prefs.smsConsentTimestamp || null)
+      } catch (err) {
+        console.error('Failed to load preferences:', err)
+        // Use defaults if loading fails
+      } finally {
+        setLoadingPreferences(false)
+      }
+    }
+    loadPreferences()
+  }, [])
+
+  const handleTestSms = async () => {
+    setTestSmsLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await sendTestSms()
+      setSuccess(`✅ Test SMS sent! Check your phone (${response.phoneNumber})`)
+    } catch (err) {
+      if (err instanceof APIError) {
+        // Handle specific error codes
+        if (err.code === 'SERVICE_DISABLED') {
+          setError('SMS notifications are temporarily disabled. Please try again later.')
+        } else if (err.code === 'NO_PHONE_NUMBER') {
+          setError('Please add a phone number to your account first.')
+        } else if (err.code === 'SMS_DELIVERY_FAILED') {
+          setError(`SMS delivery failed: ${err.message}`)
+        } else {
+          setError(err.message || 'Failed to send test SMS')
+        }
+      } else {
+        setError('Network error. Please check your connection and try again.')
+      }
+    } finally {
+      setTestSmsLoading(false)
+    }
+  }
 
   const handleSaveNotifications = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -487,30 +545,34 @@ function NotificationsTab({ user: _user }: { user: User }) {
     setError(null)
     setSuccess(null)
 
-    const supabase = createClient()
-
     try {
-      // Store in user metadata for now (until backend supports notification preferences)
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          sms_enabled: enableSMS,
-          near_miss_enabled: enableNearMiss,
-          quiet_hours_enabled: quietHoursEnabled,
-          quiet_hours_start: quietHoursStart,
-          quiet_hours_end: quietHoursEnd,
-        },
+      await updateUserPreferences({
+        smsNotificationsEnabled: enableSMS,
+        nearMissEnabled: enableNearMiss,
+        quietHoursEnabled: quietHoursEnabled,
+        quietHoursStart: quietHoursStart + ':00', // Convert "22:00" to "22:00:00"
+        quietHoursEnd: quietHoursEnd + ':00', // Convert "08:00" to "08:00:00"
       })
 
-      if (updateError) throw updateError
-
       setSuccess('Notification preferences saved!')
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to save notification preferences'
-      setError(errorMessage)
+    } catch (err) {
+      if (err instanceof APIError) {
+        setError(err.message || 'Failed to save notification preferences')
+      } else {
+        setError('Network error. Please check your connection and try again.')
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loadingPreferences) {
+    return (
+      <div className="py-8 text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+        <p className="mt-2 text-sm text-slate-600">Loading preferences...</p>
+      </div>
+    )
   }
 
   return (
@@ -546,6 +608,112 @@ function NotificationsTab({ user: _user }: { user: User }) {
             <div className="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-collector-blue peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
           </label>
         </div>
+
+        {/* Test SMS Button */}
+        <div className="ml-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <div className="mb-3">
+            <p className="text-sm text-slate-700">
+              {user.user_metadata?.phone_number ? (
+                <>
+                  Phone number on file:{' '}
+                  <span className="font-medium">{user.user_metadata.phone_number as string}</span>
+                </>
+              ) : (
+                <span className="text-error-red">
+                  No phone number on file. Please add one in Account settings.
+                </span>
+              )}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Send a test message to verify your phone number is configured correctly.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleTestSms}
+            disabled={testSmsLoading || !user.user_metadata?.phone_number}
+            className="inline-flex items-center rounded-md border border-collector-blue bg-white px-4 py-2 text-sm font-semibold text-collector-blue transition-colors hover:bg-collector-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {testSmsLoading ? (
+              <>
+                <svg
+                  className="mr-2 h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Sending...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                Send Test SMS
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* SMS Consent Status (Read-Only) */}
+        {smsConsentGiven && smsConsentTimestamp && (
+          <div className="ml-4 rounded-md border border-green-200 bg-green-50 p-4">
+            <div className="flex items-start">
+              <svg
+                className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-green-900">SMS Consent Verified</p>
+                <p className="mt-1 text-xs text-green-700">
+                  You gave express written consent to receive SMS notifications on{' '}
+                  {new Date(smsConsentTimestamp).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                  })}
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Near Miss Notifications */}
         <div className="flex items-start justify-between">
