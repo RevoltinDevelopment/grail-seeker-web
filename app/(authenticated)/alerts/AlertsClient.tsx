@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { AlertFilters } from '@/components/alerts/AlertFilters'
 import { useAlerts } from '@/hooks/useAlerts'
