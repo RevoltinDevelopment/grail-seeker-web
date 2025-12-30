@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
-import { alertsAPI } from '@/lib/api/alerts'
-import { useToast } from '@/contexts/ToastContext'
 import type { Alert } from '@/types/alert.types'
+import { useToast } from '@/contexts/ToastContext'
+import { alertsAPI } from '@/lib/api/alerts'
+import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
 
 interface AlertCardProps {
   alert: Alert
@@ -25,7 +25,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
       showToast('Alert Dismissed', 'Alert moved to archive', 'success', 3000)
       setShowMenu(false)
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       showToast('Error', error.message || 'Failed to archive alert', 'error', 5000)
     },
   })
@@ -92,20 +92,18 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
           </div>
 
           {/* Archive Badge (Archived Alerts Only) */}
-          {isArchived && (alert as any).archivedAt && (
+          {isArchived && alert.archivedAt && (
             <div className="mb-3 text-sm text-slate-500">
               <span className="font-medium">Archived:</span>{' '}
-              {new Date((alert as any).archivedAt).toLocaleDateString('en-US', {
+              {new Date(alert.archivedAt).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
               })}
-              {(alert as any).archiveReason && (
+              {alert.archiveReason && (
                 <span>
                   {' • '}
-                  <span className="capitalize">
-                    {((alert as any).archiveReason as string).replace(/_/g, ' ')}
-                  </span>
+                  <span className="capitalize">{alert.archiveReason.replace(/_/g, ' ')}</span>
                 </span>
               )}
             </div>

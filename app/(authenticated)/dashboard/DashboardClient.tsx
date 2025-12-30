@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { useToast } from '@/contexts/ToastContext'
-import { useAlerts } from '@/hooks/useAlerts'
 import { useAlertStats } from '@/hooks/useAlertStats'
+import { useAlerts } from '@/hooks/useAlerts'
 import { useSearches } from '@/hooks/useSearches'
 
 export default function DashboardClient() {

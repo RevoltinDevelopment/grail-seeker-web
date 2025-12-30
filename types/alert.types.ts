@@ -22,6 +22,10 @@ export interface Alert {
   notificationSent: boolean
   notificationSentAt: string | null
   createdAt: string
+  // Archive system fields
+  listingStatus?: string
+  archivedAt?: string | null
+  archiveReason?: string | null
 }
 
 export interface AlertListResponse {
