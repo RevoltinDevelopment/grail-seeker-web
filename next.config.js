@@ -55,17 +55,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['date-fns'],
   },
-
-  // Webpack configuration to handle Supabase in Edge Runtime
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push({
-        '@supabase/supabase-js': '@supabase/supabase-js',
-      })
-    }
-    return config
-  },
 }
 
 // Sentry configuration options
