@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { AlertFilters } from '@/components/alerts/AlertFilters'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -10,10 +9,7 @@ import { useAlerts } from '@/hooks/useAlerts'
 const INITIAL_LOAD = 20
 const LOAD_MORE_SIZE = 20
 
-export default function AlertsClient() {
-  const searchParams = useSearchParams()
-  const searchId = searchParams.get('search')
-
+export default function ArchiveClient() {
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD)
   const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'comiclink'>('all')
   const [matchType, setMatchType] = useState<'all' | 'direct_match' | 'near_miss'>('all')
@@ -23,8 +19,7 @@ export default function AlertsClient() {
     offset: 0,
     platform,
     matchType,
-    searchId: searchId || undefined,
-    status: 'active', // Archive system: Show only active alerts
+    status: 'archived', // Archive system: Show only archived alerts
   })
 
   // Reset loaded count when filters change
@@ -51,7 +46,7 @@ export default function AlertsClient() {
       <div className="container-custom py-12">
         <div className="py-12 text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-          <p className="mt-4 text-slate-600">Loading alerts...</p>
+          <p className="mt-4 text-slate-600">Loading archive...</p>
         </div>
       </div>
     )
@@ -61,37 +56,20 @@ export default function AlertsClient() {
     <div className="container-custom py-12">
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h2 className="mb-2 text-3xl font-bold">Active Alerts</h2>
+          <h2 className="mb-2 text-3xl font-bold">Alerts Archive</h2>
           <p className="text-slate-600">
             {totalAlerts > 0
-              ? `Showing ${displayedCount} of ${totalAlerts} active ${totalAlerts === 1 ? 'alert' : 'alerts'}`
-              : 'Your current grail discoveries'}
+              ? `Your historical finds - ${totalAlerts} archived ${totalAlerts === 1 ? 'alert' : 'alerts'}`
+              : 'No archived alerts yet'}
           </p>
         </div>
         <Link
-          href="/alerts/archive"
+          href="/alerts"
           className="text-sm font-medium text-collector-blue hover:underline"
         >
-          View Archive →
+          ← Back to Active
         </Link>
       </div>
-
-      {/* Search Filter Banner */}
-      {searchId && (
-        <div className="mb-6 rounded-md border-2 border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-blue-800">
-              Showing results for a specific search.{' '}
-            </p>
-            <Link
-              href="/alerts"
-              className="rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-            >
-              View all alerts
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Filter Controls */}
       <AlertFilters
@@ -104,17 +82,17 @@ export default function AlertsClient() {
       {/* Empty State */}
       {alerts.length === 0 && !isLoading && (
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <div className="mb-4 text-5xl">🔔</div>
-          <h3 className="mb-2 text-xl font-semibold">No alerts yet</h3>
+          <div className="mb-4 text-5xl">📦</div>
+          <h3 className="mb-2 text-xl font-semibold">No archived alerts</h3>
           <p className="mx-auto mb-6 max-w-md text-slate-600">
-            We're monitoring eBay for your grails. You'll be notified via SMS the moment we find
-            one.
+            Alerts are automatically archived when listings expire or when you dismiss them. Your
+            archive will show the history of all your discoveries.
           </p>
           <Link
-            href="/searches/new"
+            href="/alerts"
             className="inline-block rounded-md border-2 border-collector-blue px-6 py-3 font-semibold text-collector-blue transition-colors hover:bg-blue-50"
           >
-            Create Search →
+            View Active Alerts →
           </Link>
         </div>
       )}
@@ -123,7 +101,7 @@ export default function AlertsClient() {
       {alerts.length > 0 && (
         <div className="space-y-4">
           {alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} />
+            <AlertCard key={alert.id} alert={alert} isArchived={true} />
           ))}
         </div>
       )}
@@ -139,7 +117,7 @@ export default function AlertsClient() {
             {isLoading ? 'Loading...' : `Load ${LOAD_MORE_SIZE} More Alerts ↓`}
           </button>
           <p className="text-sm text-slate-600">
-            Showing {displayedCount} of {totalAlerts} alerts
+            Showing {displayedCount} of {totalAlerts} archived alerts
           </p>
         </div>
       )}
