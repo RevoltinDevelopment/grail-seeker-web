@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Alert } from '@/types/alert.types'
 import { useToast } from '@/contexts/ToastContext'
 import { alertsAPI } from '@/lib/api/alerts'
 import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
+
+import type { Alert } from '@/types/alert.types'
 
 interface AlertCardProps {
   alert: Alert

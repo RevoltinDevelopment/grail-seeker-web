@@ -53,7 +53,18 @@ const nextConfig = {
 
   // Experimental features for performance
   experimental: {
-    optimizePackageImports: ['@supabase/supabase-js', 'date-fns'],
+    optimizePackageImports: ['date-fns'],
+  },
+
+  // Webpack configuration to handle Supabase in Edge Runtime
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push({
+        '@supabase/supabase-js': '@supabase/supabase-js',
+      })
+    }
+    return config
   },
 }
 
