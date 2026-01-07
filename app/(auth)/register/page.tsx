@@ -91,7 +91,7 @@ export default function RegisterPage() {
         await updateUserPreferences({
           smsConsentGiven: true,
         })
-        console.log('✅ SMS consent recorded with timestamp and IP address')
+        // SMS consent recorded successfully
       } catch (consentError) {
         // Don't block registration if consent recording fails - log it
         console.error('⚠️ Failed to record SMS consent (non-blocking):', consentError)

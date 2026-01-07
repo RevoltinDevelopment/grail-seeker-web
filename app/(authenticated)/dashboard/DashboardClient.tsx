@@ -5,10 +5,10 @@ import Link from 'next/link'
 
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { useToast } from '@/contexts/ToastContext'
-import { formatSeriesShort } from '@/lib/utils/series-formatter'
 import { useAlertStats } from '@/hooks/useAlertStats'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useSearches } from '@/hooks/useSearches'
+import { formatSeriesShort } from '@/lib/utils/series-formatter'
 
 export default function DashboardClient() {
   const { showToast } = useToast()

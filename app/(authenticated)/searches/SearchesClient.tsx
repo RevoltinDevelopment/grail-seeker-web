@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-import { formatSeriesShort } from '@/lib/utils/series-formatter'
 import { useSearches } from '@/hooks/useSearches'
+import { formatSeriesShort } from '@/lib/utils/series-formatter'
 
 export default function SearchesClient() {
   const { searches, isLoading, deleteSearch, updateSearchStatus } = useSearches()
