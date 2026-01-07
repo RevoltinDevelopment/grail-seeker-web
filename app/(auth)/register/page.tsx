@@ -35,9 +35,8 @@ export default function RegisterPage() {
     setError(null)
     setLoading(true)
 
-    // DEBUG: Show phone number in UI
     if (!phoneNumber || phoneNumber.trim() === '') {
-      setError(`DEBUG: Phone number is empty! Value: "${phoneNumber}"`)
+      setError('Phone number is required')
       setLoading(false)
       return
     }
@@ -56,30 +55,34 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
-    const { error, data } = await supabase.auth.signUp({
-      email,
-      password,
-      phone: phoneNumber,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    try {
+      // Step 1: Sign up with email + password only
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-    // DEBUG: Show what happened
-    if (data?.user?.phone === '' || !data?.user?.phone) {
-      setError(`DEBUG: Phone not saved! Sent: "${phoneNumber}", Received: "${data?.user?.phone || 'null'}"`)
-      setLoading(false)
-      return
-    }
+      if (signUpError) throw signUpError
+      if (!signUpData.user) throw new Error('No user returned from signup')
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      // Move to verification step
+      // Step 2: Add phone number (automatically triggers SMS with OTP)
+      const { error: updateError } = await supabase.auth.updateUser({
+        phone: phoneNumber,
+      })
+
+      if (updateError) throw updateError
+
+      // Phone added successfully, SMS sent automatically
       setStep('verify-phone')
       setLoading(false)
       startResendCountdown()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+      setError(errorMessage)
+      setLoading(false)
     }
   }
 
@@ -93,7 +96,7 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.verifyOtp({
       phone: phoneNumber,
       token: verificationCode,
-      type: 'sms',
+      type: 'phone_change', // CRITICAL: Use 'phone_change' for phone added via updateUser()
     })
 
     if (error) {
@@ -129,8 +132,10 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signInWithOtp({
+    // Resend OTP for phone change verification
+    const { error } = await supabase.auth.resend({
       phone: phoneNumber,
+      type: 'phone_change',
     })
 
     if (error) {

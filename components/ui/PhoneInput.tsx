@@ -47,29 +47,33 @@ interface PhoneInputProps {
 
 /**
  * Parse E.164 phone number into country code and national number
+ * Handles both "+16786126743" and "16786126743" formats
  */
 function parseE164(e164: string): { countryCode: string; nationalNumber: string } {
-  if (!e164 || !e164.startsWith('+')) {
+  if (!e164) {
     return { countryCode: '+1', nationalNumber: '' }
   }
+
+  // Add + prefix if missing (Supabase sometimes stores without it)
+  const normalized = e164.startsWith('+') ? e164 : `+${e164}`
 
   // Find matching country by dial code (longest match first)
   const sortedCountries = [...COUNTRIES].sort((a, b) => b.dialCode.length - a.dialCode.length)
 
   for (const country of sortedCountries) {
-    if (e164.startsWith(country.dialCode)) {
-      const nationalNumber = e164.slice(country.dialCode.length)
+    if (normalized.startsWith(country.dialCode)) {
+      const nationalNumber = normalized.slice(country.dialCode.length)
       return { countryCode: country.dialCode, nationalNumber }
     }
   }
 
   // Fallback: assume first 1-3 digits after + are country code
-  const match = e164.match(/^(\+\d{1,3})(.*)/)
+  const match = normalized.match(/^(\+\d{1,3})(.*)/)
   if (match) {
     return { countryCode: match[1], nationalNumber: match[2] }
   }
 
-  return { countryCode: '+1', nationalNumber: e164.slice(1) }
+  return { countryCode: '+1', nationalNumber: normalized.slice(1) }
 }
 
 /**
@@ -92,6 +96,17 @@ export function PhoneInput({ value, onChange, required, className }: PhoneInputP
 
   const [countryCode, setCountryCode] = useState(initialCountryCode)
   const [nationalNumber, setNationalNumber] = useState(initialNationalNumber)
+
+  // Sync internal state when value prop changes (e.g., when user data loads)
+  useEffect(() => {
+    const currentE164 = toE164(countryCode, nationalNumber)
+    // Only sync if value prop is different from our current constructed value
+    if (value && value !== currentE164) {
+      const parsed = parseE164(value)
+      setCountryCode(parsed.countryCode)
+      setNationalNumber(parsed.nationalNumber)
+    }
+  }, [value]) // Only depend on value prop
 
   // Update parent when either field changes
   useEffect(() => {
