@@ -31,22 +31,24 @@ export default function RegisterPage() {
   const [resendCountdown, setResendCountdown] = useState(0)
 
   const handleRegister = async (e: React.FormEvent) => {
-    console.log('🚀 handleRegister called')
     e.preventDefault()
     setError(null)
     setLoading(true)
 
-    console.log('📝 Form data:', { email, phoneNumber, hasPassword: !!password })
+    // DEBUG: Show phone number in UI
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      setError(`DEBUG: Phone number is empty! Value: "${phoneNumber}"`)
+      setLoading(false)
+      return
+    }
 
     if (!agreedToTerms) {
-      console.warn('❌ Terms not agreed')
       setError('You must agree to the Terms of Service')
       setLoading(false)
       return
     }
 
     if (!agreedToSmsConsent) {
-      console.warn('❌ SMS consent not given')
       setError('You must agree to receive SMS notifications')
       setLoading(false)
       return
@@ -54,23 +56,21 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
-    // Debug: Log what we're about to send
-    const signUpData = {
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       phone: phoneNumber,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
-    }
-    console.log('🔍 Attempting signUp with:', {
-      email,
-      phone: phoneNumber,
-      phoneLength: phoneNumber.length,
     })
 
-    const { error } = await supabase.auth.signUp(signUpData)
-    console.log('📬 signUp response:', { error: error?.message || 'none' })
+    // DEBUG: Show what happened
+    if (data?.user?.phone === '' || !data?.user?.phone) {
+      setError(`DEBUG: Phone not saved! Sent: "${phoneNumber}", Received: "${data?.user?.phone || 'null'}"`)
+      setLoading(false)
+      return
+    }
 
     if (error) {
       setError(error.message)
