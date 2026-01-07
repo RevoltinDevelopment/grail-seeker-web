@@ -31,17 +31,22 @@ export default function RegisterPage() {
   const [resendCountdown, setResendCountdown] = useState(0)
 
   const handleRegister = async (e: React.FormEvent) => {
+    console.log('🚀 handleRegister called')
     e.preventDefault()
     setError(null)
     setLoading(true)
 
+    console.log('📝 Form data:', { email, phoneNumber, hasPassword: !!password })
+
     if (!agreedToTerms) {
+      console.warn('❌ Terms not agreed')
       setError('You must agree to the Terms of Service')
       setLoading(false)
       return
     }
 
     if (!agreedToSmsConsent) {
+      console.warn('❌ SMS consent not given')
       setError('You must agree to receive SMS notifications')
       setLoading(false)
       return
@@ -65,6 +70,7 @@ export default function RegisterPage() {
     })
 
     const { error } = await supabase.auth.signUp(signUpData)
+    console.log('📬 signUp response:', { error: error?.message || 'none' })
 
     if (error) {
       setError(error.message)
