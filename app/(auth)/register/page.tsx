@@ -49,14 +49,22 @@ export default function RegisterPage() {
 
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signUp({
+    // Debug: Log what we're about to send
+    const signUpData = {
       email,
       password,
       phone: phoneNumber,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
+    }
+    console.log('🔍 Attempting signUp with:', {
+      email,
+      phone: phoneNumber,
+      phoneLength: phoneNumber.length,
     })
+
+    const { error } = await supabase.auth.signUp(signUpData)
 
     if (error) {
       setError(error.message)
