@@ -92,7 +92,7 @@ export default function SettingsClient() {
 // Account Tab Component
 function AccountTab({ user }: { user: User }) {
   const [email, setEmail] = useState(user.email || '')
-  const [phoneNumber, setPhoneNumber] = useState((user.user_metadata?.phone_number as string) || '')
+  const [phoneNumber, setPhoneNumber] = useState(user.phone || '')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -109,13 +109,13 @@ function AccountTab({ user }: { user: User }) {
       // Build updates object
       const updates: {
         email?: string
-        data?: { phone_number: string }
+        phone?: string
       } = {}
 
-      const currentPhone = user.user_metadata?.phone_number as string | undefined
+      const currentPhone = user.phone
 
       if (phoneNumber !== currentPhone) {
-        updates.data = { phone_number: phoneNumber }
+        updates.phone = phoneNumber
       }
 
       if (email !== user.email) {
@@ -613,10 +613,10 @@ function NotificationsTab({ user }: { user: User }) {
         <div className="ml-4 rounded-md border border-slate-200 bg-slate-50 p-4">
           <div className="mb-3">
             <p className="text-sm text-slate-700">
-              {user.user_metadata?.phone_number ? (
+              {user.phone ? (
                 <>
                   Phone number on file:{' '}
-                  <span className="font-medium">{user.user_metadata.phone_number as string}</span>
+                  <span className="font-medium">{user.phone}</span>
                 </>
               ) : (
                 <span className="text-error-red">
@@ -631,7 +631,7 @@ function NotificationsTab({ user }: { user: User }) {
           <button
             type="button"
             onClick={handleTestSms}
-            disabled={testSmsLoading || !user.user_metadata?.phone_number}
+            disabled={testSmsLoading || !user.phone}
             className="inline-flex items-center rounded-md border border-collector-blue bg-white px-4 py-2 text-sm font-semibold text-collector-blue transition-colors hover:bg-collector-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {testSmsLoading ? (

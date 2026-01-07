@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 import { PhoneInput } from '@/components/ui/PhoneInput'
+import { updateUserPreferences } from '@/lib/api/user'
 import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
@@ -39,11 +40,9 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      phone: phoneNumber,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: {
-          phone_number: phoneNumber,
-        },
       },
     })
 
@@ -51,6 +50,17 @@ export default function RegisterPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      // Record SMS consent timestamp and IP address (TCPA compliance)
+      try {
+        await updateUserPreferences({
+          smsConsentGiven: true,
+        })
+        console.log('✅ SMS consent recorded with timestamp and IP address')
+      } catch (consentError) {
+        // Don't block registration if consent recording fails - log it
+        console.error('⚠️ Failed to record SMS consent (non-blocking):', consentError)
+      }
+
       setSuccess(true)
       setLoading(false)
     }
@@ -224,21 +234,29 @@ export default function RegisterPage() {
                     className="mt-1 h-5 w-5 flex-shrink-0 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
                     required
                   />
-                  <label htmlFor="sms-consent" className="ml-3 text-sm text-slate-800 leading-relaxed">
+                  <label
+                    htmlFor="sms-consent"
+                    className="ml-3 text-sm leading-relaxed text-slate-800"
+                  >
                     I agree to subscribe to Grail Seeker's{' '}
-                    <strong className="font-semibold text-slate-900">SMS delivery service</strong>. This service
-                    delivers search results{' '}
-                    <strong className="font-semibold text-slate-900">exclusively via SMS text messages</strong>{' '}
+                    <strong className="font-semibold text-slate-900">SMS delivery service</strong>.
+                    This service delivers search results{' '}
+                    <strong className="font-semibold text-slate-900">
+                      exclusively via SMS text messages
+                    </strong>{' '}
                     to the phone number provided. By checking this box, I provide{' '}
-                    <strong className="font-semibold text-slate-900">express written consent</strong>{' '}
+                    <strong className="font-semibold text-slate-900">
+                      express written consent
+                    </strong>{' '}
                     to receive automated text message deliveries from Grail Seeker IO, LLC.
-                    <br /><br />
-                    Service delivery frequency varies based on marketplace activity (average 1-5 deliveries
-                    per week). Message and data rates may apply. Reply STOP to cancel service at any time.
-                    Reply HELP for assistance.
+                    <br />
+                    <br />
+                    Service delivery frequency varies based on marketplace activity (average 1-5
+                    deliveries per week). Message and data rates may apply. Reply STOP to cancel
+                    service at any time. Reply HELP for assistance.
                   </label>
                 </div>
-                <div className="mt-2 ml-8 text-xs text-slate-600">
+                <div className="ml-8 mt-2 text-xs text-slate-600">
                   <Link href="/privacy" className="text-collector-blue hover:underline">
                     Privacy Policy
                   </Link>
