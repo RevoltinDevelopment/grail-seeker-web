@@ -17,10 +17,7 @@
  * buildEbayCampaignUrl("267476377265")
  * // Returns: https://rover.ebay.com/rover/1/711-53200-19255-0/1?ff3=4&pub=5339123882&toolid=10001&campid=5339123882&customid=&mpre=https://www.ebay.com/itm/267476377265
  */
-export function buildEbayCampaignUrl(
-  itemId: string,
-  campaignId?: string
-): string {
+export function buildEbayCampaignUrl(itemId: string, campaignId?: string): string {
   const campaign = campaignId || process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
 
   if (!campaign) {
@@ -51,10 +48,7 @@ export function buildEbayCampaignUrl(
  * @example
  * buildEbaySearchUrl("Amazing Spider-Man 129 CGC")
  */
-export function buildEbaySearchUrl(
-  searchQuery: string,
-  campaignId?: string
-): string {
+export function buildEbaySearchUrl(searchQuery: string, campaignId?: string): string {
   const campaign = campaignId || process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
 
   if (!campaign) {

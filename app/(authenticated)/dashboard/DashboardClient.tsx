@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+
 import { AlertCard } from '@/components/alerts/AlertCard'
 import { useToast } from '@/contexts/ToastContext'
+import { formatSeriesShort } from '@/lib/utils/series-formatter'
 import { useAlertStats } from '@/hooks/useAlertStats'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useSearches } from '@/hooks/useSearches'
@@ -196,7 +198,7 @@ export default function DashboardClient() {
                   </span>
                 </div>
                 <p className="mb-2 text-xs text-slate-600">
-                  Vol. {search.series.volume} ({search.series.yearRange})
+                  {formatSeriesShort(search.series)}
                 </p>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600">

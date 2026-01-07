@@ -3,11 +3,7 @@ import Footer from '@/components/layout/Footer'
 import Header from '@/components/layout/Header'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function AuthenticatedLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
 
   const {

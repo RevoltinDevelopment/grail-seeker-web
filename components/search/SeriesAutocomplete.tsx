@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+
 import { seriesAPI } from '@/lib/api/series'
+import { formatSeriesDisplay } from '@/lib/utils/series-formatter'
 import type { ComicSeries } from '@/types/search.types'
 
 interface SeriesAutocompleteProps {
@@ -27,9 +29,7 @@ export function SeriesAutocomplete({
   // Update display when value prop changes (e.g., when edit page loads data)
   useEffect(() => {
     if (value) {
-      setQuery(
-        `${value.title} (Vol. ${value.volume}, ${value.yearRange})${value.type ? ` ${value.type}` : ''}`
-      )
+      setQuery(formatSeriesDisplay(value, { includePublisher: false, includeType: true }))
     } else {
       setQuery('')
     }
@@ -80,9 +80,7 @@ export function SeriesAutocomplete({
 
   const handleSelect = (series: ComicSeries) => {
     onSelect(series)
-    setQuery(
-      `${series.title} (Vol. ${series.volume}, ${series.yearRange})${series.type ? ` ${series.type}` : ''}`
-    )
+    setQuery(formatSeriesDisplay(series, { includePublisher: false, includeType: true }))
     setIsOpen(false)
   }
 
@@ -112,7 +110,7 @@ export function SeriesAutocomplete({
   }
 
   const getDisplayName = (series: ComicSeries) => {
-    return `${series.title}${series.type ? ` ${series.type}` : ''} (Vol. ${series.volume}, ${series.yearRange}) - ${series.publisher}`
+    return formatSeriesDisplay(series, { includePublisher: true, includeType: true })
   }
 
   return (

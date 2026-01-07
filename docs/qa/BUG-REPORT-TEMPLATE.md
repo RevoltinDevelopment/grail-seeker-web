@@ -44,7 +44,7 @@ Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
 - [ ] Performance
 - [ ] Security
 - [ ] Data/Logic
-- [ ] Other: ******\_\_\_******
+- [ ] Other: **\*\***\_\_\_**\*\***
 
 ---
 
@@ -52,20 +52,20 @@ Example: "Grade dropdown shows 0.5 instead of Any on mobile Safari"
 
 ### Browser
 
-- **Browser:** ******\_****** (e.g., Safari, Firefox, Chrome)
-- **Version:** ******\_****** (e.g., 17.2)
-- **Platform:** ******\_****** (e.g., macOS 14.1, iOS 17.2, Windows 11)
+- **Browser:** **\*\***\_**\*\*** (e.g., Safari, Firefox, Chrome)
+- **Version:** **\*\***\_**\*\*** (e.g., 17.2)
+- **Platform:** **\*\***\_**\*\*** (e.g., macOS 14.1, iOS 17.2, Windows 11)
 
 ### Device (if mobile)
 
-- **Device:** ******\_****** (e.g., iPhone 14 Pro, iPad Air)
-- **Screen Size:** ******\_****** (e.g., 375px, 768px, 1920px)
+- **Device:** **\*\***\_**\*\*** (e.g., iPhone 14 Pro, iPad Air)
+- **Screen Size:** **\*\***\_**\*\*** (e.g., 375px, 768px, 1920px)
 
 ### Application
 
 - **Frontend URL:** http://localhost:3001
 - **Backend URL:** http://localhost:3000
-- **User Account:** ******\_****** (e.g., quinn.qa@grailseeker.io)
+- **User Account:** **\*\***\_**\*\*** (e.g., quinn.qa@grailseeker.io)
 
 ---
 
@@ -288,8 +288,8 @@ Example:
 ## 👤 Reporter Information
 
 - **Reported By:** Quinn (QA)
-- **Date:** ******\_******
-- **Time:** ******\_******
+- **Date:** **\*\***\_**\*\***
+- **Time:** **\*\***\_**\*\***
 - **Contact:** quinn@grailseeker.io (if questions)
 
 ---
@@ -310,20 +310,20 @@ Example:
 
 ### Assigned To
 
-**Developer:** ******\_******
+**Developer:** **\*\***\_**\*\***
 
 ### Fix Commit
 
-**Git Commit:** ******\_******
+**Git Commit:** **\*\***\_**\*\***
 
 ### Fixed In Version
 
-**Version:** ******\_******
+**Version:** **\*\***\_**\*\***
 
 ### Verified By
 
-**Tester:** ******\_******
-**Date:** ******\_******
+**Tester:** **\*\***\_**\*\***
+**Date:** **\*\***\_**\*\***
 
 ---
 

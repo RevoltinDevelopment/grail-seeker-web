@@ -1,4 +1,5 @@
 # Sentry Setup Guide
+
 ## Error Tracking for Grail Seeker Frontend
 
 **Status:** Step-by-step setup instructions
@@ -10,6 +11,7 @@
 ## Overview
 
 Sentry provides real-time error tracking and monitoring for the Grail Seeker frontend. This guide walks you through:
+
 1. Creating a Sentry account
 2. Setting up your project
 3. Getting credentials
@@ -109,6 +111,7 @@ Click **"Create Token"**
 **⚠️ IMPORTANT:** Copy the token immediately - you can't view it again!
 
 It looks like:
+
 ```
 sntrys_1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 ```
@@ -120,6 +123,7 @@ sntrys_1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 Now I'll help you add these credentials to your `.env.local` file.
 
 **You need:**
+
 1. ✅ Sentry DSN (from Step 3)
 2. ✅ Sentry Auth Token (from Step 4)
 
@@ -173,6 +177,7 @@ throw new Error('Sentry test error - ignore this')
 ### 7.2 Configure Alert
 
 **For Critical Errors:**
+
 ```
 Alert name: Critical Frontend Errors
 When: A new issue is created
@@ -185,6 +190,7 @@ Click **"Save Rule"**
 ### 7.3 Add More Rules (Recommended)
 
 **High Error Volume:**
+
 ```
 Alert name: High Error Rate
 When: An issue is seen more than 100 times in 1 hour
@@ -192,6 +198,7 @@ Then: Send notification to [your email]
 ```
 
 **Performance Degradation:**
+
 ```
 Alert name: Slow Page Load
 When: A performance issue is seen
@@ -215,6 +222,7 @@ Then: Send notification to [your email]
 ### 8.2 Set Permissions
 
 For each team member:
+
 - **Admin:** Full access (Winston)
 - **Member:** View and comment (Quinn, other devs)
 - **Billing:** Billing only (optional)
@@ -226,6 +234,7 @@ For each team member:
 ### Free Tier (Developer Plan)
 
 **Includes:**
+
 - 5,000 errors/month
 - 10,000 performance units/month
 - 1 GB of attachments
@@ -237,6 +246,7 @@ For each team member:
 ### When to Upgrade
 
 Upgrade to Team plan ($26/month) when:
+
 - Hitting 5,000 errors/month consistently
 - Need more than 30 days of data retention
 - Want advanced features (custom dashboards, alerts)
@@ -258,10 +268,12 @@ Upgrade to Team plan ($26/month) when:
 ### What to Monitor
 
 **Daily:**
+
 - New issues (check email alerts)
 - Error trends (are errors increasing?)
 
 **Weekly:**
+
 - Performance metrics
 - Most common errors
 - User impact (how many users affected?)
@@ -273,6 +285,7 @@ Upgrade to Team plan ($26/month) when:
 ### Problem: No errors appearing in Sentry
 
 **Solutions:**
+
 1. Verify DSN is correct in `.env.local`
 2. Check `enabled: process.env.NODE_ENV === 'production'` in config
    - For local testing, temporarily set to `enabled: true`
@@ -283,6 +296,7 @@ Upgrade to Team plan ($26/month) when:
 ### Problem: Source maps not uploading
 
 **Solutions:**
+
 1. Verify `SENTRY_AUTH_TOKEN` is set
 2. Check `SENTRY_ORG` and `SENTRY_PROJECT` match exactly
 3. Review Vercel build logs for upload errors
@@ -291,6 +305,7 @@ Upgrade to Team plan ($26/month) when:
 ### Problem: Too many errors
 
 **Solutions:**
+
 1. Use **Filters** to ignore known non-critical errors
 2. Configure **Sampling** to only send % of errors
 3. Add **beforeSend** filters to Sentry config
@@ -321,6 +336,7 @@ After completing Sentry setup:
 ---
 
 **Questions?**
+
 - Check Sentry docs: https://docs.sentry.io/
 - Contact James (developer) for integration issues
 - Contact Winston (architect) for account/billing questions
