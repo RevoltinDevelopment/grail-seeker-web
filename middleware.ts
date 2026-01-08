@@ -46,7 +46,10 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/settings')
   ) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      // Preserve the original URL (with query params) for redirect after login
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname + request.nextUrl.search)
+      return NextResponse.redirect(redirectUrl)
     }
   }
 
