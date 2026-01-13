@@ -11,11 +11,14 @@
  *
  * @param itemId - eBay item ID (e.g., "267476377265")
  * @param campaignId - Your eBay Partner Network campaign ID (default from env)
- * @returns Full eBay Rover URL with campaign tracking
+ * @returns eBay item URL with campaign tracking query parameters
  *
  * @example
  * buildEbayCampaignUrl("267476377265")
- * // Returns: https://rover.ebay.com/rover/1/711-53200-19255-0/1?ff3=4&pub=5339123882&toolid=10001&campid=5339123882&customid=&mpre=https://www.ebay.com/itm/267476377265
+ * // Returns: https://www.ebay.com/itm/267476377265?mkcid=1&mkrid=711-53200-19255-0&siteid=0&campid=5339123882&customid=&toolid=10001&mkevt=1
+ *
+ * @note Backend equivalent exists at src/infrastructure/utils/EbayCampaignUrlBuilder.ts
+ *       Both implementations generate identical URLs for consistency.
  */
 export function buildEbayCampaignUrl(itemId: string, campaignId?: string): string {
   const campaign = campaignId || process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
