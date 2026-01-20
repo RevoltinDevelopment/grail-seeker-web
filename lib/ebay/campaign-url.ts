@@ -7,9 +7,42 @@
  */
 
 /**
+ * Extract numeric item ID from various eBay ID formats
+ *
+ * Handles:
+ * - Pure numeric: "366083225850"
+ * - v1 format: "v1|276614478282|0" (eBay Browse API format)
+ *
+ * @param ebayItemId - eBay item ID in any format
+ * @returns Numeric item ID or null if invalid
+ */
+function extractItemId(ebayItemId: string): string | null {
+  if (!ebayItemId) {
+    return null
+  }
+
+  // Check if it's v1|...|0 format (eBay Browse API format)
+  if (ebayItemId.startsWith('v1|')) {
+    const parts = ebayItemId.split('|')
+    if (parts.length >= 2) {
+      return parts[1] // Extract middle part (numeric ID)
+    }
+  }
+
+  // Check if it's pure numeric
+  if (/^\d+$/.test(ebayItemId)) {
+    return ebayItemId
+  }
+
+  // Try to extract numeric portion as fallback
+  const numericMatch = ebayItemId.match(/\d+/)
+  return numericMatch ? numericMatch[0] : null
+}
+
+/**
  * Builds an eBay Partner Network campaign tracking URL
  *
- * @param itemId - eBay item ID (e.g., "267476377265")
+ * @param itemId - eBay item ID (e.g., "267476377265" or "v1|267476377265|0")
  * @param campaignId - Your eBay Partner Network campaign ID (default from env)
  * @returns eBay item URL with campaign tracking query parameters
  *
@@ -21,17 +54,26 @@
  *       Both implementations generate identical URLs for consistency.
  */
 export function buildEbayCampaignUrl(itemId: string, campaignId?: string): string {
+  // Extract numeric ID from v1|...|0 format if needed
+  const numericId = extractItemId(itemId)
+
+  if (!numericId) {
+    console.error(`Invalid eBay item ID: ${itemId}`)
+    // Fallback - use as-is (will likely fail but at least it's a link)
+    return `https://www.ebay.com/itm/${itemId}`
+  }
+
   const campaign = campaignId || process.env.NEXT_PUBLIC_EBAY_CAMPAIGN_ID
 
   if (!campaign) {
     // Fallback to direct URL if no campaign ID configured
     console.warn('eBay campaign ID not configured, using direct link')
-    return `https://www.ebay.com/itm/${itemId}`
+    return `https://www.ebay.com/itm/${numericId}`
   }
 
   // Use eBay Partner Network link with proper mkevt parameter
   // Format based on eBay's current affiliate link structure
-  const itemUrl = `https://www.ebay.com/itm/${itemId}`
+  const itemUrl = `https://www.ebay.com/itm/${numericId}`
 
   // Add EPN tracking parameters to direct item URL
   // mkcid=1 means "affiliate link"
