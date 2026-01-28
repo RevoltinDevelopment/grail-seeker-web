@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { usePathname } from 'next/navigation'
+import { useLogout } from '@/hooks/useLogout'
 import type { User } from '@supabase/supabase-js'
 
 interface HeaderProps {
@@ -11,18 +11,15 @@ interface HeaderProps {
 }
 
 export default function Header({ user }: HeaderProps) {
-  const router = useRouter()
   const pathname = usePathname()
+  const logout = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const mobileAvatarRef = useRef<HTMLDivElement>(null)
   const desktopAvatarRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    await logout()
   }
 
   // Get user initials from email
