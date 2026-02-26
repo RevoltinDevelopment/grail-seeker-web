@@ -29,7 +29,10 @@ export function SeriesAutocomplete({
   // Update display when value prop changes (e.g., when edit page loads data)
   useEffect(() => {
     if (value) {
-      setQuery(formatSeriesDisplay(value, { includePublisher: false, includeType: true }))
+      // Use displayName from API when available, otherwise format locally
+      const displayText =
+        value.displayName || formatSeriesDisplay(value, { includePublisher: false, includeType: true })
+      setQuery(displayText)
     } else {
       setQuery('')
     }
@@ -80,7 +83,10 @@ export function SeriesAutocomplete({
 
   const handleSelect = (series: ComicSeries) => {
     onSelect(series)
-    setQuery(formatSeriesDisplay(series, { includePublisher: false, includeType: true }))
+    // Use displayName from API when available (canonical name), otherwise format locally
+    const displayText =
+      series.displayName || formatSeriesDisplay(series, { includePublisher: false, includeType: true })
+    setQuery(displayText)
     setIsOpen(false)
   }
 
@@ -109,8 +115,37 @@ export function SeriesAutocomplete({
     }
   }
 
-  const getDisplayName = (series: ComicSeries) => {
-    return formatSeriesDisplay(series, { includePublisher: true, includeType: true })
+  // Render a single autocomplete option with alias support
+  // Two formats:
+  // 1. Direct title match (matchedAlias is null): single-line with displayName
+  // 2. Alias match: two-line with alias name, "Part of:" canonical, publisher
+  const renderSeriesOption = (series: ComicSeries) => {
+    const displayName =
+      series.displayName || formatSeriesDisplay(series, { includePublisher: false, includeType: true })
+
+    if (series.matchedAlias) {
+      // ALIAS MATCH: Two-line format
+      return (
+        <>
+          <div className="font-semibold text-slate-950">
+            {series.matchedAlias}
+            {series.aliasIssueRange && (
+              <span className="ml-1 font-normal text-slate-400">({series.aliasIssueRange})</span>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-slate-500">Part of: {displayName}</div>
+          <div className="text-xs text-slate-400">{series.publisher}</div>
+        </>
+      )
+    }
+
+    // DIRECT TITLE MATCH: Single-line format
+    return (
+      <>
+        <div className="font-medium text-slate-950">{displayName}</div>
+        <div className="text-xs text-slate-400">{series.publisher}</div>
+      </>
+    )
   }
 
   return (
@@ -156,7 +191,7 @@ export function SeriesAutocomplete({
           ) : (
             results.map((series, index) => (
               <button
-                key={`${series.id}-${series.type}`}
+                key={`${series.id}-${series.type}${series.matchedAlias ? `-${series.matchedAlias}` : ''}`}
                 type="button"
                 onClick={() => handleSelect(series)}
                 onMouseEnter={() => setSelectedIndex(index)}
@@ -164,7 +199,7 @@ export function SeriesAutocomplete({
                   index === selectedIndex ? 'bg-blue-50' : ''
                 }`}
               >
-                <div className="font-medium text-slate-950">{getDisplayName(series)}</div>
+                {renderSeriesOption(series)}
               </button>
             ))
           )}
