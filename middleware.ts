@@ -53,11 +53,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect /register to /login?tab=signup (registration now on login page)
+  if (request.nextUrl.pathname.startsWith('/register')) {
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('tab', 'signup')
+    // Preserve any existing query params like redirectTo
+    const existingRedirectTo = request.nextUrl.searchParams.get('redirectTo')
+    if (existingRedirectTo) {
+      redirectUrl.searchParams.set('redirectTo', existingRedirectTo)
+    }
+    return NextResponse.redirect(redirectUrl)
+  }
+
   // Redirect authenticated users away from auth pages
-  if (
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register')
-  ) {
+  if (request.nextUrl.pathname.startsWith('/login')) {
     if (user) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
@@ -73,6 +82,6 @@ export const config = {
     '/alerts/:path*',
     '/settings/:path*',
     '/login',
-    '/register',
+    '/register/:path*',
   ],
 }

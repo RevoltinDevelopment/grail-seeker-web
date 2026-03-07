@@ -26,6 +26,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        cinzel: ['var(--font-cinzel)', 'serif'],
       },
       spacing: {
         // 4px base spacing system
