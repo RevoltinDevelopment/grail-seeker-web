@@ -1,5 +1,8 @@
-import Link from 'next/link'
+'use client'
 
+import { useState } from 'react'
+
+import { HowItWorksModal } from './HowItWorksModal'
 import { TestimonialBlock } from './TestimonialBlock'
 
 interface HeroPanelProps {
@@ -14,6 +17,8 @@ const benefits = [
 ]
 
 export function HeroPanel({ className = '' }: HeroPanelProps) {
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
+
   return (
     <div
       className={`relative flex flex-col justify-center overflow-hidden bg-gradient-to-br from-collector-navy to-collector-blue ${className}`}
@@ -68,20 +73,24 @@ export function HeroPanel({ className = '' }: HeroPanelProps) {
 
         {/* How it works link - hidden on mobile */}
         <div className="mb-10 hidden lg:block">
-          <Link
-            href="/#how-it-works"
+          <button
+            type="button"
+            onClick={() => setShowHowItWorks(true)}
             className="inline-flex items-center text-sm font-medium text-warning-amber hover:text-amber-400"
           >
             How it works
             <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
+          </button>
         </div>
 
         {/* Testimonial - hidden on mobile/tablet */}
         <TestimonialBlock className="hidden lg:block" />
       </div>
+
+      {/* How It Works Modal */}
+      <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
     </div>
   )
 }
