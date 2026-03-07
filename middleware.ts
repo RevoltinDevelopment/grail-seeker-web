@@ -53,6 +53,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect root to /login or /dashboard based on auth state
+  if (request.nextUrl.pathname === '/') {
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    } else {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   // Redirect /register to /login?tab=signup (registration now on login page)
   if (request.nextUrl.pathname.startsWith('/register')) {
     const redirectUrl = new URL('/login', request.url)
@@ -77,6 +86,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/dashboard/:path*',
     '/searches/:path*',
     '/alerts/:path*',
