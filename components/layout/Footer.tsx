@@ -123,6 +123,28 @@ export default function Footer() {
             </p>
             <p className="text-sm font-medium text-collector-blue">Beta launching Q2 2026</p>
           </div>
+          {/* GCD Attribution (required by CC BY-SA 4.0 license) */}
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Comic series data provided in part by the{' '}
+            <a
+              href="https://www.comics.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-collector-blue"
+            >
+              Grand Comics Database™
+            </a>
+            , licensed under{' '}
+            <a
+              href="https://creativecommons.org/licenses/by-sa/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-collector-blue"
+            >
+              CC BY-SA 4.0
+            </a>
+            .
+          </p>
         </div>
       </div>
     </footer>
