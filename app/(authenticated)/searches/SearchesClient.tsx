@@ -130,10 +130,7 @@ export default function SearchesClient() {
                     <span className="rounded bg-ebay-red px-2 py-1 text-xs text-white">eBay ✓</span>
                   )}
                   <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                    Heritage (Q1)
-                  </span>
-                  <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                    ComicLink (Q1)
+                    Heritage (Q2)
                   </span>
                 </div>
               </div>
