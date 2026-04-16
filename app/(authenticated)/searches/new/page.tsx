@@ -45,9 +45,9 @@ export default function CreateSearchPage() {
   }
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setMaxPrice(value)
-    setMaxPriceDisplay(value)
+    const raw = e.target.value.replace(/[^0-9.]/g, '')
+    setMaxPrice(raw)
+    setMaxPriceDisplay(raw)
   }
 
   const handleMaxPriceFocus = () => {
