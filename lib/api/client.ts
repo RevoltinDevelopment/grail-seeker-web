@@ -42,11 +42,29 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   const apiBaseURL = getAPIBaseURL()
   const url = `${apiBaseURL}${endpoint}`
 
-  // Get auth token from Supabase
+  // Get auth token from Supabase with a timeout guard.
+  // Without this, a stale session attempting a token refresh can hang indefinitely
+  // (e.g. iCloud Private Relay slowing the Supabase auth endpoint), leaving React
+  // Query permanently in isLoading:true and the dashboard spinner never resolving.
   const supabase = createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let session = null
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Session timeout')), 8000)
+      ),
+    ])
+    session = result.data.session
+  } catch {
+    // Session fetch failed or timed out — clear local state and redirect to login
+    // so the user can establish a fresh session rather than seeing an infinite spinner.
+    await supabase.auth.signOut({ scope: 'local' })
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+    throw new APIError(401, 'SESSION_UNAVAILABLE', 'Your session expired. Please log in again.')
+  }
 
   const response = await fetch(url, {
     ...options,

@@ -1,4 +1,3 @@
-import Link from 'next/link'
 
 export default function Footer() {
   return (
@@ -22,12 +21,14 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link
-                  href="/about"
+                <a
+                  href="https://grailseeker.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-sm text-slate-600 transition-colors hover:text-collector-blue"
                 >
                   About Grail Seeker
-                </Link>
+                </a>
               </li>
               <li>
                 <a
