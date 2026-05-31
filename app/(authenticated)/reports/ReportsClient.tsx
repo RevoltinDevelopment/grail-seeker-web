@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useReports } from '@/hooks/useReports'
-import type { WeekReport, PastWeekSummary } from '@/types/report.types'
+import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -42,13 +43,16 @@ function StatRow({ label, value }: { label: string; value: number }) {
   )
 }
 
-// ─── books list ───────────────────────────────────────────────────────────────
+// ─── books searched list ──────────────────────────────────────────────────────
 
-function BooksList({ items }: { items: { seriesTitle: string; issueNumber: string }[] }) {
+function BooksList({ items }: { items: BookSearched[] }) {
   if (items.length === 0) return null
+  const sorted = [...items].sort((a, b) =>
+    a.seriesTitle.localeCompare(b.seriesTitle) || a.issueNumber.localeCompare(b.issueNumber)
+  )
   return (
     <div className="mt-1 space-y-0.5">
-      {items.map((b, i) => (
+      {sorted.map((b, i) => (
         <p key={i} className="text-sm text-slate-700">
           {b.seriesTitle} #{b.issueNumber}
         </p>
@@ -57,22 +61,78 @@ function BooksList({ items }: { items: { seriesTitle: string; issueNumber: strin
   )
 }
 
-// ─── books found list ─────────────────────────────────────────────────────────
+// ─── books found section (togglable) ─────────────────────────────────────────
+// withLinks=true: current-week card — active alerts link to listing, archived to /alerts/archive
+// withLinks=false: all-time card — plain text only (most will be archived, links add no value)
 
-function BooksFoundList({ items }: { items: { alertId: string; title: string; createdAt: string }[] }) {
+function BooksFoundSection({ items, withLinks }: { items: BookFound[]; withLinks: boolean }) {
+  const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
+
+  const sorted = [...items].sort((a, b) => a.title.localeCompare(b.title))
+
   return (
-    <div className="mt-2 space-y-2">
-      {items.map((b) => (
-        <Link
-          key={b.alertId}
-          href={`/alerts?search=`}
-          className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
-        >
-          <span className="font-medium text-collector-navy">{b.title}</span>
-          <span className="ml-2 shrink-0 text-collector-blue">→</span>
-        </Link>
-      ))}
+    <div className="py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Books Found</p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
+        {!expanded && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="text-xs text-collector-blue hover:underline"
+          >
+            show all
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <>
+          <div className="mt-2 space-y-2">
+            {sorted.map((b) => {
+              if (!withLinks) {
+                return (
+                  <div
+                    key={b.alertId}
+                    className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-collector-navy"
+                  >
+                    {b.title}
+                  </div>
+                )
+              }
+              const isActive = b.listingStatus === 'active'
+              const href = isActive ? (b.listingUrl ?? '/alerts') : '/alerts/archive'
+              return isActive ? (
+                <a
+                  key={b.alertId}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
+                >
+                  <span className="font-medium text-collector-navy">{b.title}</span>
+                  <span className="ml-2 shrink-0 text-collector-blue">↗</span>
+                </a>
+              ) : (
+                <Link
+                  key={b.alertId}
+                  href={href}
+                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
+                >
+                  <span className="font-medium text-collector-navy">{b.title}</span>
+                  <span className="ml-2 shrink-0 text-slate-400">archive →</span>
+                </Link>
+              )
+            })}
+          </div>
+          <button
+            onClick={() => setExpanded(false)}
+            className="mt-2 text-xs text-collector-blue hover:underline"
+          >
+            hide all
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -82,9 +142,11 @@ function BooksFoundList({ items }: { items: { alertId: string; title: string; cr
 function WeekCard({
   report,
   isCurrentWeek = false,
+  withLinks = false,
 }: {
   report: WeekReport
   isCurrentWeek?: boolean
+  withLinks?: boolean
 }) {
   const searches = totalSearches(report)
   const hasFinds = report.alertsIssued > 0
@@ -157,14 +219,7 @@ function WeekCard({
         )}
 
         {/* Alerts & finds */}
-        {report.booksFound.length > 0 && (
-          <div className="py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Books Found
-            </p>
-            <BooksFoundList items={report.booksFound} />
-          </div>
-        )}
+        <BooksFoundSection items={report.booksFound} withLinks={withLinks} />
 
         {/* Active searches — current week only */}
         {isCurrentWeek && report.activeSearches !== undefined && report.activeSearches > 0 && (
@@ -281,7 +336,7 @@ function EmailTogglePlaceholder() {
 // ─── main component ───────────────────────────────────────────────────────────
 
 export default function ReportsClient() {
-  const { report, isLoading } = useReports()
+  const { report, isLoading, error } = useReports()
 
   if (isLoading) {
     return (
@@ -301,6 +356,11 @@ export default function ReportsClient() {
           <div className="mb-4 text-5xl">📊</div>
           <h3 className="mb-2 text-xl font-semibold">Report unavailable</h3>
           <p className="text-slate-600">Unable to load your report. Please try again later.</p>
+          {error && (
+            <p className="mt-3 rounded bg-red-50 px-3 py-2 text-left text-xs font-mono text-red-700">
+              {String(error)}
+            </p>
+          )}
         </div>
       </div>
     )
@@ -321,8 +381,8 @@ export default function ReportsClient() {
 
       {/* Current week + All time side by side on md+ */}
       <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <WeekCard report={report.currentWeek} isCurrentWeek={true} />
-        <WeekCard report={report.allTime as WeekReport} />
+        <WeekCard report={report.currentWeek} isCurrentWeek={true} withLinks={true} />
+        <WeekCard report={report.allTime as WeekReport} withLinks={false} />
       </div>
 
       {/* Past weeks */}

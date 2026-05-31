@@ -2,6 +2,8 @@ export interface BookFound {
   alertId: string
   title: string
   createdAt: string
+  listingUrl?: string | null
+  listingStatus?: string | null
 }
 
 export interface BookSearched {

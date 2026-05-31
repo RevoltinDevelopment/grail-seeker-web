@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useWeekReport } from '@/hooks/useReports'
+import type { BookFound } from '@/types/report.types'
 
 interface Props {
   weekStart: string
@@ -21,6 +23,61 @@ function StatRow({ label, value }: { label: string; value: number }) {
     <div className="flex items-center justify-between py-2 text-sm">
       <span className="text-slate-600">{label}</span>
       <span className="font-semibold text-collector-navy">{value}</span>
+    </div>
+  )
+}
+
+function BooksFoundSection({ items }: { items: BookFound[] }) {
+  const [expanded, setExpanded] = useState(false)
+  if (items.length === 0) return null
+
+  const sorted = [...items].sort((a, b) => a.title.localeCompare(b.title))
+
+  return (
+    <div className="py-3">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Books Found</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
+        {!expanded && (
+          <button onClick={() => setExpanded(true)} className="text-xs text-collector-blue hover:underline">
+            show all
+          </button>
+        )}
+      </div>
+      {expanded && (
+        <>
+          <div className="mt-2 space-y-2">
+            {sorted.map((b) => {
+              const isActive = b.listingStatus === 'active'
+              const href = isActive ? (b.listingUrl ?? '/alerts') : '/alerts/archive'
+              return isActive ? (
+                <a
+                  key={b.alertId}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
+                >
+                  <span className="font-medium text-collector-navy">{b.title}</span>
+                  <span className="ml-2 shrink-0 text-collector-blue">↗</span>
+                </a>
+              ) : (
+                <Link
+                  key={b.alertId}
+                  href={href}
+                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
+                >
+                  <span className="font-medium text-collector-navy">{b.title}</span>
+                  <span className="ml-2 shrink-0 text-slate-400">archive →</span>
+                </Link>
+              )
+            })}
+          </div>
+          <button onClick={() => setExpanded(false)} className="mt-2 text-xs text-collector-blue hover:underline">
+            hide all
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -99,17 +156,22 @@ export default function WeekReportClient({ weekStart }: Props) {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {/* Books searched */}
+          {/* Books searched — sorted alphabetically */}
           {report.booksSearched.length > 0 && (
             <div className="py-3">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Books Searched
               </p>
-              {report.booksSearched.map((b, i) => (
-                <p key={i} className="text-sm text-slate-700">
-                  {b.seriesTitle} #{b.issueNumber}
-                </p>
-              ))}
+              {[...report.booksSearched]
+                .sort((a, b) =>
+                  a.seriesTitle.localeCompare(b.seriesTitle) ||
+                  a.issueNumber.localeCompare(b.issueNumber)
+                )
+                .map((b, i) => (
+                  <p key={i} className="text-sm text-slate-700">
+                    {b.seriesTitle} #{b.issueNumber}
+                  </p>
+                ))}
             </div>
           )}
 
@@ -121,24 +183,8 @@ export default function WeekReportClient({ weekStart }: Props) {
             </div>
           )}
 
-          {/* Books found */}
-          {report.booksFound.length > 0 && (
-            <div className="py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Books Found
-              </p>
-              <div className="space-y-2">
-                {report.booksFound.map((b) => (
-                  <div
-                    key={b.alertId}
-                    className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium text-collector-navy">{b.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Books found — togglable, sorted alphabetically, with contextual links */}
+          <BooksFoundSection items={report.booksFound} />
 
           {/* Lifecycle stats */}
           {(report.searchesCreated > 0 ||
