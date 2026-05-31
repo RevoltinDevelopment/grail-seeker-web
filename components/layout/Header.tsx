@@ -39,6 +39,7 @@ export default function Header({ user }: HeaderProps) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/searches', label: 'Searches' },
     { href: '/alerts', label: 'Alerts' },
+    { href: '/reports', label: 'Reports' },
   ]
 
   // Close avatar menu when clicking outside
