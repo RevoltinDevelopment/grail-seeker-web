@@ -180,7 +180,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
                 : 'bg-collector-blue text-white hover:bg-blue-800'
             }`}
           >
-            View on eBay{isArchived ? ' (Listing Ended)' : ' →'}
+            View on {alert.listing.platform === 'heritage' ? 'Heritage' : 'eBay'}{isArchived ? ' (Listing Ended)' : ' →'}
           </a>
         )}
       </div>
