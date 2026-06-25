@@ -1,4 +1,6 @@
 
+import Link from 'next/link'
+
 export default function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white">
@@ -145,6 +147,14 @@ export default function Footer() {
               CC BY-SA 4.0
             </a>
             .
+          </p>
+          <p className="mt-2 text-center text-xs text-slate-500">
+            <Link
+              href="/heritage-terms"
+              className="underline hover:text-collector-blue"
+            >
+              Heritage Terms and Conditions of Auction
+            </Link>
           </p>
         </div>
       </div>

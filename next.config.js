@@ -4,6 +4,14 @@ const { withSentryConfig } = require('@sentry/nextjs')
 const nextConfig = {
   reactStrictMode: true,
 
+  // Required for react-pdf (pdfjs-dist uses Node canvas on the server; alias to false)
+  webpack: (config) => {
+    config.resolve.alias.canvas = false
+    return config
+  },
+
+  transpilePackages: ['react-pdf'],
+
   // Production optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
