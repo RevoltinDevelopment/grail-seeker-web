@@ -129,8 +129,8 @@ export default function SearchesClient() {
                   {search.platforms.includes('ebay') && (
                     <span className="rounded bg-ebay-red px-2 py-1 text-xs text-white">eBay ✓</span>
                   )}
-                  <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
-                    Heritage (Q2)
+                  <span className="rounded px-2 py-1 text-xs text-white" style={{ backgroundColor: '#8B4513' }}>
+                    Heritage ✓
                   </span>
                 </div>
               </div>
