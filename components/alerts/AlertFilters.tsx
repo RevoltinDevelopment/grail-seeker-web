@@ -116,31 +116,31 @@ export function AlertFilters({
                   By Book
                 </button>
               </div>
-            </div>
 
-            {/* Collapse-all toggle — only in By Book mode */}
-            {collapseState !== undefined && onToggleAll && (
-              <button
-                onClick={onToggleAll}
-                aria-label={collapseState === 'all' ? 'Expand all groups' : 'Collapse all groups'}
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-slate-500 transition-colors hover:border-collector-blue hover:text-collector-blue"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={`transition-transform duration-200 ${COLLAPSE_ROTATION[collapseState]}`}
+              {/* Collapse-all toggle — lives inside the sort unit so it never wraps away from it */}
+              {collapseState !== undefined && onToggleAll && (
+                <button
+                  onClick={onToggleAll}
+                  aria-label={collapseState === 'all' ? 'Expand all groups' : 'Collapse all groups'}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-slate-500 transition-colors hover:border-collector-blue hover:text-collector-blue"
                 >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            )}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform duration-200 ${COLLAPSE_ROTATION[collapseState]}`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </>
         )}
       </div>
