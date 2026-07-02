@@ -367,9 +367,19 @@ export default function EditSearchPage() {
                   <span className="ml-2 text-sm">eBay (Active)</span>
                 </label>
 
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={platforms.includes('heritage')}
+                    onChange={() => handlePlatformToggle('heritage')}
+                    className="h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                  />
+                  <span className="ml-2 text-sm">Heritage (Active)</span>
+                </label>
+
                 <label className="flex items-center opacity-50">
                   <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-                  <span className="ml-2 text-sm">Heritage Auctions (Coming Q2 2026)</span>
+                  <span className="ml-2 text-sm">Next 2 Marketplaces (Coming Q3 2026)</span>
                 </label>
               </div>
 
