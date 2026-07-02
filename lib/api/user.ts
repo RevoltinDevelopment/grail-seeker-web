@@ -8,6 +8,13 @@ export interface TestSmsResponse {
   phoneNumber: string
 }
 
+export type AlertsSortMode = 'date' | 'book'
+
+export interface AlertsUiPreferences {
+  alertsSort?: AlertsSortMode
+  alertsCollapsedGroups?: string[]
+}
+
 // User Preferences Types
 export interface UserPreferences {
   smsNotificationsEnabled: boolean
@@ -18,6 +25,7 @@ export interface UserPreferences {
   nearMissEnabled: boolean
   smsConsentGiven?: boolean
   smsConsentTimestamp?: string
+  uiPreferences?: AlertsUiPreferences
 }
 
 export interface UpdatePreferencesResponse {

@@ -1,27 +1,35 @@
 'use client'
 
+import type { AlertsSortMode } from '@/lib/api/user'
+
 interface AlertFiltersProps {
   platform: 'all' | 'ebay' | 'heritage' | 'comiclink'
   matchType: 'all' | 'direct_match' | 'near_miss'
   onPlatformChange: (platform: 'all' | 'ebay' | 'heritage' | 'comiclink') => void
   onMatchTypeChange: (matchType: 'all' | 'direct_match' | 'near_miss') => void
+  sortMode?: AlertsSortMode
+  onSortModeChange?: (sort: AlertsSortMode) => void
 }
 
 export function AlertFilters({
   platform,
   matchType,
+  sortMode,
   onPlatformChange,
   onMatchTypeChange,
+  onSortModeChange,
 }: AlertFiltersProps) {
+  const hasActiveFilters = platform !== 'all' || matchType !== 'all'
+
   return (
     <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="flex-shrink-0">
           <span className="text-sm font-semibold text-slate-700">Filter by:</span>
         </div>
 
         {/* Platform Filter */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <label htmlFor="platform-filter" className="sr-only">
             Platform
           </label>
@@ -40,7 +48,7 @@ export function AlertFilters({
         </div>
 
         {/* Match Type Filter */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <label htmlFor="match-type-filter" className="sr-only">
             Match Type
           </label>
@@ -58,8 +66,7 @@ export function AlertFilters({
           </select>
         </div>
 
-        {/* Clear Filters Button (only show if filters are active) */}
-        {(platform !== 'all' || matchType !== 'all') && (
+        {hasActiveFilters && (
           <button
             onClick={() => {
               onPlatformChange('all')
@@ -69,6 +76,38 @@ export function AlertFilters({
           >
             Clear Filters
           </button>
+        )}
+
+        {/* Sort Control — only on pages that support it */}
+        {sortMode !== undefined && onSortModeChange && (
+          <>
+            <div className="hidden h-6 w-px bg-slate-200 sm:block" aria-hidden />
+            <div className="flex flex-shrink-0 items-center gap-2">
+              <span className="text-sm font-semibold text-slate-700">Sort by:</span>
+              <div className="flex overflow-hidden rounded-md border-2 border-slate-300 text-sm font-medium">
+                <button
+                  onClick={() => onSortModeChange('date')}
+                  className={`px-3 py-1.5 transition-colors ${
+                    sortMode === 'date'
+                      ? 'bg-collector-blue text-white'
+                      : 'bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  By Date
+                </button>
+                <button
+                  onClick={() => onSortModeChange('book')}
+                  className={`border-l-2 border-slate-300 px-3 py-1.5 transition-colors ${
+                    sortMode === 'book'
+                      ? 'bg-collector-blue text-white'
+                      : 'bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  By Book
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -119,7 +119,16 @@ export default function SearchesClient() {
                 >
                   {search.isActive ? '✅ Active' : '⏸ Paused'}
                 </span>
-                <span className="ml-2 text-sm text-slate-600">{search.alertCount || 0} alerts</span>
+                {(search.alertCount ?? 0) > 0 ? (
+                  <Link
+                    href={`/alerts?search=${search.id}`}
+                    className="ml-2 text-sm font-medium text-collector-blue hover:underline"
+                  >
+                    {search.alertCount} {search.alertCount === 1 ? 'alert' : 'alerts'}
+                  </Link>
+                ) : (
+                  <span className="ml-2 text-sm text-slate-600">0 alerts</span>
+                )}
               </div>
 
               {/* Platforms */}
