@@ -59,11 +59,21 @@ export function useUiPreferences() {
     [prefs]
   )
 
+  const setAllGroupsCollapsed = useCallback(
+    (ids: string[]) => {
+      const next = { ...prefs, alertsCollapsedGroups: ids }
+      setPrefs(next)
+      persist(next)
+    },
+    [prefs, persist]
+  )
+
   return {
     alertsSort: prefs.alertsSort ?? 'date',
     isGroupCollapsed,
     setAlertsSort,
     toggleGroupCollapsed,
+    setAllGroupsCollapsed,
     isLoaded,
   }
 }

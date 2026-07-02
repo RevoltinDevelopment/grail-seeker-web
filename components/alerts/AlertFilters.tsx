@@ -9,6 +9,14 @@ interface AlertFiltersProps {
   onMatchTypeChange: (matchType: 'all' | 'direct_match' | 'near_miss') => void
   sortMode?: AlertsSortMode
   onSortModeChange?: (sort: AlertsSortMode) => void
+  collapseState?: 'all' | 'none' | 'mixed'
+  onToggleAll?: () => void
+}
+
+const COLLAPSE_ROTATION: Record<'all' | 'none' | 'mixed', string> = {
+  none: 'rotate-0',      // chevron points down — all expanded
+  all: '-rotate-90',     // chevron points right — all collapsed
+  mixed: '-rotate-45',   // chevron points lower-right (4:30) — mixed
 }
 
 export function AlertFilters({
@@ -18,6 +26,8 @@ export function AlertFilters({
   onPlatformChange,
   onMatchTypeChange,
   onSortModeChange,
+  collapseState,
+  onToggleAll,
 }: AlertFiltersProps) {
   const hasActiveFilters = platform !== 'all' || matchType !== 'all'
 
@@ -107,6 +117,30 @@ export function AlertFilters({
                 </button>
               </div>
             </div>
+
+            {/* Collapse-all toggle — only in By Book mode */}
+            {collapseState !== undefined && onToggleAll && (
+              <button
+                onClick={onToggleAll}
+                aria-label={collapseState === 'all' ? 'Expand all groups' : 'Collapse all groups'}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-slate-500 transition-colors hover:border-collector-blue hover:text-collector-blue"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${COLLAPSE_ROTATION[collapseState]}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            )}
           </>
         )}
       </div>

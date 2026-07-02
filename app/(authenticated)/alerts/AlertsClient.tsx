@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { AlertCard } from '@/components/alerts/AlertCard'
@@ -23,7 +23,7 @@ export default function AlertsClient() {
   const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'comiclink'>('all')
   const [matchType, setMatchType] = useState<'all' | 'direct_match' | 'near_miss'>('all')
 
-  const { alertsSort, isGroupCollapsed, setAlertsSort, toggleGroupCollapsed, isLoaded: prefsLoaded } =
+  const { alertsSort, isGroupCollapsed, setAlertsSort, toggleGroupCollapsed, setAllGroupsCollapsed, isLoaded: prefsLoaded } =
     useUiPreferences()
 
   const isBookSort = alertsSort === 'book' && !searchId
@@ -76,6 +76,23 @@ export default function AlertsClient() {
       .map(([id, group]) => ({ id, ...group }))
       .sort((a, b) => a.title.localeCompare(b.title))
   }, [alerts, isBookSort])
+
+  const collapseState: 'all' | 'none' | 'mixed' = useMemo(() => {
+    if (!groupedAlerts || groupedAlerts.length === 0) return 'none'
+    const collapsedCount = groupedAlerts.filter((g) => isGroupCollapsed(g.id)).length
+    if (collapsedCount === 0) return 'none'
+    if (collapsedCount === groupedAlerts.length) return 'all'
+    return 'mixed'
+  }, [groupedAlerts, isGroupCollapsed])
+
+  const handleToggleAll = useCallback(() => {
+    if (!groupedAlerts) return
+    if (collapseState === 'none' || collapseState === 'mixed') {
+      setAllGroupsCollapsed(groupedAlerts.map((g) => g.id))
+    } else {
+      setAllGroupsCollapsed([])
+    }
+  }, [groupedAlerts, collapseState, setAllGroupsCollapsed])
 
   const totalAlerts = pagination?.total || 0
   const displayedCount = alerts.length
@@ -134,6 +151,8 @@ export default function AlertsClient() {
         onPlatformChange={handlePlatformChange}
         onMatchTypeChange={handleMatchTypeChange}
         onSortModeChange={handleSortModeChange}
+        collapseState={isBookSort ? collapseState : undefined}
+        onToggleAll={isBookSort ? handleToggleAll : undefined}
       />
 
       {/* Empty State */}
