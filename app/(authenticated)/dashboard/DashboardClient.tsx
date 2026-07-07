@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 
 import { AlertCard } from '@/components/alerts/AlertCard'
+import { PlatformNudgeBanner } from '@/components/dashboard/PlatformNudgeBanner'
 import { useToast } from '@/contexts/ToastContext'
 import { useAlertStats } from '@/hooks/useAlertStats'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -59,6 +60,8 @@ export default function DashboardClient() {
         <h2 className="mb-2 text-3xl font-bold">Dashboard</h2>
         <p className="text-slate-600">Your grail hunting overview</p>
       </div>
+
+      <PlatformNudgeBanner searches={searches} />
 
       {/* Stats Cards */}
       <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">

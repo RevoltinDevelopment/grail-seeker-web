@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
+import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearches } from '@/hooks/useSearches'
 import type { ComicSeries } from '@/types/search.types'
@@ -37,12 +38,6 @@ export default function CreateSearchPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handlePlatformToggle = (platform: string) => {
-    setPlatforms((prev) =>
-      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
-    )
-  }
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -271,45 +266,11 @@ export default function CreateSearchPage() {
 
             {/* Divider */}
             <div className="border-t border-slate-200 pt-6">
-              <h3 className="mb-2 font-semibold text-slate-950">Search Platforms</h3>
-              <p className="mb-4 text-sm text-slate-600">
-                No extra cost - all platforms included in your subscription
-              </p>
-
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={platforms.includes('ebay')}
-                    onChange={() => handlePlatformToggle('ebay')}
-                    className="h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
-                  />
-                  <span className="ml-2 text-sm">eBay (Active)</span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={platforms.includes('heritage')}
-                    onChange={() => handlePlatformToggle('heritage')}
-                    className="h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
-                  />
-                  <span className="ml-2 text-sm">Heritage (Active)</span>
-                </label>
-
-                <label className="flex items-center opacity-50">
-                  <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-                  <span className="ml-2 text-sm">Next 2 Marketplaces (Coming Q3 2026)</span>
-                </label>
-              </div>
-
-              {errors.platforms && (
-                <p className="mt-2 text-xs text-error-red">{errors.platforms}</p>
-              )}
-
-              <p className="mt-3 text-xs text-info-blue">
-                ℹ️ More platforms = more opportunities. No extra cost!
-              </p>
+              <PlatformSelector
+                platforms={platforms}
+                onChange={setPlatforms}
+                error={errors.platforms}
+              />
             </div>
 
             {/* Divider */}
