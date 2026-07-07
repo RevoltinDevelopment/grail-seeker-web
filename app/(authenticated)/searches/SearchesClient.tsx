@@ -131,16 +131,23 @@ export default function SearchesClient() {
                 )}
               </div>
 
-              {/* Platforms */}
+              {/* Platforms — disabled platforms render grayed out with no check
+                  so the card never claims monitoring that isn't happening (C1) */}
               <div className="mb-4">
                 <p className="mb-1 text-xs text-slate-600">Monitoring:</p>
                 <div className="flex flex-wrap gap-1">
-                  {search.platforms.includes('ebay') && (
+                  {search.platforms.includes('ebay') ? (
                     <span className="rounded bg-ebay-red px-2 py-1 text-xs text-white">eBay ✓</span>
+                  ) : (
+                    <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">eBay</span>
                   )}
-                  <span className="rounded px-2 py-1 text-xs text-white" style={{ backgroundColor: '#8B4513' }}>
-                    Heritage ✓
-                  </span>
+                  {search.platforms.includes('heritage') ? (
+                    <span className="rounded px-2 py-1 text-xs text-white" style={{ backgroundColor: '#8B4513' }}>
+                      Heritage ✓
+                    </span>
+                  ) : (
+                    <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">Heritage</span>
+                  )}
                 </div>
               </div>
 
