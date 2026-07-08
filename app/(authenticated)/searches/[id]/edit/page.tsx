@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
+import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
@@ -344,6 +345,12 @@ export default function EditSearchPage() {
                 Optional - leave blank to see all prices
               </p>
             </div>
+
+            <CriteriaHelperText
+              pageQuality={pageQuality}
+              gradingAuthority={gradingAuthority}
+              maxPrice={maxPrice}
+            />
 
             {/* Divider */}
             <div className="border-t border-slate-200 pt-6">
