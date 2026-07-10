@@ -10,6 +10,25 @@ import { createClient } from '@/lib/supabase/client'
 
 import type { User } from '@supabase/supabase-js'
 
+// Curated common-zone list (mirrors NotificationService.ts's phone-country
+// inference map). Not the full IANA list — sufficient for the current
+// US-majority userbase; expand if international demand shows up.
+const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'America/New_York', label: 'Eastern Time (US)' },
+  { value: 'America/Chicago', label: 'Central Time (US)' },
+  { value: 'America/Denver', label: 'Mountain Time (US)' },
+  { value: 'America/Phoenix', label: 'Arizona (no DST)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (US)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (US)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (US)' },
+  { value: 'America/Toronto', label: 'Canada (Eastern)' },
+  { value: 'Europe/London', label: 'United Kingdom' },
+  { value: 'Europe/Paris', label: 'France' },
+  { value: 'Europe/Berlin', label: 'Germany' },
+  { value: 'Australia/Sydney', label: 'Australia (Sydney)' },
+  { value: 'Pacific/Auckland', label: 'New Zealand' },
+]
+
 export default function SettingsClient() {
   const router = useRouter()
   const supabase = createClient()
@@ -481,6 +500,7 @@ function NotificationsTab({ user }: { user: User }) {
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
   const [quietHoursStart, setQuietHoursStart] = useState('22:00')
   const [quietHoursEnd, setQuietHoursEnd] = useState('08:00')
+  const [timezone, setTimezone] = useState('America/New_York')
   const [smsConsentGiven, setSmsConsentGiven] = useState(false)
   const [smsConsentTimestamp, setSmsConsentTimestamp] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -499,6 +519,7 @@ function NotificationsTab({ user }: { user: User }) {
         setQuietHoursEnabled(prefs.quietHoursEnabled)
         setQuietHoursStart(prefs.quietHoursStart.slice(0, 5)) // Convert "22:00:00" to "22:00"
         setQuietHoursEnd(prefs.quietHoursEnd.slice(0, 5)) // Convert "08:00:00" to "08:00"
+        setTimezone(prefs.timezone || 'America/New_York')
         setSmsConsentGiven(prefs.smsConsentGiven || false)
         setSmsConsentTimestamp(prefs.smsConsentTimestamp || null)
       } catch (err) {
@@ -552,6 +573,7 @@ function NotificationsTab({ user }: { user: User }) {
         quietHoursEnabled: quietHoursEnabled,
         quietHoursStart: quietHoursStart + ':00', // Convert "22:00" to "22:00:00"
         quietHoursEnd: quietHoursEnd + ':00', // Convert "08:00" to "08:00:00"
+        timezone: timezone,
       })
 
       setSuccess('Notification preferences saved!')
@@ -753,24 +775,43 @@ function NotificationsTab({ user }: { user: User }) {
           </div>
 
           {quietHoursEnabled && (
-            <div className="ml-4 grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-950">Start Time</label>
-                <input
-                  type="time"
-                  value={quietHoursStart}
-                  onChange={(e) => setQuietHoursStart(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                />
+            <div className="ml-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-950">Start Time</label>
+                  <input
+                    type="time"
+                    value={quietHoursStart}
+                    onChange={(e) => setQuietHoursStart(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-950">End Time</label>
+                  <input
+                    type="time"
+                    value={quietHoursEnd}
+                    onChange={(e) => setQuietHoursEnd(e.target.value)}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
+                  />
+                </div>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-950">End Time</label>
-                <input
-                  type="time"
-                  value={quietHoursEnd}
-                  onChange={(e) => setQuietHoursEnd(e.target.value)}
+                <label className="mb-2 block text-sm font-medium text-slate-950">Timezone</label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                />
+                >
+                  {TIMEZONE_OPTIONS.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-600">
+                  Start and end times above are in this timezone.
+                </p>
               </div>
             </div>
           )}

@@ -22,6 +22,7 @@ export interface UserPreferences {
   quietHoursEnabled: boolean
   quietHoursStart: string
   quietHoursEnd: string
+  timezone: string
   nearMissEnabled: boolean
   smsConsentGiven?: boolean
   smsConsentTimestamp?: string
