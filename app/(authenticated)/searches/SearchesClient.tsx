@@ -119,14 +119,23 @@ export default function SearchesClient() {
                 >
                   {search.isActive ? '✅ Active' : '⏸ Paused'}
                 </span>
-                {(search.alertCount ?? 0) > 0 ? (
+                {(search.currentAlertCount ?? 0) > 0 && (
                   <Link
                     href={`/alerts?search=${search.id}`}
                     className="ml-2 text-sm font-medium text-collector-blue hover:underline"
                   >
-                    {search.alertCount} {search.alertCount === 1 ? 'alert' : 'alerts'}
+                    {search.currentAlertCount} current {search.currentAlertCount === 1 ? 'alert' : 'alerts'}
                   </Link>
-                ) : (
+                )}
+                {(search.archivedAlertCount ?? 0) > 0 && (
+                  <Link
+                    href={`/alerts/archive?search=${search.id}`}
+                    className="ml-2 text-sm font-medium text-collector-blue hover:underline"
+                  >
+                    {search.archivedAlertCount} archived {search.archivedAlertCount === 1 ? 'alert' : 'alerts'}
+                  </Link>
+                )}
+                {(search.currentAlertCount ?? 0) === 0 && (search.archivedAlertCount ?? 0) === 0 && (
                   <span className="ml-2 text-sm text-slate-600">0 alerts</span>
                 )}
               </div>

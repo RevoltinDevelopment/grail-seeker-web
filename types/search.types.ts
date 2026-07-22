@@ -25,6 +25,8 @@ export interface GrailSearch {
   isActive: boolean
   notificationsEnabled: boolean
   alertCount?: number
+  currentAlertCount?: number
+  archivedAlertCount?: number
   lastCheckedAt: string
   createdAt: string
   updatedAt: string

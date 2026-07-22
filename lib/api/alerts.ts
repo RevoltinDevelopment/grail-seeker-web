@@ -1,4 +1,4 @@
-import type { AlertListResponse } from '@/types/alert.types'
+import type { AlertListResponse, ArchiveGroupsResponse } from '@/types/alert.types'
 import { apiClient } from './client'
 
 export interface AlertFilters {
@@ -52,5 +52,24 @@ export const alertsAPI = {
   // Archive system: Archive (dismiss) an alert
   archive: (alertId: string) => {
     return apiClient.post<{ success: boolean; message: string }>(`/api/alerts/${alertId}/archive`)
+  },
+
+  // Archive By Book mode: group list (searchId/title/count), including
+  // soft-deleted searches — see GET /api/alerts/archive-groups
+  getArchiveGroups: (
+    params?: Pick<AlertFilters, 'platform' | 'matchType'>
+  ) => {
+    const queryParams = new URLSearchParams()
+    if (params?.platform && params.platform !== 'all') {
+      queryParams.append('platform', params.platform)
+    }
+    if (params?.matchType && params.matchType !== 'all') {
+      queryParams.append('matchType', params.matchType)
+    }
+    const queryString = queryParams.toString()
+    const url = queryString
+      ? `/api/alerts/archive-groups?${queryString}`
+      : '/api/alerts/archive-groups'
+    return apiClient.get<ArchiveGroupsResponse>(url)
   },
 }

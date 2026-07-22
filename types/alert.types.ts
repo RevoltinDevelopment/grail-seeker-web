@@ -36,3 +36,13 @@ export interface AlertListResponse {
     total: number
   }
 }
+
+export interface ArchiveGroupSummary {
+  searchId: string
+  title: string
+  count: number
+}
+
+export interface ArchiveGroupsResponse {
+  groups: ArchiveGroupSummary[]
+}

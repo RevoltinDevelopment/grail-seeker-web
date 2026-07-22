@@ -9,7 +9,7 @@ import { AlertGroupHeader } from '@/components/alerts/AlertGroupHeader'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import type { AlertsSortMode } from '@/lib/api/user'
-import type { Alert } from '@/types/alert.types'
+import { groupAlertsBySearch } from '@/lib/utils/groupAlertsBySearch'
 
 const INITIAL_LOAD = 20
 const LOAD_MORE_SIZE = 20
@@ -60,21 +60,7 @@ export default function AlertsClient() {
   // Group alerts by search for By Book mode
   const groupedAlerts = useMemo(() => {
     if (!isBookSort) return null
-
-    const groups = new Map<string, { title: string; alerts: Alert[] }>()
-
-    for (const alert of alerts) {
-      const key = alert.searchId
-      if (!groups.has(key)) {
-        const title = `${alert.search.series.title} #${alert.search.issueNumber}`
-        groups.set(key, { title, alerts: [] })
-      }
-      groups.get(key)!.alerts.push(alert)
-    }
-
-    return Array.from(groups.entries())
-      .map(([id, group]) => ({ id, ...group }))
-      .sort((a, b) => a.title.localeCompare(b.title))
+    return groupAlertsBySearch(alerts)
   }, [alerts, isBookSort])
 
   const collapseState: 'all' | 'none' | 'mixed' = useMemo(() => {

@@ -7,6 +7,7 @@ import type { AlertsUiPreferences, AlertsSortMode } from '@/lib/api/user'
 const DEFAULT_PREFS: AlertsUiPreferences = {
   alertsSort: 'date',
   alertsCollapsedGroups: [],
+  archiveSort: 'date',
 }
 
 export function useUiPreferences() {
@@ -68,12 +69,23 @@ export function useUiPreferences() {
     [prefs, persist]
   )
 
+  const setArchiveSort = useCallback(
+    (sort: AlertsSortMode) => {
+      const next = { ...prefs, archiveSort: sort }
+      setPrefs(next)
+      persist(next)
+    },
+    [prefs, persist]
+  )
+
   return {
     alertsSort: prefs.alertsSort ?? 'date',
     isGroupCollapsed,
     setAlertsSort,
     toggleGroupCollapsed,
     setAllGroupsCollapsed,
+    archiveSort: prefs.archiveSort ?? 'date',
+    setArchiveSort,
     isLoaded,
   }
 }

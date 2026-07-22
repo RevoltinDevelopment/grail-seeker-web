@@ -13,6 +13,7 @@ export type AlertsSortMode = 'date' | 'book'
 export interface AlertsUiPreferences {
   alertsSort?: AlertsSortMode
   alertsCollapsedGroups?: string[]
+  archiveSort?: AlertsSortMode
 }
 
 // User Preferences Types
