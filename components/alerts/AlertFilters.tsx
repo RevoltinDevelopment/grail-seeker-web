@@ -53,7 +53,7 @@ export function AlertFilters({
           >
             <option value="all">All Platforms</option>
             <option value="ebay">eBay</option>
-            <option value="heritage">Heritage (Coming Q2 2026)</option>
+            <option value="heritage">Heritage</option>
           </select>
         </div>
 
