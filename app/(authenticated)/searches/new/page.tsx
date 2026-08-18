@@ -5,10 +5,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
+import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearches } from '@/hooks/useSearches'
 import type { ComicSeries } from '@/types/search.types'
+
+const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
+  issueNumber: '',
+  issueId: null,
+  issueVolumeText: null,
+  issuePublicationYear: null,
+}
 
 const PAGE_QUALITY_OPTIONS = [
   'Any',
@@ -28,7 +36,7 @@ export default function CreateSearchPage() {
   const { createSearch } = useSearches()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
-  const [issueNumber, setIssueNumber] = useState('')
+  const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
   const [gradeMin, setGradeMin] = useState<number | null>(null) // Default "Any" (null)
   const [gradeMax, setGradeMax] = useState<number | null>(null) // Default "Any" (null)
   const [pageQuality, setPageQuality] = useState('Any')
@@ -68,10 +76,16 @@ export default function CreateSearchPage() {
   }
 
   // Check if form is valid (for real-time button state)
+  // Story 1.16: IssueSelector guarantees issueValue.issueNumber is only
+  // ever non-empty when genuinely valid -- for the legacy (no GCD data)
+  // path, it already checks the same number-or-"nn" pattern internally
+  // before propagating a value up; for the picker path, a resolved value
+  // only ever comes from a confirmed real issue match. A single non-empty
+  // check here is enough for both, so the page doesn't re-implement or
+  // duplicate that validation logic.
   const isFormValid = () => {
     if (!selectedSeries) return false
-    if (!issueNumber) return false
-    if (!/^(\d+|nn)$/.test(issueNumber)) return false
+    if (!issueValue.issueNumber) return false
     if (platforms.length === 0) return false
     return true
   }
@@ -83,10 +97,8 @@ export default function CreateSearchPage() {
       newErrors.series = 'Please select a comic series'
     }
 
-    if (!issueNumber) {
+    if (!issueValue.issueNumber) {
       newErrors.issueNumber = 'Issue number is required'
-    } else if (!/^(\d+|nn)$/.test(issueNumber)) {
-      newErrors.issueNumber = 'Enter number only (e.g., 1, 129) or "nn"'
     }
 
     if (platforms.length === 0) {
@@ -109,7 +121,10 @@ export default function CreateSearchPage() {
     try {
       await createSearch.mutateAsync({
         seriesId: selectedSeries!.id,
-        issueNumber,
+        issueNumber: issueValue.issueNumber,
+        issueId: issueValue.issueId,
+        issueVolumeText: issueValue.issueVolumeText,
+        issuePublicationYear: issueValue.issuePublicationYear,
         maxPrice: maxPrice ? parseFloat(maxPrice) : null,
         gradeMin: gradeMin === null ? 0.5 : gradeMin, // Convert "Any" to 0.5 on submit
         gradeMax: gradeMax === null ? 10.0 : gradeMax, // Convert "Any" to 10.0 on submit
@@ -157,7 +172,15 @@ export default function CreateSearchPage() {
             {/* Series Autocomplete */}
             <SeriesAutocomplete
               value={selectedSeries}
-              onSelect={setSelectedSeries}
+              onSelect={(series) => {
+                // Story 1.16: reset the resolved issue pick on series
+                // change -- issueId is now a real FK into comic_issues, so
+                // carrying a stale pick from the previous series forward
+                // would submit a search whose issueId belongs to a
+                // different series than its own seriesId.
+                setSelectedSeries(series)
+                setIssueValue(EMPTY_ISSUE_VALUE)
+              }}
               error={errors.series}
               required
             />
@@ -170,23 +193,19 @@ export default function CreateSearchPage() {
               >
                 Issue Number <span className="text-error-red">*</span>
               </label>
-              <input
-                id="issueNumber"
-                type="text"
-                value={issueNumber}
-                onChange={(e) => setIssueNumber(e.target.value)}
-                placeholder='e.g., 1, 129, or "nn"'
-                className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue ${
-                  errors.issueNumber ? 'border-error-red' : 'border-slate-300'
-                }`}
-              />
+              {selectedSeries ? (
+                <IssueSelector
+                  seriesId={selectedSeries.id}
+                  seriesTitle={selectedSeries.title}
+                  value={issueValue}
+                  onChange={setIssueValue}
+                  error={errors.issueNumber}
+                />
+              ) : (
+                <p className="text-sm text-slate-500">Select a series first.</p>
+              )}
               {errors.issueNumber && (
                 <p className="mt-1 text-xs text-error-red">{errors.issueNumber}</p>
-              )}
-              {!errors.issueNumber && (
-                <p className="mt-1 text-xs text-slate-600">
-                  Enter number only (or "nn" for no number)
-                </p>
               )}
             </div>
 

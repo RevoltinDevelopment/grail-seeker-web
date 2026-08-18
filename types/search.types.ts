@@ -1,5 +1,9 @@
 export interface ComicSeries {
-  id: number
+  // Story 1.16: corrected from `number` -- the backend's comic_series.id is
+  // a UUID string (confirmed against the live schema, not assumed). Stayed
+  // silent until now because nothing did numeric operations on it, only
+  // opaque pass-through.
+  id: string
   title: string
   volume: number
   yearRange: string
@@ -16,6 +20,14 @@ export interface GrailSearch {
   userId: string
   series: ComicSeries
   issueNumber: string
+  // Story 1.16: the resolved issue-picker pick, when one exists. `null`
+  // (never `undefined`) is the explicit "no pick" / "search all variants"
+  // state -- the backend's PATCH handler is provided-keys-only, so an
+  // omitted key means "leave unchanged," not "clear" (see IssueSelector's
+  // Component Contract in the story for the full reasoning).
+  issueId: string | null
+  issueVolumeText: string | null
+  issuePublicationYear: number | null
   maxPrice: number | null
   gradeMin: number | null
   gradeMax: number | null
@@ -33,8 +45,11 @@ export interface GrailSearch {
 }
 
 export interface CreateSearchRequest {
-  seriesId: number
+  seriesId: string
   issueNumber: string
+  issueId?: string | null
+  issueVolumeText?: string | null
+  issuePublicationYear?: number | null
   maxPrice?: number | null
   gradeMin?: number | null
   gradeMax?: number | null

@@ -2,6 +2,7 @@ import { Inter, Cinzel } from 'next/font/google'
 
 import './globals.css'
 import { ToastProvider } from '@/contexts/ToastContext'
+import { cn } from '@/lib/utils'
 import { ReactQueryProvider } from './providers/ReactQueryProvider'
 
 import type { Metadata } from 'next'
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn('font-sans')}>
       <body className={`${inter.className} ${cinzel.variable}`}>
         <ReactQueryProvider>
           <ToastProvider>{children}</ToastProvider>

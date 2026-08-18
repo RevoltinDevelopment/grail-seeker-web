@@ -5,10 +5,18 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
+import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearch, useSearches } from '@/hooks/useSearches'
 import type { ComicSeries } from '@/types/search.types'
+
+const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
+  issueNumber: '',
+  issueId: null,
+  issueVolumeText: null,
+  issuePublicationYear: null,
+}
 
 const PAGE_QUALITY_OPTIONS = [
   'Any',
@@ -32,7 +40,7 @@ export default function EditSearchPage() {
   const { updateSearch } = useSearches()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
-  const [issueNumber, setIssueNumber] = useState('')
+  const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
   const [gradeMin, setGradeMin] = useState<number | null>(null)
   const [gradeMax, setGradeMax] = useState<number | null>(null)
   const [pageQuality, setPageQuality] = useState('Any')
@@ -49,7 +57,12 @@ export default function EditSearchPage() {
   useEffect(() => {
     if (search && !isInitialized) {
       setSelectedSeries(search.series)
-      setIssueNumber(search.issueNumber)
+      setIssueValue({
+        issueNumber: search.issueNumber,
+        issueId: search.issueId,
+        issueVolumeText: search.issueVolumeText,
+        issuePublicationYear: search.issuePublicationYear,
+      })
       setGradeMin(search.gradeMin)
       setGradeMax(search.gradeMax)
       setPageQuality(search.pageQuality || 'Any')
@@ -100,10 +113,12 @@ export default function EditSearchPage() {
   }
 
   // Check if form is valid (for real-time button state)
+  // Story 1.16: see new/page.tsx's identical comment -- IssueSelector
+  // guarantees issueValue.issueNumber is only ever non-empty when
+  // genuinely valid, for both the legacy and picker paths.
   const isFormValid = () => {
     if (!selectedSeries) return false
-    if (!issueNumber) return false
-    if (!/^(\d+|nn)$/.test(issueNumber)) return false
+    if (!issueValue.issueNumber) return false
     if (platforms.length === 0) return false
     return true
   }
@@ -115,10 +130,8 @@ export default function EditSearchPage() {
       newErrors.series = 'Please select a comic series'
     }
 
-    if (!issueNumber) {
+    if (!issueValue.issueNumber) {
       newErrors.issueNumber = 'Issue number is required'
-    } else if (!/^(\d+|nn)$/.test(issueNumber)) {
-      newErrors.issueNumber = 'Enter number only (e.g., 1, 129) or "nn"'
     }
 
     if (platforms.length === 0) {
@@ -143,7 +156,10 @@ export default function EditSearchPage() {
         id: searchId,
         data: {
           seriesId: selectedSeries!.id,
-          issueNumber,
+          issueNumber: issueValue.issueNumber,
+          issueId: issueValue.issueId,
+          issueVolumeText: issueValue.issueVolumeText,
+          issuePublicationYear: issueValue.issuePublicationYear,
           maxPrice: maxPrice ? parseFloat(maxPrice) : null,
           gradeMin: gradeMin === null ? 0.5 : gradeMin, // Convert "Any" to 0.5 on submit
           gradeMax: gradeMax === null ? 10.0 : gradeMax, // Convert "Any" to 10.0 on submit
@@ -238,7 +254,15 @@ export default function EditSearchPage() {
             {/* Series Autocomplete */}
             <SeriesAutocomplete
               value={selectedSeries}
-              onSelect={setSelectedSeries}
+              onSelect={(series) => {
+                // Story 1.16: reset the resolved issue pick when the user
+                // actively changes the series (not on the initial prefill
+                // above, which sets both together from the loaded search)
+                // -- issueId is a real FK into comic_issues, so carrying a
+                // stale pick forward would submit a mismatched pair.
+                setSelectedSeries(series)
+                setIssueValue(EMPTY_ISSUE_VALUE)
+              }}
               error={errors.series}
               required
             />
@@ -251,23 +275,19 @@ export default function EditSearchPage() {
               >
                 Issue Number <span className="text-error-red">*</span>
               </label>
-              <input
-                id="issueNumber"
-                type="text"
-                value={issueNumber}
-                onChange={(e) => setIssueNumber(e.target.value)}
-                placeholder='e.g., 1, 129, or "nn"'
-                className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue ${
-                  errors.issueNumber ? 'border-error-red' : 'border-slate-300'
-                }`}
-              />
+              {selectedSeries ? (
+                <IssueSelector
+                  seriesId={selectedSeries.id}
+                  seriesTitle={selectedSeries.title}
+                  value={issueValue}
+                  onChange={setIssueValue}
+                  error={errors.issueNumber}
+                />
+              ) : (
+                <p className="text-sm text-slate-500">Select a series first.</p>
+              )}
               {errors.issueNumber && (
                 <p className="mt-1 text-xs text-error-red">{errors.issueNumber}</p>
-              )}
-              {!errors.issueNumber && (
-                <p className="mt-1 text-xs text-slate-600">
-                  Enter number only (or "nn" for no number)
-                </p>
               )}
             </div>
 
