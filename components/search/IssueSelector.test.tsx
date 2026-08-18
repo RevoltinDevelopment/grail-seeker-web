@@ -278,6 +278,121 @@ describe('IssueSelector', () => {
     expect(screen.getByText('Select to edit')).toBeInTheDocument()
   })
 
+  describe("findResolved's volume/year disambiguation (Judge-style multi-volume)", () => {
+    // Two volumes, each resetting numbering, both containing a "#1" -- the
+    // exact shape findResolved's number-only fallback must disambiguate
+    // correctly rather than silently binding to whichever volume happens
+    // to iterate first. issueId is deliberately null throughout (the
+    // "search all variants"/flag-off case), which is what routes
+    // findResolved into this fallback in the first place.
+    function twoVolumeJudgeStyleResponse(): SeriesIssuesResponse {
+      return {
+        layoutMode: 'list',
+        hasMultipleVolumes: true,
+        volumes: [
+          {
+            volume: '1963 Series',
+            hasBuckets: false,
+            buckets: [
+              {
+                issues: [
+                  {
+                    number: '1',
+                    title: 'First Volume Issue 1',
+                    sortCode: 1,
+                    plainIssueId: 'v1-issue1',
+                    variants: [],
+                    volume: '1963 Series',
+                    noVolume: false,
+                    displayVolumeWithNumber: true,
+                    publicationYear: 1963,
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            volume: '1998 Series',
+            hasBuckets: false,
+            buckets: [
+              {
+                issues: [
+                  {
+                    number: '1',
+                    title: 'Second Volume Issue 1',
+                    sortCode: 1,
+                    plainIssueId: 'v2-issue1',
+                    variants: [],
+                    volume: '1998 Series',
+                    noVolume: false,
+                    displayVolumeWithNumber: true,
+                    publicationYear: 1998,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }
+    }
+
+    it('disambiguates by issueVolumeText when it matches the second volume, not the first', async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue(twoVolumeJudgeStyleResponse())
+
+      const value: IssueSelectorValue = {
+        issueNumber: '1',
+        issueId: null,
+        issueVolumeText: '1998 Series',
+        issuePublicationYear: null, // deliberately absent -- volume text alone must be sufficient
+      }
+
+      renderWithProviders(
+        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+      )
+
+      await waitFor(() => expect(screen.getByText(/Second Volume Issue 1/)).toBeInTheDocument())
+      expect(screen.queryByText(/First Volume Issue 1/)).not.toBeInTheDocument()
+    })
+
+    it('falls back to issuePublicationYear when issueVolumeText is absent', async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue(twoVolumeJudgeStyleResponse())
+
+      const value: IssueSelectorValue = {
+        issueNumber: '1',
+        issueId: null,
+        issueVolumeText: null, // no volume signal at all -- year must carry disambiguation alone
+        issuePublicationYear: 1963,
+      }
+
+      renderWithProviders(
+        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+      )
+
+      await waitFor(() => expect(screen.getByText(/First Volume Issue 1/)).toBeInTheDocument())
+      expect(screen.queryByText(/Second Volume Issue 1/)).not.toBeInTheDocument()
+    })
+
+    it('falls back to the first candidate when neither issueVolumeText nor issuePublicationYear matches any candidate', async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue(twoVolumeJudgeStyleResponse())
+
+      const value: IssueSelectorValue = {
+        issueNumber: '1',
+        issueId: null,
+        issueVolumeText: 'Some Unrelated Reprint Edition',
+        issuePublicationYear: 2050,
+      }
+
+      renderWithProviders(
+        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+      )
+
+      // Neither disambiguator matches -- still resolves to something
+      // sensible (array order) rather than showing nothing or crashing.
+      await waitFor(() => expect(screen.getByText(/First Volume Issue 1/)).toBeInTheDocument())
+      expect(screen.queryByText(/Second Volume Issue 1/)).not.toBeInTheDocument()
+    })
+  })
+
   describe('VariantSelect rollout flag', () => {
     function responseWithVariants(): SeriesIssuesResponse {
       return {
