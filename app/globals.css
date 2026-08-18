@@ -142,9 +142,20 @@
 
     --destructive: 0.704 0.191 22.216;
 
-    --border: 1 0 0;
+    /* Code review finding: shadcn's original defaults here were
+       oklch(1 0 0 / 10%) -- semi-transparent white -- but got mistranscribed
+       to bare "1 0 0" (opaque white) during the oklch-to-bare-channel
+       conversion, losing the alpha entirely. Combined with the `* { @apply
+       border-border }` universal reset below, this made every unstyled
+       border in dark mode solid white instead of a subtle 10% overlay.
+       oklch doesn't carry a 4th alpha channel in the bare-channel form this
+       file uses elsewhere -- shadcn's withAlpha() wrapper in
+       tailwind.config.ts already supplies the /NN opacity via Tailwind's
+       <alpha-value>, so approximating the intended low-visibility tone
+       with a darker channel value here is the closest same-mechanism fix. */
+    --border: 0.279 0 0;
 
-    --input: 1 0 0;
+    --input: 0.279 0 0;
 
     --ring: 0.556 0 0;
 

@@ -47,9 +47,16 @@ export interface GrailSearch {
 export interface CreateSearchRequest {
   seriesId: string
   issueNumber: string
-  issueId?: string | null
-  issueVolumeText?: string | null
-  issuePublicationYear?: number | null
+  // Story 1.16 code review finding: these were typed optional (`?:`),
+  // contradicting the Component Contract's own rule -- omitting a key on
+  // the wire is indistinguishable from `undefined`, and JSON.stringify
+  // drops undefined-valued keys entirely, so an accidental omission here
+  // would silently mean "leave unchanged" server-side (PATCH's
+  // provided-keys-only handler) rather than the intended "no pick" (`null`).
+  // Non-optional forces every call site to make that choice explicitly.
+  issueId: string | null
+  issueVolumeText: string | null
+  issuePublicationYear: number | null
   maxPrice?: number | null
   gradeMin?: number | null
   gradeMax?: number | null

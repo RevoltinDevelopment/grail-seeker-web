@@ -68,7 +68,7 @@ describe('IssueSelector', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the one-shot read-only state for a series with exactly one issue', async () => {
+  it('renders the one-shot read-only state and auto-resolves via onChange for a series with exactly one issue', async () => {
     vi.mocked(issuesAPI.list).mockResolvedValue({
       layoutMode: 'grid',
       hasMultipleVolumes: false,
@@ -96,15 +96,29 @@ describe('IssueSelector', () => {
         },
       ],
     })
+    const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Test Series" value={emptyValue} onChange={vi.fn()} />
+      <IssueSelector seriesId={SERIES_ID} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByText(/one-shot/)).toBeInTheDocument())
     // No field, no button -- nothing interactive.
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+
+    // Code review finding (CRITICAL): a one-shot series has exactly one
+    // possible pick, so it must resolve itself via onChange -- otherwise
+    // value.issueNumber stays '' and the parent form's submit button stays
+    // permanently disabled with no visible error.
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        issueNumber: '1',
+        issueId: null, // flag off in this test -- AC #8
+        issueVolumeText: null,
+        issuePublicationYear: 1975,
+      })
+    )
   })
 
   it('renders the legacy plain-text field, unchanged, when the series has no GCD data (404)', async () => {
@@ -140,7 +154,37 @@ describe('IssueSelector', () => {
     expect(screen.getByRole('button', { name: 'Select Issue' })).toBeInTheDocument()
   })
 
-  it('collapses silently to the resolved chip on a unique exact-number match at blur', async () => {
+  it('collapses silently to the resolved chip on a unique exact-number match at blur, with issueId null when the flag is off (AC #8)', async () => {
+    vi.mocked(issuesAPI.list).mockResolvedValue(fourColorLikeResponse())
+    vi.mocked(issuesAPI.search).mockResolvedValue({
+      issues: [fourColorLikeResponse().volumes[0].buckets[0].issues[1]], // "4 - Smilin' Jack"
+    })
+    const onChange = vi.fn()
+
+    renderWithProviders(
+      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
+    )
+
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox'), '4')
+    await user.tab() // blur
+
+    // Code review finding (AC #8): with the flag off (unset in this test),
+    // issueId must stay null even on a clean, unique match -- the flag
+    // gates the FK binding itself, not just VariantSelect's rendering.
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        issueNumber: '4',
+        issueId: null,
+        issueVolumeText: null,
+        issuePublicationYear: 1943,
+      })
+    )
+  })
+
+  it('binds the plain printing id on a unique exact-number match at blur when the flag is on', async () => {
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_VARIANT_PICKER', 'true')
     vi.mocked(issuesAPI.list).mockResolvedValue(fourColorLikeResponse())
     vi.mocked(issuesAPI.search).mockResolvedValue({
       issues: [fourColorLikeResponse().volumes[0].buckets[0].issues[1]], // "4 - Smilin' Jack"
@@ -164,6 +208,8 @@ describe('IssueSelector', () => {
         issuePublicationYear: 1943,
       })
     )
+
+    vi.unstubAllEnvs()
   })
 
   it('redirects to the modal (never auto-picks) when a typed number matches zero issues', async () => {

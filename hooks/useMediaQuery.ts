@@ -3,8 +3,11 @@ import { useState, useEffect } from 'react'
 // Story 1.16: no existing media-query hook in this repo. Used to switch
 // IssuePickerModal between a desktop-centered Dialog and a mobile bottom
 // Sheet (ux-design-specification.md's Responsive Strategy). SSR-safe:
-// starts false (desktop-first default) and syncs after mount, since
-// `window` doesn't exist during server rendering.
+// starts false and syncs after mount, since `window` doesn't exist during
+// server rendering. Code review finding: this is a mobile-first default
+// (false means "doesn't match `(min-width: 640px)`"), not desktop-first as
+// a prior comment here claimed -- desktop users briefly see the mobile
+// Sheet render before the post-mount effect swaps it to the Dialog.
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false)
 

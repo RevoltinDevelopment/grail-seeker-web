@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useIssues } from '@/hooks/useIssues'
 import { APIError } from '@/lib/api/client'
@@ -31,6 +31,25 @@ interface IssueSelectorProps {
 // can never silently drift from what it always was.
 const LEGACY_NUMBER_PATTERN = /^(\d+|nn)$/
 
+// Code review finding (AC #8): the flag must gate the actual issueId
+// resolution, not just VariantSelect's rendering -- "when the flag is off,
+// resolved picks always carry issueId: null" is the story's own explicit
+// rollout-safety requirement, matching pre-Story-1.16 behavior exactly
+// (issueId was never sent, always "match any printing"). Every call site
+// that resolves a plainIssueId binding must go through this, not read
+// group.plainIssueId directly. A function, not a frozen module-level
+// constant -- Next.js inlines NEXT_PUBLIC_* at build time in production, so
+// this only matters for tests, but tests toggle the flag per-test via
+// vi.stubEnv(), which a constant evaluated once at import time can never see.
+function isVariantPickerEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_VARIANT_PICKER === 'true'
+}
+
+function resolveVariantId(group: Issue): string | null {
+  if (!isVariantPickerEnabled()) return null
+  return group.plainIssueId ?? null
+}
+
 function flattenIssues(volumes: IssueVolume[]): Issue[] {
   return volumes.flatMap((v) => v.buckets.flatMap((b) => b.issues))
 }
@@ -49,8 +68,26 @@ function findResolved(
     return null
   }
   if (value.issueNumber) {
-    const group = issues.find((i) => i.number === value.issueNumber)
-    return group ? { group, variant: null } : null
+    // Code review finding: with the flag off (or "search all variants"
+    // picked), issueId is always null, so every resolved pick lands here --
+    // a plain `.find()` by number alone would silently bind the wrong
+    // volume's group for a Judge-style series that resets numbering per
+    // volume. Disambiguate using whichever of issueVolumeText/
+    // issuePublicationYear was captured at resolution time before falling
+    // back to the first match.
+    const candidates = issues.filter((i) => i.number === value.issueNumber)
+    if (candidates.length <= 1) {
+      return candidates[0] ? { group: candidates[0], variant: null } : null
+    }
+    const byVolume = value.issueVolumeText
+      ? candidates.find((c) => c.displayVolumeWithNumber && c.volume === value.issueVolumeText)
+      : undefined
+    if (byVolume) return { group: byVolume, variant: null }
+    const byYear = value.issuePublicationYear
+      ? candidates.find((c) => c.publicationYear === value.issuePublicationYear)
+      : undefined
+    if (byYear) return { group: byYear, variant: null }
+    return { group: candidates[0], variant: null }
   }
   return null
 }
@@ -76,6 +113,8 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
   const [modalPrefillQuery, setModalPrefillQuery] = useState<string | undefined>(undefined)
   const [redirectMessage, setRedirectMessage] = useState<string | null>(null)
   const [isValidating, setIsValidating] = useState(false)
+  const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null)
+  const [blurError, setBlurError] = useState<string | null>(null)
 
   const noGcdData = !isLoading && fetchError instanceof APIError && fetchError.status === 404
   // A non-404 failure (network, 500) falls back to the same legacy text
@@ -94,6 +133,20 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
   const resolved = useMemo(() => findResolved(allIssues, value), [allIssues, value])
 
   const isResolved = value.issueNumber !== ''
+
+  // Code review finding (CRITICAL): the one-shot branch below renders a
+  // static, read-only chip and never called onChange -- value.issueNumber
+  // stayed '' for a genuinely one-shot series, and both search forms gate
+  // isFormValid/validateForm on that field being non-empty, so the submit
+  // button stayed permanently disabled with no visible error. A one-shot
+  // series has exactly one possible pick, so resolve it automatically the
+  // moment it's known, same as if the user had picked it themselves.
+  useEffect(() => {
+    if (isOneShot && value.issueNumber === '') {
+      const only = allIssues[0]
+      onChange(resolveValueFromIssue(only, resolveVariantId(only)))
+    }
+  }, [isOneShot, allIssues, value.issueNumber, onChange])
 
   // ---- One-shot: read-only, no field, nothing tappable ----
   if (isOneShot) {
@@ -138,6 +191,10 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
             error ? 'border-error-red' : 'border-slate-300'
           )}
         />
+        {/* Code review finding: this hint was lost when the raw <input> was
+            first replaced by IssueSelector -- restored so the legacy path
+            still explains the accepted format, same as before this story. */}
+        <p className="mt-1 text-xs text-slate-600">Enter number only (e.g., 1, 129) or &quot;nn&quot;</p>
         {error && <p className="mt-1 text-sm text-error-red">{error}</p>}
       </div>
     )
@@ -145,17 +202,19 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
 
   const handleBlur = async () => {
     if (!inputText || inputText === value.issueNumber) return
+    if (inputText === lastFailedQuery) return // same text already failed to match -- don't re-fire on every re-blur
     if (isLoading) return // issue data not loaded yet -- nothing to validate against
 
     setIsValidating(true)
+    setBlurError(null)
     try {
       const result = await issuesAPI.search(seriesId, inputText)
       if (result.issues.length === 1) {
         // Exactly one exact match -- silent collapse, no ceremony.
         const group = result.issues[0]
-        const variantId = group.plainIssueId ?? null
-        onChange(resolveValueFromIssue(group, variantId))
+        onChange(resolveValueFromIssue(group, resolveVariantId(group)))
         setRedirectMessage(null)
+        setLastFailedQuery(null)
       } else {
         // Zero matches, or more than one (a Judge-style series resetting
         // per volume) -- both redirect, never auto-pick when the match
@@ -163,17 +222,25 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
         setRedirectMessage(`'${inputText}' isn't a match for ${seriesTitle} — browse or search below.`)
         setModalPrefillQuery(inputText)
         setIsModalOpen(true)
+        setLastFailedQuery(inputText)
       }
+    } catch {
+      // Code review finding: this had no catch -- a network/500 failure on
+      // blur was an unhandled promise rejection, leaving the field silently
+      // stuck in a validating-then-reverted state with no feedback.
+      setBlurError("Couldn't validate that issue number — check your connection and try again.")
+      setLastFailedQuery(inputText)
     } finally {
       setIsValidating(false)
     }
   }
 
   const handleSelectIssue = (issue: Issue) => {
-    const variantId = issue.plainIssueId ?? null
-    onChange(resolveValueFromIssue(issue, variantId))
+    onChange(resolveValueFromIssue(issue, resolveVariantId(issue)))
     setInputText(issue.number)
     setRedirectMessage(null)
+    setLastFailedQuery(null)
+    setBlurError(null)
   }
 
   const openPicker = () => {
@@ -215,14 +282,12 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
     // exists) via resolveValueFromIssue, so "off" needs no extra handling
     // here -- it's already indistinguishable from a user never opening the
     // dropdown.
-    const showVariantSelect =
-      process.env.NEXT_PUBLIC_ENABLE_VARIANT_PICKER === 'true' &&
-      resolved !== null &&
-      resolved.group.variants.length > 0
+    const showVariantSelect = isVariantPickerEnabled() && resolved !== null && resolved.group.variants.length > 0
 
     return (
       <>
         <button
+          id="issueNumber"
           type="button"
           onClick={openPicker}
           className="flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-collector-blue"
@@ -278,7 +343,8 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
         </Button>
       </div>
       {redirectMessage && <p className="mt-1 text-sm text-slate-500">{redirectMessage}</p>}
-      {error && !redirectMessage && <p className="mt-1 text-sm text-error-red">{error}</p>}
+      {blurError && <p className="mt-1 text-sm text-error-red">{blurError}</p>}
+      {error && !redirectMessage && !blurError && <p className="mt-1 text-sm text-error-red">{error}</p>}
       <IssuePickerModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

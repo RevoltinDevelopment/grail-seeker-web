@@ -284,10 +284,17 @@ export default function EditSearchPage() {
                   error={errors.issueNumber}
                 />
               ) : (
-                <p className="text-sm text-slate-500">Select a series first.</p>
-              )}
-              {errors.issueNumber && (
-                <p className="mt-1 text-xs text-error-red">{errors.issueNumber}</p>
+                <>
+                  <p className="text-sm text-slate-500">Select a series first.</p>
+                  {/* Code review finding: this duplicated IssueSelector's
+                      own error rendering once a series is selected -- kept
+                      only for the no-series-yet placeholder branch above,
+                      the one case where IssueSelector doesn't render at
+                      all to show it itself. */}
+                  {errors.issueNumber && (
+                    <p className="mt-1 text-xs text-error-red">{errors.issueNumber}</p>
+                  )}
+                </>
               )}
             </div>
 

@@ -62,8 +62,20 @@ export function IssuePickerModal({
   // useEffect+setTimeout pattern exactly (300ms, no React Query -- this is
   // a throwaway-results, re-fires-per-keystroke access pattern, not the
   // fetch-once-on-open pattern the browse data above uses).
+  //
+  // Code review finding (CRITICAL): this used to run on searchQuery alone,
+  // regardless of hasAnyTitle. The search <input> only renders when
+  // hasAnyTitle is true, but a redirect from IssueSelector's handleBlur
+  // still sets searchQuery (via prefillQuery) even for an untitled/
+  // grid-mode series -- so searchResults got set (usually to an empty
+  // array, since a non-match is exactly why it redirected), which hid the
+  // VolumeBucketNav/browse view too (gated on searchResults === null),
+  // leaving no visible search box to clear and no browse view either: a
+  // genuine dead end. Gating this on hasAnyTitle, same as the input itself,
+  // means searchResults simply never gets set for a grid-mode series, so
+  // the browse view is always reachable regardless of a stale prefillQuery.
   useEffect(() => {
-    if (!searchQuery) {
+    if (!hasAnyTitle || !searchQuery) {
       setSearchResults(null)
       return
     }
@@ -76,7 +88,7 @@ export function IssuePickerModal({
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, seriesId])
+  }, [searchQuery, seriesId, hasAnyTitle])
 
   const selectedVolume = data?.volumes[selectedVolumeIndex]
   const selectedBucket = selectedVolume?.buckets[selectedBucketIndex]
@@ -126,7 +138,7 @@ export function IssuePickerModal({
         <div className="flex max-h-96 flex-col gap-1 overflow-y-auto">
           {displayedIssues.map((issue) => (
             <IssueListRow
-              key={`${issue.number}-${issue.volume ?? ''}`}
+              key={issue.plainIssueId ?? `${issue.number}-${issue.volume ?? ''}-${issue.sortCode}`}
               issue={issue}
               selected={false}
               onSelect={handleSelect}
@@ -137,7 +149,7 @@ export function IssuePickerModal({
         <div className="grid max-h-96 grid-cols-5 gap-2 overflow-y-auto">
           {displayedIssues.map((issue) => (
             <IssueGridButton
-              key={`${issue.number}-${issue.volume ?? ''}`}
+              key={issue.plainIssueId ?? `${issue.number}-${issue.volume ?? ''}-${issue.sortCode}`}
               issue={issue}
               selected={false}
               onSelect={handleSelect}
