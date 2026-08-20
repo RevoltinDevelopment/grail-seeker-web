@@ -148,6 +148,31 @@ describe('IssueSelector', () => {
     })
   })
 
+  // Found live (2026-08-20): GCD issue "-1" (a real, pickable issue -- the
+  // driving example behind Alias Groups, Story 1.17) was rejected by this
+  // pattern in both the frontend and the matching backend validator, even
+  // though it's a genuine value a gap_fill series' legacy free-text field
+  // should accept.
+  it('accepts a negative issue number ("-1") in the legacy no-GCD-data path', async () => {
+    vi.mocked(issuesAPI.list).mockRejectedValue(new APIError(404, 'NOT_FOUND', 'No issues found'))
+    const onChange = vi.fn()
+
+    renderWithProviders(
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
+    )
+
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox'), '-1')
+    expect(onChange).toHaveBeenLastCalledWith({
+      issueNumber: '-1',
+      issueId: null,
+      issueVolumeText: null,
+      issuePublicationYear: null,
+      resolvedSeriesId: null,
+    })
+  })
+
   it('renders field + "or" + Select Issue for a multi-issue, unresolved series', async () => {
     vi.mocked(issuesAPI.list).mockResolvedValue(fourColorLikeResponse())
 

@@ -36,7 +36,15 @@ interface IssueSelectorProps {
 // against (app/(authenticated)/searches/new|[id]/edit/page.tsx). Re-used
 // here, not redefined ad hoc, so the legacy path's own acceptance rule
 // can never silently drift from what it always was.
-const LEGACY_NUMBER_PATTERN = /^(\d+|nn)$/
+//
+// Found live (2026-08-20): the backend's matching validator
+// (searches.routes.ts) rejected GCD issue "-1" (a real, pickable issue --
+// the exact driving example behind Alias Groups, Story 1.17) even though
+// the picker resolved it correctly, since this pattern only accepted
+// non-negative digits. Fixed on both sides so this legacy free-text path
+// (used for gap_fill series with no real GCD data) can't drift from what
+// the backend now actually accepts.
+const LEGACY_NUMBER_PATTERN = /^(-?\d+|nn)$/
 
 // Code review finding (AC #8): the flag must gate the actual issueId
 // resolution, not just VariantSelect's rendering -- "when the flag is off,
