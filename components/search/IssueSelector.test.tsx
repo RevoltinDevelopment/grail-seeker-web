@@ -509,22 +509,55 @@ describe('IssueSelector', () => {
     // AC #11 / Verified #11: an Alias Group 404 means the group has no
     // members or no real issues -- a data error, never the legitimate
     // "no GCD data" case a real series' 404 represents. Must render a
-    // distinct, blocking state, never the legacy free-text <input>.
-    it('renders a distinct blocking error state on 404, never the legacy free-text field', async () => {
+    // distinct, blocking state, never the legacy free-text <input>, and
+    // must never let an invalid resolvedSeriesId reach the parent.
+    it('renders a distinct blocking error state on 404, never the legacy free-text field, and never calls onChange', async () => {
       vi.mocked(issuesAPI.list).mockRejectedValue(new APIError(404, 'NOT_FOUND', 'No issues found'))
+      const onChange = vi.fn()
 
       renderWithProviders(
         <IssueSelector
           source={{ kind: 'aliasGroup', id: ALIAS_GROUP_ID }}
           seriesTitle="Uncanny X-Men (1st Series 1963-2011)"
           value={emptyValue}
-          onChange={vi.fn()}
+          onChange={onChange}
         />
       )
 
-      await waitFor(() => expect(screen.getByText(/no issue data available/i)).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText(/couldn't load this alias group/i)).toBeInTheDocument())
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+      expect(onChange).not.toHaveBeenCalled()
     })
+
+    // Code review finding: the original fix only covered the 404 case --
+    // a non-404 failure (network, 500) for an Alias Group source fell
+    // through to the same legacy free-text field, reproducing the exact
+    // bug this story fixes via a different HTTP status. Any failure must
+    // render the same distinct, blocking state.
+    it('renders the same distinct blocking error state on a non-404 failure (e.g. a 500), never the legacy free-text field', async () => {
+      vi.mocked(issuesAPI.list).mockRejectedValue(new Error('connection reset'))
+      const onChange = vi.fn()
+
+      renderWithProviders(
+        <IssueSelector
+          source={{ kind: 'aliasGroup', id: ALIAS_GROUP_ID }}
+          seriesTitle="Uncanny X-Men (1st Series 1963-2011)"
+          value={emptyValue}
+          onChange={onChange}
+        />
+      )
+
+      // useIssues's own retry() only special-cases 404 -- any other error
+      // (this one included) retries up to 3 times with React Query's
+      // default backoff before the query settles into its error state, so
+      // this needs a longer-than-default waitFor timeout.
+      await waitFor(
+        () => expect(screen.getByText(/couldn't load this alias group/i)).toBeInTheDocument(),
+        { timeout: 10000 }
+      )
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+      expect(onChange).not.toHaveBeenCalled()
+    }, 15000)
 
     // The one behavior this whole story exists to get right (Dev Notes):
     // a group fetched THROUGH an Alias Group must resolve to its own real

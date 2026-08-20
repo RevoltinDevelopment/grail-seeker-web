@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
@@ -53,9 +53,17 @@ export default function CreateSearchPage() {
   // Story 1.18: selectedSeries.type is now meaningfully 'series' |
   // 'aliasGroup' (Story 1.17's repurposed field) -- derive IssueSelector's
   // fetch source from it directly, no new state needed.
-  const issueSource: IssueSource | null = selectedSeries
-    ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
-    : null
+  // Code review finding: memoized -- an unmemoized object literal here was
+  // recreated on every render (e.g. typing in an unrelated field), and
+  // IssuePickerModal's debounced-search effect depends on this value by
+  // reference, resetting/restarting on every unrelated parent re-render.
+  const issueSource: IssueSource | null = useMemo(
+    () =>
+      selectedSeries
+        ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+        : null,
+    [selectedSeries]
+  )
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')

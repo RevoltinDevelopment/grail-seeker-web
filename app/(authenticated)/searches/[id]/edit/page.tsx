@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
@@ -76,14 +76,32 @@ export default function EditSearchPage() {
   // Story 1.18: selectedSeries.type is now meaningfully 'series' |
   // 'aliasGroup' (Story 1.17's repurposed field) -- derive IssueSelector's
   // fetch source from it directly, no new state needed.
-  const issueSource: IssueSource | null = selectedSeries
-    ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
-    : null
+  // Code review finding: memoized -- an unmemoized object literal here was
+  // recreated on every render (e.g. typing in an unrelated field), and
+  // IssuePickerModal's debounced-search effect depends on this value by
+  // reference, resetting/restarting on every unrelated parent re-render.
+  const issueSource: IssueSource | null = useMemo(
+    () =>
+      selectedSeries
+        ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+        : null,
+    [selectedSeries]
+  )
   const [platforms, setPlatforms] = useState(['ebay', 'heritage'])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+
+  // Code review finding: guards the async Alias Group display fetch below
+  // against a setState-after-unmount warning if the user navigates away
+  // before it resolves.
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // Pre-fill form when search data loads
   useEffect(() => {
@@ -94,9 +112,25 @@ export default function EditSearchPage() {
       // for a search made through a group. resolvedSeriesId is always the
       // real series id regardless -- known immediately, no extra fetch.
       if (search.aliasGroupId) {
+        // Code review finding (AC #5, "no flicker"): set the real series
+        // synchronously first -- otherwise selectedSeries stays null until
+        // the async fetch below resolves, and the page's own `selectedSeries
+        // ? <IssueSelector /> : <p>Select a series first.</p>` gate would
+        // visibly flash the "no series selected" placeholder before the
+        // Alias Group's name loads. Upgraded to the group's own display
+        // once fetched, same UX as before, just without the intermediate flash.
+        setSelectedSeries(search.series)
         fetchAliasGroupDisplay(search.aliasGroupId)
-          .then(setSelectedSeries)
-          .catch(() => setSelectedSeries(search.series)) // fall back to the real series rather than leaving the field empty
+          .then((display) => {
+            if (isMountedRef.current) setSelectedSeries(display)
+          })
+          .catch((err) => {
+            // Fall back to the real series (already showing) rather than
+            // leaving the field in an inconsistent state -- log so a
+            // genuine Alias Group lookup failure isn't silently invisible,
+            // distinct from "no Alias Group was involved at all."
+            console.warn('Failed to load Alias Group display info, falling back to the real series:', err)
+          })
       } else {
         setSelectedSeries(search.series)
       }

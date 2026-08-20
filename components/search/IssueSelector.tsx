@@ -135,16 +135,22 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
   // group is *always* composed of members with real GCD issue data (the
   // entire point of the feature) -- a 404 there means the group has no
   // members or no real issues, a genuine data/config error, never a
-  // legitimate state. Falling through to the legacy free-text field for
-  // that case would (a) accept any typed number completely unvalidated,
-  // and (b) let the parent page's resolvedSeriesId fallback submit the
-  // Alias Group's own invalid id as seriesId -- never do that.
+  // legitimate state.
   const noGcdData = source.kind === 'series' && is404
-  const aliasGroupDataError = source.kind === 'aliasGroup' && is404
-  // A non-404 failure (network, 500) falls back to the same legacy text
-  // field as "no GCD data" rather than blocking the user entirely --
-  // conservative default, not an explicit AC, documented as a judgment call.
-  const fetchFailed = !isLoading && fetchError !== null && !is404
+  // Code review finding: this was originally 404-only (`source.kind ===
+  // 'aliasGroup' && is404`), leaving a non-404 failure (network, 500) for
+  // an Alias Group source to fall through fetchFailed's shared legacy-field
+  // path below -- reproducing the exact bug this story fixes (unvalidated
+  // input, a resolvedSeriesId fallback that would submit the Alias Group's
+  // own invalid id as seriesId), just via a different HTTP status. ANY
+  // failure for an Alias Group source must render this same distinct,
+  // blocking state -- never the legacy free-text field.
+  const aliasGroupError = source.kind === 'aliasGroup' && !isLoading && fetchError !== null
+  // A non-404 failure (network, 500) for a real series falls back to the
+  // same legacy text field as "no GCD data" rather than blocking the user
+  // entirely -- conservative default, not an explicit AC, documented as a
+  // judgment call. Scoped to source.kind === 'series' only -- see above.
+  const fetchFailed = source.kind === 'series' && !isLoading && fetchError !== null && !is404
 
   const allIssues = useMemo(() => (data ? flattenIssues(data.volumes) : []), [data])
   // Code review finding: a series with exactly one issue NUMBER can still
@@ -183,11 +189,11 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
     )
   }
 
-  // ---- Alias Group data error: distinct, blocking, never the legacy field ----
-  if (aliasGroupDataError) {
+  // ---- Alias Group error (404 or any other failure): distinct, blocking, never the legacy field ----
+  if (aliasGroupError) {
     return (
       <div className="rounded-md border border-error-red bg-red-50 px-3 py-2 text-sm text-error-red">
-        This Alias Group has no issue data available — contact support.
+        Couldn't load this Alias Group's issue data — contact support.
       </div>
     )
   }
