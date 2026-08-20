@@ -31,7 +31,7 @@ export function SeriesAutocomplete({
     if (value) {
       // Use displayName from API when available, otherwise format locally
       const displayText =
-        value.displayName || formatSeriesDisplay(value, { includePublisher: false, includeType: true })
+        value.displayName || formatSeriesDisplay(value, { includePublisher: false })
       setQuery(displayText)
     } else {
       setQuery('')
@@ -85,7 +85,7 @@ export function SeriesAutocomplete({
     onSelect(series)
     // Use displayName from API when available (canonical name), otherwise format locally
     const displayText =
-      series.displayName || formatSeriesDisplay(series, { includePublisher: false, includeType: true })
+      series.displayName || formatSeriesDisplay(series, { includePublisher: false })
     setQuery(displayText)
     setIsOpen(false)
   }
@@ -121,7 +121,7 @@ export function SeriesAutocomplete({
   // 2. Alias match: two-line with alias name, "Part of:" canonical, publisher
   const renderSeriesOption = (series: ComicSeries) => {
     const displayName =
-      series.displayName || formatSeriesDisplay(series, { includePublisher: false, includeType: true })
+      series.displayName || formatSeriesDisplay(series, { includePublisher: false })
 
     if (series.matchedAlias) {
       // ALIAS MATCH: Two-line format

@@ -20,6 +20,7 @@ const emptyValue: IssueSelectorValue = {
   issueId: null,
   issueVolumeText: null,
   issuePublicationYear: null,
+  resolvedSeriesId: null,
 }
 
 function fourColorLikeResponse(): SeriesIssuesResponse {
@@ -43,6 +44,7 @@ function fourColorLikeResponse(): SeriesIssuesResponse {
                 noVolume: true,
                 displayVolumeWithNumber: false,
                 publicationYear: 1942,
+                seriesId: SERIES_ID,
               },
               {
                 number: '4',
@@ -54,6 +56,7 @@ function fourColorLikeResponse(): SeriesIssuesResponse {
                 noVolume: true,
                 displayVolumeWithNumber: false,
                 publicationYear: 1943,
+                seriesId: SERIES_ID,
               },
             ],
           },
@@ -89,6 +92,7 @@ describe('IssueSelector', () => {
                   noVolume: true,
                   displayVolumeWithNumber: false,
                   publicationYear: 1975,
+                  seriesId: SERIES_ID,
                 },
               ],
             },
@@ -99,7 +103,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByText(/one-shot/)).toBeInTheDocument())
@@ -117,6 +121,7 @@ describe('IssueSelector', () => {
         issueId: null, // flag off in this test -- AC #8
         issueVolumeText: null,
         issuePublicationYear: 1975,
+        resolvedSeriesId: SERIES_ID,
       })
     )
   })
@@ -126,7 +131,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Test Series" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -139,6 +144,7 @@ describe('IssueSelector', () => {
       issueId: null,
       issueVolumeText: null,
       issuePublicationYear: null,
+      resolvedSeriesId: null,
     })
   })
 
@@ -146,7 +152,7 @@ describe('IssueSelector', () => {
     vi.mocked(issuesAPI.list).mockResolvedValue(fourColorLikeResponse())
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={vi.fn()} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={emptyValue} onChange={vi.fn()} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -162,7 +168,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -179,6 +185,7 @@ describe('IssueSelector', () => {
         issueId: null,
         issueVolumeText: null,
         issuePublicationYear: 1943,
+        resolvedSeriesId: SERIES_ID,
       })
     )
   })
@@ -192,7 +199,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -206,6 +213,7 @@ describe('IssueSelector', () => {
         issueId: 'issue-4',
         issueVolumeText: null,
         issuePublicationYear: 1943,
+        resolvedSeriesId: SERIES_ID,
       })
     )
 
@@ -218,7 +226,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -245,7 +253,7 @@ describe('IssueSelector', () => {
     const onChange = vi.fn()
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={emptyValue} onChange={onChange} />
     )
 
     await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
@@ -265,10 +273,11 @@ describe('IssueSelector', () => {
       issueId: 'issue-4',
       issueVolumeText: null,
       issuePublicationYear: 1943,
+      resolvedSeriesId: SERIES_ID,
     }
 
     renderWithProviders(
-      <IssueSelector seriesId={SERIES_ID} seriesTitle="Four Color" value={prefilled} onChange={vi.fn()} />
+      <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Four Color" value={prefilled} onChange={vi.fn()} />
     )
 
     // Resolves to the full title once issue data loads -- no flicker to
@@ -306,6 +315,7 @@ describe('IssueSelector', () => {
                     noVolume: false,
                     displayVolumeWithNumber: true,
                     publicationYear: 1963,
+                    seriesId: SERIES_ID,
                   },
                 ],
               },
@@ -327,6 +337,7 @@ describe('IssueSelector', () => {
                     noVolume: false,
                     displayVolumeWithNumber: true,
                     publicationYear: 1998,
+                    seriesId: SERIES_ID,
                   },
                 ],
               },
@@ -344,10 +355,11 @@ describe('IssueSelector', () => {
         issueId: null,
         issueVolumeText: '1998 Series',
         issuePublicationYear: null, // deliberately absent -- volume text alone must be sufficient
+        resolvedSeriesId: SERIES_ID,
       }
 
       renderWithProviders(
-        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+        <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
       )
 
       await waitFor(() => expect(screen.getByText(/Second Volume Issue 1/)).toBeInTheDocument())
@@ -362,10 +374,11 @@ describe('IssueSelector', () => {
         issueId: null,
         issueVolumeText: null, // no volume signal at all -- year must carry disambiguation alone
         issuePublicationYear: 1963,
+        resolvedSeriesId: SERIES_ID,
       }
 
       renderWithProviders(
-        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+        <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
       )
 
       await waitFor(() => expect(screen.getByText(/First Volume Issue 1/)).toBeInTheDocument())
@@ -380,10 +393,11 @@ describe('IssueSelector', () => {
         issueId: null,
         issueVolumeText: 'Some Unrelated Reprint Edition',
         issuePublicationYear: 2050,
+        resolvedSeriesId: SERIES_ID,
       }
 
       renderWithProviders(
-        <IssueSelector seriesId={SERIES_ID} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
+        <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Judge Dredd" value={value} onChange={vi.fn()} />
       )
 
       // Neither disambiguator matches -- still resolves to something
@@ -415,6 +429,7 @@ describe('IssueSelector', () => {
                     noVolume: true,
                     displayVolumeWithNumber: false,
                     publicationYear: 2018,
+                    seriesId: SERIES_ID,
                   },
                 ],
               },
@@ -429,6 +444,7 @@ describe('IssueSelector', () => {
       issueId: 'primary',
       issueVolumeText: null,
       issuePublicationYear: 2018,
+      resolvedSeriesId: SERIES_ID,
     }
 
     it('never renders the Variant dropdown when the flag is off, even for a group with variants', async () => {
@@ -437,7 +453,7 @@ describe('IssueSelector', () => {
 
       renderWithProviders(
         <IssueSelector
-          seriesId={SERIES_ID}
+          source={{ kind: 'series', id: SERIES_ID }}
           seriesTitle="Amazing Spider-Man"
           value={resolvedWithVariants}
           onChange={vi.fn()}
@@ -456,7 +472,7 @@ describe('IssueSelector', () => {
 
       renderWithProviders(
         <IssueSelector
-          seriesId={SERIES_ID}
+          source={{ kind: 'series', id: SERIES_ID }}
           seriesTitle="Amazing Spider-Man"
           value={resolvedWithVariants}
           onChange={vi.fn()}
@@ -467,6 +483,103 @@ describe('IssueSelector', () => {
       expect(screen.getByText('Cover A (standard)')).toBeInTheDocument()
 
       vi.unstubAllEnvs()
+    })
+  })
+
+  describe('Alias Group source (Story 1.18)', () => {
+    const ALIAS_GROUP_ID = '22222222-2222-2222-2222-222222222222'
+    const MEMBER_SERIES_ID = '33333333-3333-3333-3333-333333333333'
+
+    it('fetches from the Alias Group source, not the series source', async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue(fourColorLikeResponse())
+
+      renderWithProviders(
+        <IssueSelector
+          source={{ kind: 'aliasGroup', id: ALIAS_GROUP_ID }}
+          seriesTitle="Uncanny X-Men (1st Series 1963-2011)"
+          value={emptyValue}
+          onChange={vi.fn()}
+        />
+      )
+
+      await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+      expect(issuesAPI.list).toHaveBeenCalledWith({ kind: 'aliasGroup', id: ALIAS_GROUP_ID })
+    })
+
+    // AC #11 / Verified #11: an Alias Group 404 means the group has no
+    // members or no real issues -- a data error, never the legitimate
+    // "no GCD data" case a real series' 404 represents. Must render a
+    // distinct, blocking state, never the legacy free-text <input>.
+    it('renders a distinct blocking error state on 404, never the legacy free-text field', async () => {
+      vi.mocked(issuesAPI.list).mockRejectedValue(new APIError(404, 'NOT_FOUND', 'No issues found'))
+
+      renderWithProviders(
+        <IssueSelector
+          source={{ kind: 'aliasGroup', id: ALIAS_GROUP_ID }}
+          seriesTitle="Uncanny X-Men (1st Series 1963-2011)"
+          value={emptyValue}
+          onChange={vi.fn()}
+        />
+      )
+
+      await waitFor(() => expect(screen.getByText(/no issue data available/i)).toBeInTheDocument())
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    })
+
+    // The one behavior this whole story exists to get right (Dev Notes):
+    // a group fetched THROUGH an Alias Group must resolve to its own real
+    // member seriesId, which differs from the Alias Group's own id.
+    it("resolveValueFromIssue's resolvedSeriesId is the group's real member series, not the Alias Group's own id", async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue({
+        layoutMode: 'grid',
+        hasMultipleVolumes: false,
+        volumes: [
+          {
+            volume: null,
+            hasBuckets: false,
+            buckets: [
+              {
+                issues: [
+                  {
+                    number: '44',
+                    title: null,
+                    sortCode: 44,
+                    plainIssueId: 'issue-44',
+                    variants: [],
+                    volume: null,
+                    noVolume: true,
+                    displayVolumeWithNumber: false,
+                    publicationYear: 1968,
+                    seriesId: MEMBER_SERIES_ID, // real member series, NOT ALIAS_GROUP_ID
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+      const onChange = vi.fn()
+
+      renderWithProviders(
+        <IssueSelector
+          source={{ kind: 'aliasGroup', id: ALIAS_GROUP_ID }}
+          seriesTitle="Uncanny X-Men (1st Series 1963-2011)"
+          value={emptyValue}
+          onChange={onChange}
+        />
+      )
+
+      // A single issue with no variants auto-resolves via the one-shot
+      // effect -- no textbox/blur needed, matching this file's very first
+      // test's pattern.
+      await waitFor(() =>
+        expect(onChange).toHaveBeenCalledWith(
+          expect.objectContaining({ resolvedSeriesId: MEMBER_SERIES_ID })
+        )
+      )
+      expect(onChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({ resolvedSeriesId: ALIAS_GROUP_ID })
+      )
     })
   })
 })

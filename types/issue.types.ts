@@ -20,6 +20,11 @@ export interface Issue {
   noVolume: boolean
   displayVolumeWithNumber: boolean
   publicationYear: number | null
+  // Story 1.18: the real comic_series this issue belongs to. Always equal
+  // to the seriesId you fetched with for a plain series; for an Alias
+  // Group source, this is the real member series (never the alias_groups
+  // id) -- the only correct value to submit as CreateSearchRequest.seriesId.
+  seriesId: string
 }
 
 export interface IssueBucket {

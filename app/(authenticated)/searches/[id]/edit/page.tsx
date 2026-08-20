@@ -9,6 +9,8 @@ import { IssueSelector, type IssueSelectorValue } from '@/components/search/Issu
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearch, useSearches } from '@/hooks/useSearches'
+import { aliasGroupsAPI } from '@/lib/api/alias-groups'
+import type { IssueSource } from '@/lib/api/issues'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -16,6 +18,29 @@ const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
   issueId: null,
   issueVolumeText: null,
   issuePublicationYear: null,
+  resolvedSeriesId: null,
+}
+
+// Story 1.18: reconstructs a ComicSeries-shaped display object from an
+// Alias Group's own metadata endpoint, for SeriesAutocomplete's `value`
+// prop on edit-mode prefill. GrailSearch.series always reflects the REAL
+// underlying series (never the Alias Group), so prefilling from it alone
+// would silently show the wrong name for a search made through a group.
+async function fetchAliasGroupDisplay(aliasGroupId: string): Promise<ComicSeries> {
+  const group = await aliasGroupsAPI.get(aliasGroupId)
+  return {
+    id: group.id,
+    title: group.displayName,
+    volume: 0,
+    yearRange: group.endYear && group.endYear !== group.startYear
+      ? `${group.startYear}-${group.endYear}`
+      : `${group.startYear ?? ''}`,
+    type: 'aliasGroup',
+    publisher: group.publisherName || 'Unknown',
+    displayName: group.displayName,
+    matchedAlias: null,
+    aliasIssueRange: null,
+  }
 }
 
 const PAGE_QUALITY_OPTIONS = [
@@ -47,6 +72,13 @@ export default function EditSearchPage() {
   const [gradingAuthority, setGradingAuthority] = useState('Any')
   const [maxPrice, setMaxPrice] = useState<string>('')
   const [maxPriceDisplay, setMaxPriceDisplay] = useState<string>('')
+
+  // Story 1.18: selectedSeries.type is now meaningfully 'series' |
+  // 'aliasGroup' (Story 1.17's repurposed field) -- derive IssueSelector's
+  // fetch source from it directly, no new state needed.
+  const issueSource: IssueSource | null = selectedSeries
+    ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+    : null
   const [platforms, setPlatforms] = useState(['ebay', 'heritage'])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -56,12 +88,24 @@ export default function EditSearchPage() {
   // Pre-fill form when search data loads
   useEffect(() => {
     if (search && !isInitialized) {
-      setSelectedSeries(search.series)
+      // Story 1.18: GrailSearch.series always reflects the REAL underlying
+      // series (never the Alias Group), so prefilling selectedSeries from
+      // it alone would silently show the wrong name in SeriesAutocomplete
+      // for a search made through a group. resolvedSeriesId is always the
+      // real series id regardless -- known immediately, no extra fetch.
+      if (search.aliasGroupId) {
+        fetchAliasGroupDisplay(search.aliasGroupId)
+          .then(setSelectedSeries)
+          .catch(() => setSelectedSeries(search.series)) // fall back to the real series rather than leaving the field empty
+      } else {
+        setSelectedSeries(search.series)
+      }
       setIssueValue({
         issueNumber: search.issueNumber,
         issueId: search.issueId,
         issueVolumeText: search.issueVolumeText,
         issuePublicationYear: search.issuePublicationYear,
+        resolvedSeriesId: search.series.id,
       })
       setGradeMin(search.gradeMin)
       setGradeMax(search.gradeMax)
@@ -155,7 +199,10 @@ export default function EditSearchPage() {
       await updateSearch.mutateAsync({
         id: searchId,
         data: {
-          seriesId: selectedSeries!.id,
+          // Story 1.18: same reasoning as new/page.tsx -- the REAL series
+          // id, whether picked directly or resolved via an Alias Group.
+          seriesId: issueValue.resolvedSeriesId ?? selectedSeries!.id,
+          aliasGroupId: selectedSeries!.type === 'aliasGroup' ? selectedSeries!.id : null,
           issueNumber: issueValue.issueNumber,
           issueId: issueValue.issueId,
           issueVolumeText: issueValue.issueVolumeText,
@@ -277,7 +324,7 @@ export default function EditSearchPage() {
               </label>
               {selectedSeries ? (
                 <IssueSelector
-                  seriesId={selectedSeries.id}
+                  source={issueSource!}
                   seriesTitle={selectedSeries.title}
                   value={issueValue}
                   onChange={setIssueValue}

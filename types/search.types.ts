@@ -7,7 +7,15 @@ export interface ComicSeries {
   title: string
   volume: number
   yearRange: string
-  type: string // "" | "Annual" | "Giant-Size" | "King-Size Special"
+  // Story 1.18: corrected -- this was previously documented as "" |
+  // "Annual" | "Giant-Size" | "King-Size Special", but the backend never
+  // actually sent those values (always ""). Story 1.17 repurposed this
+  // same wire field as a real discriminator: 'series' for an ordinary
+  // comic_series match, 'aliasGroup' for an Alias Group match (a
+  // collector-facing identity spanning multiple real series -- see
+  // IssueSelector's `source` prop). Determines which backend endpoint
+  // IssueSelector fetches issues from.
+  type: 'series' | 'aliasGroup'
   publisher: string
   // Alias-aware search fields (from backend)
   displayName?: string // Pre-formatted canonical name, e.g., "Amazing Spider-Man (1st Series 1963-1998)"
@@ -28,6 +36,11 @@ export interface GrailSearch {
   issueId: string | null
   issueVolumeText: string | null
   issuePublicationYear: number | null
+  // Story 1.18: which Alias Group (if any) this search was made through --
+  // purely cosmetic, same `| null` (never `undefined`) reasoning as
+  // issueId above. seriesId/issueId remain the real matching keys
+  // regardless of whether this is set.
+  aliasGroupId: string | null
   maxPrice: number | null
   gradeMin: number | null
   gradeMax: number | null
@@ -57,6 +70,7 @@ export interface CreateSearchRequest {
   issueId: string | null
   issueVolumeText: string | null
   issuePublicationYear: number | null
+  aliasGroupId: string | null
   maxPrice?: number | null
   gradeMin?: number | null
   gradeMax?: number | null
@@ -71,4 +85,16 @@ export interface UpdateSearchRequest extends Partial<CreateSearchRequest> {
 
 export interface SearchListResponse {
   searches: GrailSearch[]
+}
+
+// Story 1.18: GET /api/alias-groups/:id's response shape -- bare group
+// metadata, used to reconstruct SeriesAutocomplete's display state on
+// edit-mode prefill (GrailSearch.aliasGroupId is a bare id with no
+// display-name text alongside it).
+export interface AliasGroupResponse {
+  id: string
+  displayName: string
+  startYear: number | null
+  endYear: number | null
+  publisherName: string | null
 }

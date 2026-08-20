@@ -18,6 +18,7 @@ const marchOfComicsShape: Issue = {
   noVolume: true,
   displayVolumeWithNumber: false,
   publicationYear: 1953,
+  seriesId: 'series-1',
 }
 
 const asmShape: Issue = {
@@ -30,6 +31,7 @@ const asmShape: Issue = {
   noVolume: true,
   displayVolumeWithNumber: false,
   publicationYear: 2018,
+  seriesId: 'series-1',
 }
 
 describe('VariantSelect', () => {

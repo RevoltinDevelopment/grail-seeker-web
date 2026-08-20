@@ -105,15 +105,19 @@ export function formatYearRange(yearRange: string): string {
  */
 export function formatSeriesDisplay(
   series: ComicSeries,
-  options: { includePublisher?: boolean; includeType?: boolean } = {}
+  options: { includePublisher?: boolean } = {}
 ): string {
-  const { includePublisher = true, includeType = false } = options
+  const { includePublisher = true } = options
 
-  // Build series part with type if specified
-  let seriesPart = series.title
-  if (includeType && series.type) {
-    seriesPart += ` ${series.type}`
-  }
+  // Story 1.18: this used to support an `includeType` option that
+  // appended `series.type` to the title (intended for genuine sub-format
+  // labels like "Annual"/"Giant-Size"). The backend never actually sent
+  // those values -- `type` was always "" -- and Story 1.17 repurposed the
+  // same wire field as a 'series' | 'aliasGroup' discriminator. Appending
+  // that verbatim would show nonsense like "X-Men aliasGroup (...)" to a
+  // user. Removed rather than special-cased: there is no longer any
+  // genuine sub-format signal in this field to display at all.
+  const seriesPart = series.title
 
   // Build year/volume part
   let detailsPart: string

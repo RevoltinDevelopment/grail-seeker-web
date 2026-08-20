@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useIssues } from '@/hooks/useIssues'
 import { APIError } from '@/lib/api/client'
-import { issuesAPI } from '@/lib/api/issues'
+import { issuesAPI, type IssueSource } from '@/lib/api/issues'
 import { cn } from '@/lib/utils'
 import type { Issue, IssueVolume } from '@/types/issue.types'
 import { IssuePickerModal } from './IssuePickerModal'
@@ -15,10 +15,17 @@ export interface IssueSelectorValue {
   issueId: string | null
   issueVolumeText: string | null
   issuePublicationYear: number | null
+  // Story 1.18: the REAL series a resolved pick belongs to -- never the
+  // source's own id when source.kind === 'aliasGroup' (an alias_groups id
+  // is never a valid seriesId to submit). null until a pick resolves it,
+  // mirroring issueId's null-until-resolved shape. The parent page reads
+  // this (falling back to its own selected id when source.kind ===
+  // 'series') to know what seriesId to actually submit.
+  resolvedSeriesId: string | null
 }
 
 interface IssueSelectorProps {
-  seriesId: string
+  source: IssueSource
   seriesTitle: string
   value: IssueSelectorValue
   onChange: (value: IssueSelectorValue) => void
@@ -103,11 +110,16 @@ export function resolveValueFromIssue(
     issueId: variantId,
     issueVolumeText,
     issuePublicationYear: group.publicationYear,
+    // Story 1.18: off the group's own real seriesId -- correct whether
+    // this group came from a plain series or an Alias Group's combined
+    // issue list, since every row within one group is guaranteed to share
+    // a single real seriesId (backend collision guard).
+    resolvedSeriesId: group.seriesId,
   }
 }
 
-export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }: IssueSelectorProps) {
-  const { data, isLoading, error: fetchError } = useIssues(seriesId)
+export function IssueSelector({ source, seriesTitle, value, onChange, error }: IssueSelectorProps) {
+  const { data, isLoading, error: fetchError } = useIssues(source)
   const [inputText, setInputText] = useState(value.issueNumber)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalPrefillQuery, setModalPrefillQuery] = useState<string | undefined>(undefined)
@@ -116,11 +128,23 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
   const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null)
   const [blurError, setBlurError] = useState<string | null>(null)
 
-  const noGcdData = !isLoading && fetchError instanceof APIError && fetchError.status === 404
+  const is404 = !isLoading && fetchError instanceof APIError && fetchError.status === 404
+  // Story 1.18: a 404 means something different depending on source.kind.
+  // For a real series, it's the legitimate, existing gap_fill case --
+  // unchanged, Story 1.16's behavior exactly. For an Alias Group, a real
+  // group is *always* composed of members with real GCD issue data (the
+  // entire point of the feature) -- a 404 there means the group has no
+  // members or no real issues, a genuine data/config error, never a
+  // legitimate state. Falling through to the legacy free-text field for
+  // that case would (a) accept any typed number completely unvalidated,
+  // and (b) let the parent page's resolvedSeriesId fallback submit the
+  // Alias Group's own invalid id as seriesId -- never do that.
+  const noGcdData = source.kind === 'series' && is404
+  const aliasGroupDataError = source.kind === 'aliasGroup' && is404
   // A non-404 failure (network, 500) falls back to the same legacy text
   // field as "no GCD data" rather than blocking the user entirely --
   // conservative default, not an explicit AC, documented as a judgment call.
-  const fetchFailed = !isLoading && fetchError !== null && !noGcdData
+  const fetchFailed = !isLoading && fetchError !== null && !is404
 
   const allIssues = useMemo(() => (data ? flattenIssues(data.volumes) : []), [data])
   // Code review finding: a series with exactly one issue NUMBER can still
@@ -159,6 +183,15 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
     )
   }
 
+  // ---- Alias Group data error: distinct, blocking, never the legacy field ----
+  if (aliasGroupDataError) {
+    return (
+      <div className="rounded-md border border-error-red bg-red-50 px-3 py-2 text-sm text-error-red">
+        This Alias Group has no issue data available — contact support.
+      </div>
+    )
+  }
+
   // ---- No GCD data / fetch failed: legacy plain-text field, unchanged from today ----
   if (noGcdData || fetchFailed) {
     return (
@@ -183,6 +216,7 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
               issueId: null,
               issueVolumeText: null,
               issuePublicationYear: null,
+              resolvedSeriesId: null,
             })
           }}
           placeholder='e.g., 1, 129, or "nn"'
@@ -208,7 +242,7 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
     setIsValidating(true)
     setBlurError(null)
     try {
-      const result = await issuesAPI.search(seriesId, inputText)
+      const result = await issuesAPI.search(source, inputText)
       if (result.issues.length === 1) {
         // Exactly one exact match -- silent collapse, no ceremony.
         const group = result.issues[0]
@@ -307,7 +341,7 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
         <IssuePickerModal
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
-          seriesId={seriesId}
+          source={source}
           seriesTitle={seriesTitle}
           prefillQuery={modalPrefillQuery}
           onSelectIssue={handleSelectIssue}
@@ -348,7 +382,7 @@ export function IssueSelector({ seriesId, seriesTitle, value, onChange, error }:
       <IssuePickerModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        seriesId={seriesId}
+        source={source}
         seriesTitle={seriesTitle}
         prefillQuery={modalPrefillQuery}
         onSelectIssue={handleSelectIssue}

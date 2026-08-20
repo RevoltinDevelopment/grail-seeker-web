@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useIssues } from '@/hooks/useIssues'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import { issuesAPI } from '@/lib/api/issues'
+import { issuesAPI, type IssueSource } from '@/lib/api/issues'
 import type { Issue } from '@/types/issue.types'
 import { IssueGridButton } from './IssueGridButton'
 import { IssueListRow } from './IssueListRow'
@@ -14,7 +14,7 @@ import { VolumeBucketNav } from './VolumeBucketNav'
 interface IssuePickerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  seriesId: string
+  source: IssueSource
   seriesTitle: string
   /** Pre-scroll/orient toward this raw typed value on open (redirect case). */
   prefillQuery?: string
@@ -29,13 +29,13 @@ interface IssuePickerModalProps {
 export function IssuePickerModal({
   open,
   onOpenChange,
-  seriesId,
+  source,
   seriesTitle,
   prefillQuery,
   onSelectIssue,
 }: IssuePickerModalProps) {
   const isDesktop = useMediaQuery('(min-width: 640px)')
-  const { data, isLoading } = useIssues(seriesId)
+  const { data, isLoading } = useIssues(source)
 
   const [searchQuery, setSearchQuery] = useState(prefillQuery ?? '')
   const [searchResults, setSearchResults] = useState<Issue[] | null>(null)
@@ -81,14 +81,14 @@ export function IssuePickerModal({
     }
     const timer = setTimeout(async () => {
       try {
-        const result = await issuesAPI.search(seriesId, searchQuery)
+        const result = await issuesAPI.search(source, searchQuery)
         setSearchResults(result.issues)
       } catch {
         setSearchResults([])
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, seriesId, hasAnyTitle])
+  }, [searchQuery, source, hasAnyTitle])
 
   const selectedVolume = data?.volumes[selectedVolumeIndex]
   const selectedBucket = selectedVolume?.buckets[selectedBucketIndex]

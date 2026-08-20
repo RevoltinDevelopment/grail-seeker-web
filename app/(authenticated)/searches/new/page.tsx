@@ -9,6 +9,7 @@ import { IssueSelector, type IssueSelectorValue } from '@/components/search/Issu
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearches } from '@/hooks/useSearches'
+import type { IssueSource } from '@/lib/api/issues'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -16,6 +17,7 @@ const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
   issueId: null,
   issueVolumeText: null,
   issuePublicationYear: null,
+  resolvedSeriesId: null,
 }
 
 const PAGE_QUALITY_OPTIONS = [
@@ -47,6 +49,13 @@ export default function CreateSearchPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Story 1.18: selectedSeries.type is now meaningfully 'series' |
+  // 'aliasGroup' (Story 1.17's repurposed field) -- derive IssueSelector's
+  // fetch source from it directly, no new state needed.
+  const issueSource: IssueSource | null = selectedSeries
+    ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+    : null
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -120,7 +129,14 @@ export default function CreateSearchPage() {
 
     try {
       await createSearch.mutateAsync({
-        seriesId: selectedSeries!.id,
+        // Story 1.18: the REAL series id, whether picked directly or
+        // resolved via an Alias Group -- resolvedSeriesId is set the
+        // moment a pick resolves (mirroring issueId's null-until-resolved
+        // shape); falling back to selectedSeries!.id covers the
+        // one-shot/loading window before a pick has ever resolved for a
+        // plain series (where the two values are the same anyway).
+        seriesId: issueValue.resolvedSeriesId ?? selectedSeries!.id,
+        aliasGroupId: selectedSeries!.type === 'aliasGroup' ? selectedSeries!.id : null,
         issueNumber: issueValue.issueNumber,
         issueId: issueValue.issueId,
         issueVolumeText: issueValue.issueVolumeText,
@@ -195,7 +211,7 @@ export default function CreateSearchPage() {
               </label>
               {selectedSeries ? (
                 <IssueSelector
-                  seriesId={selectedSeries.id}
+                  source={issueSource!}
                   seriesTitle={selectedSeries.title}
                   value={issueValue}
                   onChange={setIssueValue}
