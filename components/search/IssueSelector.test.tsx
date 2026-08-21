@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { APIError } from '@/lib/api/client'
 import { renderWithProviders } from '@/test-utils/renderWithProviders'
-import type { SeriesIssuesResponse, IssueSearchResponse } from '@/types/issue.types'
+import type { SeriesIssuesResponse, IssueSearchResponse, Issue } from '@/types/issue.types'
 import { IssueSelector, type IssueSelectorValue } from './IssueSelector'
 
 vi.mock('@/lib/api/issues', () => ({
@@ -429,6 +429,122 @@ describe('IssueSelector', () => {
       // sensible (array order) rather than showing nothing or crashing.
       await waitFor(() => expect(screen.getByText(/First Volume Issue 1/)).toBeInTheDocument())
       expect(screen.queryByText(/Second Volume Issue 1/)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('resolved chip label includes volume for volume-scoped-numbering series', () => {
+    // Bug found live (2026-08-21, Blue Bolt 1940-1949): a Golden Age series
+    // where issue number alone is ambiguous across volumes -- title is
+    // untitled (real GCD coverage, ~3% populated), so the label previously
+    // fell all the way to "Issue #7" with no volume shown at all, making a
+    // correctly-resolved Vol. 8 #7 pick indistinguishable from any other
+    // volume's own #7.
+    function blueBoltLikeResponse(): SeriesIssuesResponse {
+      // Two volumes, each with its own #7 -- not a one-shot (allIssues.length
+      // === 1 routes into an entirely different, unrelated branch), and the
+      // real reason displayVolumeWithNumber exists: both issues share a bare
+      // number, so the volume is the only thing that tells them apart.
+      const makeIssue = (volume: string, plainIssueId: string): Issue => ({
+        number: '7',
+        title: null,
+        sortCode: 7,
+        plainIssueId,
+        variants: [],
+        volume,
+        noVolume: false,
+        displayVolumeWithNumber: true,
+        publicationYear: volume === '8' ? 1947 : 1946,
+        seriesId: SERIES_ID,
+      })
+
+      return {
+        layoutMode: 'grid',
+        hasMultipleVolumes: true,
+        volumes: [
+          { volume: '7', hasBuckets: false, buckets: [{ issues: [makeIssue('7', 'v7-issue7')] }] },
+          { volume: '8', hasBuckets: false, buckets: [{ issues: [makeIssue('8', 'v8-issue7')] }] },
+        ],
+      }
+    }
+
+    it('shows "Vol. 8 #7", not just "Issue #7", once resolved', async () => {
+      vi.mocked(issuesAPI.list).mockResolvedValue(blueBoltLikeResponse())
+
+      const value: IssueSelectorValue = {
+        issueNumber: '7',
+        issueId: null,
+        issueVolumeText: '8',
+        issuePublicationYear: 1947,
+        resolvedSeriesId: SERIES_ID,
+      }
+
+      renderWithProviders(
+        <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Blue Bolt" value={value} onChange={vi.fn()} />
+      )
+
+      await waitFor(() => expect(screen.getByText('Vol. 8 #7')).toBeInTheDocument())
+      expect(screen.queryByText('Issue #7')).not.toBeInTheDocument()
+    })
+
+    it('omits the volume prefix when displayVolumeWithNumber is false, unchanged from before', async () => {
+      // Single volume, two distinct numbers -- no disambiguation needed, so
+      // the resolved candidate is unambiguous regardless of volume/year.
+      const response: SeriesIssuesResponse = {
+        layoutMode: 'grid',
+        hasMultipleVolumes: false,
+        volumes: [
+          {
+            volume: null,
+            hasBuckets: false,
+            buckets: [
+              {
+                issues: [
+                  {
+                    number: '7',
+                    title: null,
+                    sortCode: 7,
+                    plainIssueId: 'issue7',
+                    variants: [],
+                    volume: null,
+                    noVolume: true,
+                    displayVolumeWithNumber: false,
+                    publicationYear: 1947,
+                    seriesId: SERIES_ID,
+                  },
+                  {
+                    number: '8',
+                    title: null,
+                    sortCode: 8,
+                    plainIssueId: 'issue8',
+                    variants: [],
+                    volume: null,
+                    noVolume: true,
+                    displayVolumeWithNumber: false,
+                    publicationYear: 1947,
+                    seriesId: SERIES_ID,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }
+      vi.mocked(issuesAPI.list).mockResolvedValue(response)
+
+      const value: IssueSelectorValue = {
+        issueNumber: '7',
+        issueId: null,
+        issueVolumeText: null,
+        issuePublicationYear: 1947,
+        resolvedSeriesId: SERIES_ID,
+      }
+
+      renderWithProviders(
+        <IssueSelector source={{ kind: 'series', id: SERIES_ID }} seriesTitle="Blue Bolt" value={value} onChange={vi.fn()} />
+      )
+
+      await waitFor(() => expect(screen.getByText('Issue #7')).toBeInTheDocument())
+      expect(screen.queryByText(/Vol\. 8/)).not.toBeInTheDocument()
     })
   })
 

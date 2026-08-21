@@ -315,12 +315,25 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
 
   // ---- Resolved, collapsed: solid border, "Select to edit" ----
   if (isResolved) {
+    // Bug found live (2026-08-21): for a volume-scoped-numbering series
+    // (Blue Bolt-style Golden Age books, where issue number alone is
+    // ambiguous across volumes -- the exact reason displayVolumeWithNumber
+    // exists), this label dropped the volume entirely and showed only
+    // "Issue #7", indistinguishable from every other volume's own #7. The
+    // underlying pick was never wrong -- resolveValueFromIssue already
+    // captures issueVolumeText and findResolved already disambiguates by
+    // it -- this was a display-only omission: the label formula below
+    // never read resolved.group.volume at all.
+    const volume = resolved?.group.displayVolumeWithNumber ? resolved.group.volume : null
+    const volumePrefix = volume ? `Vol. ${volume} ` : ''
     const label = resolved
       ? resolved.variant
-        ? `${resolved.group.number} · ${resolved.variant.variantName}`
+        ? `${volumePrefix}${resolved.group.number} · ${resolved.variant.variantName}`
         : resolved.group.title
-          ? `${resolved.group.number} – ${resolved.group.title}`
-          : `Issue #${resolved.group.number}`
+          ? `${volumePrefix}${resolved.group.number} – ${resolved.group.title}`
+          : volume
+            ? `Vol. ${volume} #${resolved.group.number}`
+            : `Issue #${resolved.group.number}`
       : `Issue #${value.issueNumber}`
 
     // Tier two, gated behind the rollout flag -- tier one (above) is
