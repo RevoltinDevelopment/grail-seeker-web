@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ComicSeries } from '@/types/search.types'
-import { volumeToOrdinal, formatYearRange, formatSeriesDisplay, formatSeriesShort } from './series-formatter'
+import { volumeToOrdinal, formatYearRange, formatSeriesDisplay, formatSeriesShort, formatIssueNumber } from './series-formatter'
 
 function makeSeries(overrides: Partial<ComicSeries> = {}): ComicSeries {
   return {
@@ -81,5 +81,20 @@ describe('formatSeriesShort', () => {
 
   it('formats without a volume ordinal when volume is falsy', () => {
     expect(formatSeriesShort({ volume: 0, yearRange: '1990' })).toBe('(1990)')
+  })
+})
+
+describe('formatIssueNumber', () => {
+  // Bug found live (2026-08-21, Blue Bolt Vol. 8 #7): search cards showed
+  // "Blue Bolt #7" -- the same class of omission as IssueSelector's own
+  // resolved-chip bug, just one hop further downstream. issueVolumeText is
+  // the per-issue GCD volume label (only ever set when
+  // displayVolumeWithNumber was true at pick time), never series.volume.
+  it('prefixes the volume label when present', () => {
+    expect(formatIssueNumber('7', '8')).toBe('Vol. 8 #7')
+  })
+
+  it('omits the prefix when issueVolumeText is null', () => {
+    expect(formatIssueNumber('7', null)).toBe('#7')
   })
 })

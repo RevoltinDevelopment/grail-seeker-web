@@ -7,6 +7,7 @@ export interface Alert {
       volume: number
     }
     issueNumber: string
+    issueVolumeText: string | null
   }
   listing: {
     title: string

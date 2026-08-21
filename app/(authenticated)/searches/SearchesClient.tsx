@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 import { useSearches } from '@/hooks/useSearches'
-import { formatSeriesShort } from '@/lib/utils/series-formatter'
+import { formatIssueNumber, formatSeriesShort } from '@/lib/utils/series-formatter'
 
 export default function SearchesClient() {
   const { searches, isLoading, deleteSearch, updateSearchStatus } = useSearches()
@@ -74,7 +74,7 @@ export default function SearchesClient() {
             >
               {/* Series Title */}
               <h3 className="mb-1 text-lg font-semibold">
-                {search.series.title} #{search.issueNumber}
+                {search.series.title} {formatIssueNumber(search.issueNumber, search.issueVolumeText)}
               </h3>
               <p className="mb-4 text-sm text-slate-600">
                 {formatSeriesShort(search.series)}

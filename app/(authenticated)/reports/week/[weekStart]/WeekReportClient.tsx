@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useWeekReport } from '@/hooks/useReports'
+import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { BookFound } from '@/types/report.types'
 
 interface Props {
@@ -169,7 +170,7 @@ export default function WeekReportClient({ weekStart }: Props) {
                 )
                 .map((b, i) => (
                   <p key={i} className="text-sm text-slate-700">
-                    {b.seriesTitle} #{b.issueNumber}
+                    {b.seriesTitle} {formatIssueNumber(b.issueNumber, b.issueVolumeText)}
                   </p>
                 ))}
             </div>

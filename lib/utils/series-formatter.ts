@@ -160,3 +160,26 @@ export function formatSeriesShort(series: Pick<ComicSeries, 'volume' | 'yearRang
   }
   return `(${series.yearRange})`
 }
+
+/**
+ * Format an issue number for display, prefixed with its GCD volume label
+ * when one is present.
+ *
+ * Not to be confused with series.volume/volumeToOrdinal above -- that's the
+ * series' own volume_number ("1st Series"). This is the per-issue GCD
+ * volume label (issueVolumeText, e.g. "8" for a Blue Bolt-style Golden Age
+ * book where issue number resets per volume, making the bare number alone
+ * ambiguous). Only ever populated when displayVolumeWithNumber was true at
+ * pick time -- see IssueSelector.resolveValueFromIssue, the same gate.
+ *
+ * Bug found live (2026-08-21): search cards showed "Blue Bolt #7" for a
+ * Vol. 8 #7 pick, same root cause as the IssueSelector chip fix -- volume
+ * data was captured correctly, just never read at display time.
+ *
+ * @example
+ * formatIssueNumber('7', '8')   // "Vol. 8 #7"
+ * formatIssueNumber('7', null)  // "#7"
+ */
+export function formatIssueNumber(issueNumber: string, issueVolumeText: string | null): string {
+  return issueVolumeText ? `Vol. ${issueVolumeText} #${issueNumber}` : `#${issueNumber}`
+}

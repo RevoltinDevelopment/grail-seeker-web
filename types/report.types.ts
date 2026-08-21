@@ -9,6 +9,7 @@ export interface BookFound {
 export interface BookSearched {
   seriesTitle: string
   issueNumber: string
+  issueVolumeText: string | null
 }
 
 export interface WeekReport {

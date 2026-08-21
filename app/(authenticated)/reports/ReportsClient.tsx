@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useReports } from '@/hooks/useReports'
+import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ function BooksList({ items }: { items: BookSearched[] }) {
     <div className="mt-1 space-y-0.5">
       {sorted.map((b, i) => (
         <p key={i} className="text-sm text-slate-700">
-          {b.seriesTitle} #{b.issueNumber}
+          {b.seriesTitle} {formatIssueNumber(b.issueNumber, b.issueVolumeText)}
         </p>
       ))}
     </div>

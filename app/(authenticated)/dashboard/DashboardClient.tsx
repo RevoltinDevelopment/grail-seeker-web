@@ -9,7 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useAlertStats } from '@/hooks/useAlertStats'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useSearches } from '@/hooks/useSearches'
-import { formatSeriesShort } from '@/lib/utils/series-formatter'
+import { formatIssueNumber, formatSeriesShort } from '@/lib/utils/series-formatter'
 
 export default function DashboardClient() {
   const { showToast } = useToast()
@@ -188,7 +188,7 @@ export default function DashboardClient() {
               >
                 <div className="mb-2 flex items-start justify-between">
                   <h3 className="text-sm font-semibold">
-                    {search.series.title} #{search.issueNumber}
+                    {search.series.title} {formatIssueNumber(search.issueNumber, search.issueVolumeText)}
                   </h3>
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
