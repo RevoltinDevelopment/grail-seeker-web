@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 import type { GrailSearch } from '@/types/search.types'
-
-const ACTIVE_PLATFORMS = ['ebay', 'heritage']
 
 // sessionStorage (not localStorage): dismissal lasts for the browser session,
 // so the nudge reappears at next login (review C1: login-time nudge)

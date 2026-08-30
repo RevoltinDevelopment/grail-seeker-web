@@ -1,10 +1,11 @@
+import type { AlertPlatformFilter } from '@/lib/constants/platforms'
 import type { AlertListResponse, ArchiveGroupsResponse } from '@/types/alert.types'
 import { apiClient } from './client'
 
 export interface AlertFilters {
   limit?: number
   offset?: number
-  platform?: 'ebay' | 'heritage' | 'comiclink' | 'all'
+  platform?: AlertPlatformFilter
   matchType?: 'direct_match' | 'near_miss' | 'all'
   searchId?: string
   status?: 'active' | 'archived' | 'all' // Archive system: filter by status

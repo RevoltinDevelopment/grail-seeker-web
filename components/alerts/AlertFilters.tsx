@@ -1,11 +1,12 @@
 'use client'
 
 import type { AlertsSortMode } from '@/lib/api/user'
+import type { AlertPlatformFilter } from '@/lib/constants/platforms'
 
 interface AlertFiltersProps {
-  platform: 'all' | 'ebay' | 'heritage' | 'comiclink'
+  platform: AlertPlatformFilter
   matchType: 'all' | 'direct_match' | 'near_miss'
-  onPlatformChange: (platform: 'all' | 'ebay' | 'heritage' | 'comiclink') => void
+  onPlatformChange: (platform: AlertPlatformFilter) => void
   onMatchTypeChange: (matchType: 'all' | 'direct_match' | 'near_miss') => void
   sortMode?: AlertsSortMode
   onSortModeChange?: (sort: AlertsSortMode) => void
@@ -47,13 +48,14 @@ export function AlertFilters({
             id="platform-filter"
             value={platform}
             onChange={(e) =>
-              onPlatformChange(e.target.value as 'all' | 'ebay' | 'heritage' | 'comiclink')
+              onPlatformChange(e.target.value as AlertPlatformFilter)
             }
             className="w-full rounded-md border-2 border-slate-300 px-4 py-2 pr-10 text-sm outline-none transition-colors focus:border-collector-blue focus:ring-2 focus:ring-collector-blue/20 sm:w-auto"
           >
             <option value="all">All Platforms</option>
             <option value="ebay">eBay</option>
             <option value="heritage">Heritage</option>
+            <option value="mycomicshop">MyComicShop</option>
           </select>
         </div>
 

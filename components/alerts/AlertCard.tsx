@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/contexts/ToastContext'
 import { alertsAPI } from '@/lib/api/alerts'
+import { PLATFORM_LABELS } from '@/lib/constants/platforms'
 import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 
@@ -120,6 +121,20 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
                 ${alert.listing.price.toLocaleString()}
               </span>
             </div>
+            {alert.listing.auctionStartTime && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Auction Starts:</span>
+                <span className="text-lg font-semibold">
+                  {new Date(alert.listing.auctionStartTime).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            )}
             {alert.listing.grade && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">Grade:</span>
@@ -181,7 +196,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
                 : 'bg-collector-blue text-white hover:bg-blue-800'
             }`}
           >
-            View on {alert.listing.platform === 'heritage' ? 'Heritage' : 'eBay'}{isArchived ? ' (Listing Ended)' : ' →'}
+            View on {PLATFORM_LABELS[alert.listing.platform] ?? 'eBay'}{isArchived ? ' (Listing Ended)' : ' →'}
           </a>
         )}
       </div>

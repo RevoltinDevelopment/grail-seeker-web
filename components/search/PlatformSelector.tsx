@@ -2,12 +2,7 @@
 
 import { useState } from 'react'
 
-const PLATFORM_LABELS: Record<string, string> = {
-  ebay: 'eBay',
-  heritage: 'Heritage',
-}
-
-const ACTIVE_PLATFORMS = ['ebay', 'heritage']
+import { PLATFORM_LABELS, ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 
 interface PlatformSelectorProps {
   platforms: string[]
@@ -73,7 +68,7 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
 
         <label className="flex items-center opacity-50">
           <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-          <span className="ml-2 text-sm">Next 2 Marketplaces (Coming Q3 2026)</span>
+          <span className="ml-2 text-sm">Next 2 Marketplaces (Coming Q4 2026)</span>
         </label>
       </div>
 

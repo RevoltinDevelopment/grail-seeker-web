@@ -18,6 +18,12 @@ export interface Alert {
     url: string | null
     platform: string
     ebayItemId: string | null
+    // MyComicShop-only (Story 1.34, Migration 056): set when this listing is
+    // a not-yet-started auction, so the UI can show an honest start date
+    // alongside the placeholder $0 price rather than a bare, unexplained
+    // one -- matches the backend's own SMS copy, which shows both together
+    // too, not one in place of the other. Null/absent for every other case.
+    auctionStartTime?: string | null
   }
   isDirectMatch: boolean
   notificationSent: boolean

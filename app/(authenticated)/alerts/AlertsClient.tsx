@@ -9,6 +9,7 @@ import { AlertGroupHeader } from '@/components/alerts/AlertGroupHeader'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import type { AlertsSortMode } from '@/lib/api/user'
+import type { AlertPlatformFilter } from '@/lib/constants/platforms'
 import { groupAlertsBySearch } from '@/lib/utils/groupAlertsBySearch'
 
 const INITIAL_LOAD = 20
@@ -20,7 +21,7 @@ export default function AlertsClient() {
   const searchId = searchParams.get('search')
 
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD)
-  const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'comiclink'>('all')
+  const [platform, setPlatform] = useState<AlertPlatformFilter>('all')
   const [matchType, setMatchType] = useState<'all' | 'direct_match' | 'near_miss'>('all')
 
   const { alertsSort, isGroupCollapsed, setAlertsSort, toggleGroupCollapsed, setAllGroupsCollapsed, isLoaded: prefsLoaded } =
@@ -38,7 +39,7 @@ export default function AlertsClient() {
     status: 'active',
   })
 
-  const handlePlatformChange = (newPlatform: 'all' | 'ebay' | 'heritage' | 'comiclink') => {
+  const handlePlatformChange = (newPlatform: AlertPlatformFilter) => {
     setPlatform(newPlatform)
     setLoadedCount(INITIAL_LOAD)
   }

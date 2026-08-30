@@ -160,6 +160,11 @@ export default function SearchesClient() {
                   ) : (
                     <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">Heritage</span>
                   )}
+                  {search.platforms.includes('mycomicshop') ? (
+                    <span className="rounded bg-mycomicshop-blue px-2 py-1 text-xs text-white">MyComicShop ✓</span>
+                  ) : (
+                    <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">MyComicShop</span>
+                  )}
                 </div>
               </div>
 

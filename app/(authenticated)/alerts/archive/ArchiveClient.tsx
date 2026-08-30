@@ -10,6 +10,7 @@ import { useAlerts } from '@/hooks/useAlerts'
 import { useArchiveGroups } from '@/hooks/useArchiveGroups'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import type { AlertsSortMode } from '@/lib/api/user'
+import type { AlertPlatformFilter } from '@/lib/constants/platforms'
 
 const INITIAL_LOAD = 20
 const LOAD_MORE_SIZE = 20
@@ -24,7 +25,7 @@ function ArchiveGroupAlerts({
   matchType,
 }: {
   searchId: string
-  platform: 'all' | 'ebay' | 'heritage' | 'comiclink'
+  platform: AlertPlatformFilter
   matchType: 'all' | 'direct_match' | 'near_miss'
 }) {
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD)
@@ -66,7 +67,7 @@ export default function ArchiveClient() {
   const searchId = searchParams.get('search')
 
   const [loadedCount, setLoadedCount] = useState(INITIAL_LOAD)
-  const [platform, setPlatform] = useState<'all' | 'ebay' | 'heritage' | 'comiclink'>('all')
+  const [platform, setPlatform] = useState<AlertPlatformFilter>('all')
   const [matchType, setMatchType] = useState<'all' | 'direct_match' | 'near_miss'>('all')
   // Tracks EXPANDED group ids (inverse of Active Alerts' collapsed-id tracking) —
   // an empty set means every group is collapsed, which is the required default
@@ -136,7 +137,7 @@ export default function ArchiveClient() {
     }
   }, [collapseState, groupShells])
 
-  const handlePlatformChange = (newPlatform: 'all' | 'ebay' | 'heritage' | 'comiclink') => {
+  const handlePlatformChange = (newPlatform: AlertPlatformFilter) => {
     setPlatform(newPlatform)
     setLoadedCount(INITIAL_LOAD)
   }
