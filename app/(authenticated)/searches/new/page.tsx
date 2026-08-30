@@ -10,6 +10,7 @@ import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearches } from '@/hooks/useSearches'
 import type { IssueSource } from '@/lib/api/issues'
+import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -45,7 +46,7 @@ export default function CreateSearchPage() {
   const [gradingAuthority, setGradingAuthority] = useState('Any')
   const [maxPrice, setMaxPrice] = useState<string>('')
   const [maxPriceDisplay, setMaxPriceDisplay] = useState<string>('')
-  const [platforms, setPlatforms] = useState(['ebay', 'heritage'])
+  const [platforms, setPlatforms] = useState([...ACTIVE_PLATFORMS])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)

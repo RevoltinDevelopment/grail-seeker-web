@@ -11,6 +11,7 @@ import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
 import { useSearch, useSearches } from '@/hooks/useSearches'
 import { aliasGroupsAPI } from '@/lib/api/alias-groups'
 import type { IssueSource } from '@/lib/api/issues'
+import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -87,7 +88,7 @@ export default function EditSearchPage() {
         : null,
     [selectedSeries]
   )
-  const [platforms, setPlatforms] = useState(['ebay', 'heritage'])
+  const [platforms, setPlatforms] = useState([...ACTIVE_PLATFORMS])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -158,7 +159,7 @@ export default function EditSearchPage() {
       }
 
       // API returns real values as of Migration 038; all-on fallback matches the backfill
-      setPlatforms(search.platforms || ['ebay', 'heritage'])
+      setPlatforms(search.platforms || [...ACTIVE_PLATFORMS])
       setIsInitialized(true)
     }
   }, [search, isInitialized])
