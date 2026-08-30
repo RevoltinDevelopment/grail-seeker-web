@@ -15,14 +15,12 @@ export const ACTIVE_PLATFORMS = ['ebay', 'heritage', 'mycomicshop']
 
 /**
  * The alerts-list platform filter's own type -- kept separate from
- * ACTIVE_PLATFORMS above because it has different membership on purpose:
- * it needs 'all' (a filter-only pseudo-value) and 'comiclink' (a reserved,
- * not-yet-live platform that can still show up as historical alert data,
- * per AlertFilters.tsx's own note -- leave 'comiclink' out of
- * ACTIVE_PLATFORMS/PLATFORM_LABELS, which describe what's actually
- * selectable/live today, not every value the filter type has ever allowed).
+ * ACTIVE_PLATFORMS above because it needs 'all' (a filter-only
+ * pseudo-value) that ACTIVE_PLATFORMS itself has no use for.
  * Previously hand-copied into 4 separate files (AlertFilters.tsx,
  * AlertsClient.tsx, ArchiveClient.tsx, lib/api/alerts.ts) -- exactly the
  * drift risk this module exists to prevent, found on adversarial review.
+ * ('comiclink', a dead literal for a platform that was never actually
+ * built or selectable anywhere in the app, removed per Mahan -- 2026-08-29.)
  */
-export type AlertPlatformFilter = 'all' | 'ebay' | 'heritage' | 'mycomicshop' | 'comiclink'
+export type AlertPlatformFilter = 'all' | 'ebay' | 'heritage' | 'mycomicshop'

@@ -31,7 +31,6 @@ const config: Config = {
         'ebay-red': '#E53238',
         'heritage-bronze': '#8B4513',
         'mycomicshop-blue': '#0052C1',
-        'comiclink-purple': '#6366F1',
 
         // Story 1.16: shadcn/ui's color tokens, mapped to the CSS custom
         // properties its own init generated in app/globals.css. Required
