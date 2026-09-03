@@ -52,7 +52,13 @@ export interface GrailSearch {
   alertCount?: number
   currentAlertCount?: number
   archivedAlertCount?: number
-  lastCheckedAt: string
+  // `null` before the search's first monitoring round has run -- was
+  // previously (wrongly) typed as always-a-string, which is how a bare
+  // `new Date(null)` epoch timestamp made it into the UI undetected.
+  lastCheckedAt: string | null
+  // Only ever meaningful (and only ever sent) when lastCheckedAt is null --
+  // see SearchesClient.tsx's card footer.
+  nextScheduledRunAt?: string | null
   createdAt: string
   updatedAt: string
 }

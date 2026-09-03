@@ -170,7 +170,11 @@ export default function SearchesClient() {
 
               {/* Metadata */}
               <p className="mb-4 text-xs text-slate-500">
-                Last checked: {new Date(search.lastCheckedAt).toLocaleString()}
+                {search.lastCheckedAt
+                  ? `Last checked: ${new Date(search.lastCheckedAt).toLocaleString()}`
+                  : search.nextScheduledRunAt
+                    ? `First search runs: ${new Date(search.nextScheduledRunAt).toLocaleString()}`
+                    : 'Not yet checked'}
               </p>
 
               {/* Actions */}

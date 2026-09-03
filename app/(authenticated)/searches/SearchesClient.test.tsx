@@ -22,7 +22,7 @@ import SearchesClient from './SearchesClient'
 // reads, which silently rendered "3rd Series (undefined)" in the real DOM
 // with nothing catching it, since the `as unknown as` cast on the mocked
 // hook's return value (below) bypasses structural checking on this object.
-function makeSearch(platforms: string[]): GrailSearch {
+function makeSearch(platforms: string[], overrides: Partial<GrailSearch> = {}): GrailSearch {
   return {
     id: 'search-1',
     userId: 'user-1',
@@ -52,6 +52,7 @@ function makeSearch(platforms: string[]): GrailSearch {
     lastCheckedAt: '2026-08-29T12:00:00Z',
     createdAt: '2026-08-29T00:00:00Z',
     updatedAt: '2026-08-29T00:00:00Z',
+    ...overrides,
   }
 }
 
@@ -98,5 +99,33 @@ describe('SearchesClient — MyComicShop badge (Story 1.35)', () => {
     expect(screen.getByText('eBay ✓')).toBeInTheDocument()
     expect(screen.getByText('Heritage')).toBeInTheDocument()
     expect(screen.queryByText('Heritage ✓')).not.toBeInTheDocument()
+  })
+})
+
+describe('SearchesClient — "Last checked" footer, pre-first-check state', () => {
+  it('shows "Last checked" once a search has actually been checked', () => {
+    mockUseSearches([makeSearch(['ebay'], { lastCheckedAt: '2026-08-29T12:00:00Z' })])
+
+    render(<SearchesClient />)
+    expect(screen.getByText(/^Last checked:/)).toBeInTheDocument()
+  })
+
+  it('shows "First search runs" instead of an epoch date before the first check has happened', () => {
+    mockUseSearches([
+      makeSearch(['ebay'], { lastCheckedAt: null, nextScheduledRunAt: '2026-09-04T13:00:00.000Z' }),
+    ])
+
+    render(<SearchesClient />)
+    expect(screen.getByText(/^First search runs:/)).toBeInTheDocument()
+    expect(screen.queryByText(/^Last checked:/)).not.toBeInTheDocument()
+    // The original bug: new Date(null) renders as the Unix epoch.
+    expect(screen.queryByText(/1969/)).not.toBeInTheDocument()
+  })
+
+  it('falls back to a plain message if neither timestamp is available', () => {
+    mockUseSearches([makeSearch(['ebay'], { lastCheckedAt: null, nextScheduledRunAt: null })])
+
+    render(<SearchesClient />)
+    expect(screen.getByText('Not yet checked')).toBeInTheDocument()
   })
 })
