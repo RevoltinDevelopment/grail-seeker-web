@@ -4,7 +4,7 @@ export function TermsContent() {
       <p className="text-sm text-slate-500 mb-4">
         <strong>Effective Date:</strong> November 18, 2025
         <br />
-        <strong>Last Updated:</strong> November 13, 2025
+        <strong>Last Updated:</strong> September 8, 2026
       </p>
 
       <h2>Agreement to Terms</h2>
@@ -20,7 +20,7 @@ export function TermsContent() {
       <h2>1. Service Description</h2>
       <p>Grail Seeker is a subscription-based comic book discovery platform that:</p>
       <ul>
-        <li>Monitors eBay and other marketplaces for comics matching your specifications</li>
+        <li>Monitors eBay, Heritage Auctions, MyComicShop, and other marketplaces for comics matching your specifications</li>
         <li>Sends SMS notifications when matching comics are found</li>
         <li>Provides alert history and search management tools</li>
         <li>Facilitates discovery of rare and collectible comic books</li>
@@ -114,7 +114,19 @@ export function TermsContent() {
         alerts, or network/SMS delivery failures.
       </p>
 
-      <h2>7. Disclaimers and Limitations</h2>
+      <h2>7. Third-Party Services</h2>
+      <p>Grail Seeker searches and links to third-party marketplaces on your behalf:</p>
+      <ul>
+        <li>We use eBay&rsquo;s Browse API and other marketplace APIs to search for comics</li>
+        <li>Purchases occur on third-party platforms (eBay, Heritage Auctions, MyComicShop, etc.)</li>
+        <li>We are NOT responsible for marketplace policies, fees, or disputes</li>
+        <li>
+          eBay Partner Network, Heritage, and MyComicShop affiliate links may be used (we may earn
+          commissions)
+        </li>
+      </ul>
+
+      <h2>8. Disclaimers and Limitations</h2>
       <p>
         THE SERVICE IS PROVIDED &ldquo;AS IS&rdquo; WITHOUT WARRANTIES OF ANY KIND. We do NOT
         provide financial, investment, or collectibles advice. To the maximum extent permitted by
@@ -122,13 +134,13 @@ export function TermsContent() {
         claim.
       </p>
 
-      <h2>8. Changes to Terms</h2>
+      <h2>9. Changes to Terms</h2>
       <p>
         We may update these Terms from time to time. Significant changes will be notified via email.
         Continued use after changes constitutes acceptance.
       </p>
 
-      <h2>9. Contact Information</h2>
+      <h2>10. Contact Information</h2>
       <p>
         Questions about these Terms? Email{' '}
         <a href="mailto:support@grailseeker.io">support@grailseeker.io</a>
