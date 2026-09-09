@@ -5,7 +5,7 @@
  * dropped from the "This Week"/"All Time" cards or the Past Reports table.
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import type { WeekReport, PastWeekSummary, ReportsResponse } from '@/types/report.types'
 
@@ -122,6 +122,18 @@ describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
     expect(screen.queryByText('MyComicShop searches run')).not.toBeInTheDocument()
   })
 
+  it('renders no empty execution-counts wrapper when every marketplace count is zero (code review LOW-2 — StatRow\'s own zero-guard hides the rows, but without the wrapper-level gate an empty, stray div would still render)', () => {
+    mockUseReports(
+      makeReportsResponse({
+        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 0, Heritage: 0 } }),
+      })
+    )
+
+    render(<ReportsClient />)
+    const currentWeekCard = screen.getByText('This Week').closest('.rounded-lg')
+    expect(currentWeekCard?.querySelectorAll('.py-3')).toHaveLength(0)
+  })
+
   it('sums across all marketplaces for the "We ran N searches" headline, not just eBay', () => {
     mockUseReports(
       makeReportsResponse({
@@ -136,6 +148,20 @@ describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
     expect(screen.getByText('20 searches')).toBeInTheDocument()
     expect(screen.getByText(/this week on your behalf\./)).toBeInTheDocument()
     expect(screen.queryByText(/on eBay/)).not.toBeInTheDocument()
+  })
+
+  it('renders the headline with exactly one space around "this week", not two (code review LOW-1 — regression guard for the double-space bug found and fixed during dev-story; default text matchers normalize whitespace and would miss this)', () => {
+    mockUseReports(
+      makeReportsResponse({
+        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 20 } }),
+      })
+    )
+
+    render(<ReportsClient />)
+    const headline = screen.getByText(
+      (_, el) => el?.tagName === 'P' && el.textContent === 'We ran 20 searches this week on your behalf. Still hunting.'
+    )
+    expect(headline).toBeInTheDocument()
   })
 
   it('shows the corrected zero-activity copy without naming eBay specifically', () => {
@@ -158,7 +184,14 @@ describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
     render(<ReportsClient />)
     expect(screen.getByText('Searches Run')).toBeInTheDocument()
     expect(screen.queryByText('eBay Searches')).not.toBeInTheDocument()
-    expect(screen.getByText('20')).toBeInTheDocument()
+
+    // Scoped to the row's own cells (in column order), not just "20" appearing
+    // anywhere on the page -- a Searches Run/Alerts column swap would still
+    // pass an unscoped assertion (found on code review, LOW-3).
+    const row = screen.getByText(/Week of/).closest('tr')
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+    expect(cells[1]).toHaveTextContent('20')
+    expect(cells[2]).toHaveTextContent('2')
   })
 
   it('shows the corrected "Search counts tracked since" footer without naming eBay specifically', () => {

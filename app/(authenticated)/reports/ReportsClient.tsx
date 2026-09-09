@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useReports } from '@/hooks/useReports'
-import { sortMarketplaceEntries, totalSearchesRun } from '@/lib/constants/marketplaceDisplayOrder'
+import { sortMarketplaceEntries, totalSearchesRun, hasAnyMarketplaceActivity } from '@/lib/constants/marketplaceDisplayOrder'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
 
@@ -213,7 +213,7 @@ function WeekCard({
         )}
 
         {/* Search execution counts — one StatRow per marketplace, canonical order */}
-        {Object.values(report.searchesRunByMarketplace).some((v) => v > 0) && (
+        {hasAnyMarketplaceActivity(report.searchesRunByMarketplace) && (
           <div className="py-3">
             {sortMarketplaceEntries(report.searchesRunByMarketplace).map(([name, count]) => (
               <StatRow key={name} label={`${name} searches run`} value={count} />

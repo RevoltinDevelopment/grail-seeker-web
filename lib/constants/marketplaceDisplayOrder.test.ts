@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { sortMarketplaceEntries, totalSearchesRun, KNOWN_MARKETPLACE_DISPLAY_ORDER } from './marketplaceDisplayOrder'
+import {
+  sortMarketplaceEntries,
+  totalSearchesRun,
+  hasAnyMarketplaceActivity,
+  KNOWN_MARKETPLACE_DISPLAY_ORDER,
+} from './marketplaceDisplayOrder'
 
 describe('sortMarketplaceEntries', () => {
   it('orders known marketplaces in canonical order regardless of input order', () => {
@@ -54,6 +59,37 @@ describe('totalSearchesRun', () => {
 
   it('includes unrecognized marketplace names in the sum', () => {
     expect(totalSearchesRun({ eBay: 12, ComicLink: 7 })).toBe(19)
+  })
+})
+
+describe('hasAnyMarketplaceActivity', () => {
+  it('is true when at least one marketplace has a nonzero count', () => {
+    expect(hasAnyMarketplaceActivity({ eBay: 0, Heritage: 3 })).toBe(true)
+  })
+
+  it('is false when every marketplace is zero', () => {
+    expect(hasAnyMarketplaceActivity({ eBay: 0, Heritage: 0 })).toBe(false)
+  })
+
+  it('is false for an empty record', () => {
+    expect(hasAnyMarketplaceActivity({})).toBe(false)
+  })
+})
+
+describe('defensive undefined/null handling (code review LOW-4)', () => {
+  it('sortMarketplaceEntries treats undefined/null as an empty record rather than throwing', () => {
+    expect(sortMarketplaceEntries(undefined)).toEqual([])
+    expect(sortMarketplaceEntries(null)).toEqual([])
+  })
+
+  it('totalSearchesRun treats undefined/null as 0 rather than throwing', () => {
+    expect(totalSearchesRun(undefined)).toBe(0)
+    expect(totalSearchesRun(null)).toBe(0)
+  })
+
+  it('hasAnyMarketplaceActivity treats undefined/null as false rather than throwing', () => {
+    expect(hasAnyMarketplaceActivity(undefined)).toBe(false)
+    expect(hasAnyMarketplaceActivity(null)).toBe(false)
   })
 })
 

@@ -10,9 +10,15 @@
 export const KNOWN_MARKETPLACE_DISPLAY_ORDER = ['eBay', 'Heritage', 'MyComicShop'] as const
 export type MarketplaceName = (typeof KNOWN_MARKETPLACE_DISPLAY_ORDER)[number]
 
-/** Sorts a searchesRunByMarketplace record into [name, count] pairs for stable, sensible rendering. */
-export function sortMarketplaceEntries(counts: Record<string, number>): [string, number][] {
-  return Object.entries(counts).sort(([a], [b]) => {
+/**
+ * Sorts a searchesRunByMarketplace record into [name, count] pairs for stable,
+ * sensible rendering. `counts` defensively defaults to {} (code review LOW-4)
+ * -- the backend always sends this field today, but a malformed/stale
+ * response degrading to "no per-marketplace rows" is a better failure mode
+ * than crashing the whole Reports page.
+ */
+export function sortMarketplaceEntries(counts: Record<string, number> | undefined | null): [string, number][] {
+  return Object.entries(counts ?? {}).sort(([a], [b]) => {
     const ai = KNOWN_MARKETPLACE_DISPLAY_ORDER.indexOf(a as MarketplaceName)
     const bi = KNOWN_MARKETPLACE_DISPLAY_ORDER.indexOf(b as MarketplaceName)
     if (ai !== -1 && bi !== -1) return ai - bi
@@ -26,7 +32,13 @@ export function sortMarketplaceEntries(counts: Record<string, number>): [string,
  * Sums every marketplace's count. For currentWeek/allTime WeekReport objects,
  * which carry no precomputed total of their own -- unlike pastWeeks rows,
  * which already have totalSearchesRun from the backend (Story 1.44 Verified #2).
+ * Same defensive default as sortMarketplaceEntries above (code review LOW-4).
  */
-export function totalSearchesRun(counts: Record<string, number>): number {
-  return Object.values(counts).reduce((sum, n) => sum + n, 0)
+export function totalSearchesRun(counts: Record<string, number> | undefined | null): number {
+  return Object.values(counts ?? {}).reduce((sum, n) => sum + n, 0)
+}
+
+/** True if any marketplace has a nonzero count -- the gate for rendering the execution-counts block at all. */
+export function hasAnyMarketplaceActivity(counts: Record<string, number> | undefined | null): boolean {
+  return Object.values(counts ?? {}).some((v) => v > 0)
 }
