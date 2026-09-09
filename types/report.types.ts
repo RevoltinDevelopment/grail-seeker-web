@@ -15,8 +15,11 @@ export interface BookSearched {
 export interface WeekReport {
   weekStart: string
   booksSearched: BookSearched[]
-  ebaySearchesRun: number
-  heritageSearchesRun: number
+  // Story 1.44: replaces ebaySearchesRun/heritageSearchesRun. Keyed by
+  // marketplace name (e.g. eBay, Heritage, MyComicShop) -- no precomputed
+  // total on this type; sum via totalSearchesRun() from
+  // lib/constants/marketplaceDisplayOrder.ts.
+  searchesRunByMarketplace: Record<string, number>
   alertsIssued: number
   booksFound: BookFound[]
   activeSearches?: number // current week only
@@ -28,8 +31,9 @@ export interface WeekReport {
 
 export interface PastWeekSummary {
   weekStart: string
-  ebaySearchesRun: number
-  heritageSearchesRun: number
+  // Story 1.44: replaces ebaySearchesRun/heritageSearchesRun -- the backend
+  // already precomputes this sum for past-weeks rows (unlike WeekReport above).
+  totalSearchesRun: number
   alertsIssued: number
 }
 

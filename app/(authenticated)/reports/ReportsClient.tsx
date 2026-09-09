@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useReports } from '@/hooks/useReports'
+import { sortMarketplaceEntries, totalSearchesRun } from '@/lib/constants/marketplaceDisplayOrder'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
 
@@ -28,8 +29,8 @@ function formatWeekLabel(weekStart: string): string {
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
-function totalSearches(report: Pick<WeekReport, 'ebaySearchesRun' | 'heritageSearchesRun'>): number {
-  return report.ebaySearchesRun + report.heritageSearchesRun
+function totalSearches(report: Pick<WeekReport, 'searchesRunByMarketplace'>): number {
+  return totalSearchesRun(report.searchesRunByMarketplace)
 }
 
 // ─── stat row — only renders when value > 0 ──────────────────────────────────
@@ -189,13 +190,13 @@ function WeekCard({
         ) : hasAnyActivity ? (
           <p className="font-semibold text-collector-navy">
             We ran{' '}
-            <span className="text-collector-blue">{searches} {searches === 1 ? 'search' : 'searches'}</span>{' '}
-            on eBay{isCurrentWeek ? ' this week' : ' since you joined'} on your behalf.{' '}
+            <span className="text-collector-blue">{searches} {searches === 1 ? 'search' : 'searches'}</span>
+            {isCurrentWeek ? ' this week' : ' since you joined'} on your behalf.{' '}
             <span className="text-slate-500">Still hunting.</span>
           </p>
         ) : (
           <p className="text-slate-600">
-            Your first report is on its way — we check eBay at 9 AM and 7 PM EST every day.
+            Your first report is on its way — we check for new listings at 9 AM and 7 PM EST every day.
           </p>
         )}
       </div>
@@ -211,11 +212,12 @@ function WeekCard({
           </div>
         )}
 
-        {/* Search execution counts */}
-        {(report.ebaySearchesRun > 0 || report.heritageSearchesRun > 0) && (
+        {/* Search execution counts — one StatRow per marketplace, canonical order */}
+        {Object.values(report.searchesRunByMarketplace).some((v) => v > 0) && (
           <div className="py-3">
-            <StatRow label="eBay searches run" value={report.ebaySearchesRun} />
-            <StatRow label="Heritage searches run" value={report.heritageSearchesRun} />
+            {sortMarketplaceEntries(report.searchesRunByMarketplace).map(([name, count]) => (
+              <StatRow key={name} label={`${name} searches run`} value={count} />
+            ))}
           </div>
         )}
 
@@ -265,7 +267,7 @@ function PastWeeksList({ weeks }: { weeks: PastWeekSummary[] }) {
                 Week
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
-                eBay Searches
+                Searches Run
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Alerts
@@ -290,7 +292,7 @@ function PastWeeksList({ weeks }: { weeks: PastWeekSummary[] }) {
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-right text-slate-600">
-                  {week.ebaySearchesRun}
+                  {week.totalSearchesRun}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {week.alertsIssued > 0 ? (
@@ -391,7 +393,7 @@ export default function ReportsClient() {
 
       {/* Tracking since note */}
       <p className="mt-6 text-center text-xs text-slate-400">
-        eBay search counts tracked since{' '}
+        Search counts tracked since{' '}
         {new Date(report.trackingSince + 'T00:00:00Z').toLocaleDateString('en-US', {
           month: 'long',
           day: 'numeric',

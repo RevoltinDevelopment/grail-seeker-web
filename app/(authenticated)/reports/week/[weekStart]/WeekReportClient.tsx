@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useWeekReport } from '@/hooks/useReports'
+import { sortMarketplaceEntries, totalSearchesRun } from '@/lib/constants/marketplaceDisplayOrder'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { BookFound } from '@/types/report.types'
 
@@ -112,7 +113,7 @@ export default function WeekReportClient({ weekStart }: Props) {
     )
   }
 
-  const totalSearches = report.ebaySearchesRun + report.heritageSearchesRun
+  const totalSearches = totalSearchesRun(report.searchesRunByMarketplace)
   const hasFinds = report.alertsIssued > 0
 
   return (
@@ -148,7 +149,7 @@ export default function WeekReportClient({ weekStart }: Props) {
             <p className="font-semibold text-collector-navy">
               We ran{' '}
               <span className="text-collector-blue">{totalSearches} {totalSearches === 1 ? 'search' : 'searches'}</span>{' '}
-              on eBay this week on your behalf.{' '}
+              this week on your behalf.{' '}
               <span className="text-slate-500">No matches that week.</span>
             </p>
           ) : (
@@ -176,11 +177,12 @@ export default function WeekReportClient({ weekStart }: Props) {
             </div>
           )}
 
-          {/* Execution counts */}
-          {(report.ebaySearchesRun > 0 || report.heritageSearchesRun > 0) && (
+          {/* Execution counts — one StatRow per marketplace, canonical order */}
+          {Object.values(report.searchesRunByMarketplace).some((v) => v > 0) && (
             <div className="py-3">
-              <StatRow label="eBay searches run" value={report.ebaySearchesRun} />
-              <StatRow label="Heritage searches run" value={report.heritageSearchesRun} />
+              {sortMarketplaceEntries(report.searchesRunByMarketplace).map(([name, count]) => (
+                <StatRow key={name} label={`${name} searches run`} value={count} />
+              ))}
             </div>
           )}
 
