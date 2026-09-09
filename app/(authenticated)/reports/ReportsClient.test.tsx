@@ -44,11 +44,29 @@ function makePastWeek(overrides: Partial<PastWeekSummary> = {}): PastWeekSummary
   }
 }
 
+// allTime's real shape (Omit<WeekReport, 'activeSearches'>) never carries
+// weekStart -- there's no single "week" for an all-time aggregate (code
+// review LOW-5). Deliberately built without it, not by omitting a field from
+// makeWeekReport(), so this fixture matches the real backend payload exactly.
+function makeAllTimeReport(overrides: Partial<ReportsResponse['allTime']> = {}): ReportsResponse['allTime'] {
+  return {
+    booksSearched: [],
+    searchesRunByMarketplace: {},
+    alertsIssued: 0,
+    booksFound: [],
+    searchesCreated: 0,
+    searchesDeleted: 0,
+    alertsArchived: 0,
+    alertsDismissed: 0,
+    ...overrides,
+  }
+}
+
 function makeReportsResponse(overrides: Partial<ReportsResponse> = {}): ReportsResponse {
   return {
     trackingSince: '2026-05-30',
     currentWeek: makeWeekReport(),
-    allTime: makeWeekReport(),
+    allTime: makeAllTimeReport(),
     pastWeeks: [],
     ...overrides,
   }
@@ -172,6 +190,20 @@ describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
     expect(
       screen.getAllByText(/we check for new listings at 9 AM and 7 PM EST every day\./)
     ).toHaveLength(2)
+  })
+
+  it('renders the All Time card correctly with real-world activity when its fixture has no weekStart at all (code review LOW-5 fix)', () => {
+    mockUseReports(
+      makeReportsResponse({
+        allTime: makeAllTimeReport({ searchesRunByMarketplace: { eBay: 40, MyComicShop: 5 }, alertsIssued: 3 }),
+      })
+    )
+
+    render(<ReportsClient />)
+    expect(screen.getByText('All Time')).toBeInTheDocument()
+    expect(screen.getByText('Since you joined')).toBeInTheDocument()
+    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
+    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
   })
 
   it('past-weeks table shows a "Searches Run" column using the combined total, not an eBay-only figure', () => {

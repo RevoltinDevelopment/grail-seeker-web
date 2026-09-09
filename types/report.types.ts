@@ -13,7 +13,11 @@ export interface BookSearched {
 }
 
 export interface WeekReport {
-  weekStart: string
+  // Optional -- code review LOW-5 (Story 1.44): the real allTime payload
+  // never sends this field (there's no single "week" for an all-time
+  // aggregate). Only currentWeek/a single-week report actually carry it;
+  // WeekCard's isCurrentWeek branch is the only reader.
+  weekStart?: string
   booksSearched: BookSearched[]
   // Story 1.44: replaces ebaySearchesRun/heritageSearchesRun. Keyed by
   // marketplace name (e.g. eBay, Heritage, MyComicShop) -- no precomputed

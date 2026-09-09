@@ -171,7 +171,7 @@ function WeekCard({
           </div>
           <p className="mt-0.5 text-sm text-slate-500">
             {isCurrentWeek
-              ? formatWeekRange(report.weekStart)
+              ? formatWeekRange(report.weekStart ?? '')
               : `Since you joined`}
           </p>
         </div>
@@ -385,7 +385,7 @@ export default function ReportsClient() {
       {/* Current week + All time side by side on md+ */}
       <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
         <WeekCard report={report.currentWeek} isCurrentWeek={true} withLinks={true} />
-        <WeekCard report={report.allTime as WeekReport} withLinks={false} />
+        <WeekCard report={report.allTime} withLinks={false} />
       </div>
 
       {/* Past weeks */}
