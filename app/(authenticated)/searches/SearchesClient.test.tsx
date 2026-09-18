@@ -4,16 +4,54 @@
  */
 
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { GrailSearch } from '@/types/search.types'
 
 vi.mock('@/hooks/useSearches', () => ({
   useSearches: vi.fn(),
 }))
 
+vi.mock('@/hooks/usePlatforms', () => ({
+  usePlatforms: vi.fn(),
+}))
+
 // eslint-disable-next-line import/order -- must follow vi.mock() above
 import { useSearches } from '@/hooks/useSearches'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { usePlatforms } from '@/hooks/usePlatforms'
 import SearchesClient from './SearchesClient'
+
+const CORE_ONLY_GROUPS = [
+  {
+    label: 'Core',
+    platforms: [
+      { slug: 'ebay', displayName: 'eBay', defaultEnabled: true },
+      { slug: 'heritage', displayName: 'Heritage', defaultEnabled: true },
+      { slug: 'mycomicshop', displayName: 'MyComicShop', defaultEnabled: true },
+    ],
+  },
+]
+
+const WITH_INDIE_GROUPS = [
+  ...CORE_ONLY_GROUPS,
+  {
+    label: 'Independent Shops',
+    platforms: [
+      { slug: 'indie:bryscomics', displayName: "Bry's Comics", defaultEnabled: true },
+      { slug: 'indie:comicbookaddiction', displayName: 'Comic Book Addiction', defaultEnabled: false },
+    ],
+  },
+]
+
+function mockUsePlatforms(groups: typeof CORE_ONLY_GROUPS) {
+  vi.mocked(usePlatforms).mockReturnValue({
+    groups,
+    isLoading: false,
+    error: null,
+    displayNameFor: (slug: string) => slug,
+    defaultEnabledSlugs: [],
+  })
+}
 
 // Explicitly typed as GrailSearch (not just inferred) so tsc catches fixture
 // drift from the real shape -- found on adversarial review: an earlier
@@ -67,6 +105,14 @@ function mockUseSearches(searches: GrailSearch[]) {
     updateSearchStatus: { mutateAsync: vi.fn() },
   } as unknown as ReturnType<typeof useSearches>)
 }
+
+// Story 1.49: real registry response now required by every test in this
+// file, not just the new Independent Shops describe block -- default to a
+// Core-only registry so pre-existing tests need no per-test change; the new
+// describe block below overrides it explicitly where a second group matters.
+beforeEach(() => {
+  mockUsePlatforms(CORE_ONLY_GROUPS)
+})
 
 describe('SearchesClient — MyComicShop badge (Story 1.35)', () => {
   it('shows a checked, colored MyComicShop badge when the search includes it', () => {
@@ -127,5 +173,50 @@ describe('SearchesClient — "Last checked" footer, pre-first-check state', () =
 
     render(<SearchesClient />)
     expect(screen.getByText('Not yet checked')).toBeInTheDocument()
+  })
+})
+
+describe('SearchesClient — Independent Shops aggregate pill (Story 1.49)', () => {
+  it('renders no fourth pill at all when the registry has no non-Core group (today\'s real state)', () => {
+    mockUsePlatforms(CORE_ONLY_GROUPS)
+    mockUseSearches([makeSearch(['ebay'])])
+
+    render(<SearchesClient />)
+    expect(screen.queryByText(/Independent Shops/)).not.toBeInTheDocument()
+  })
+
+  it('shows a grey, unchecked pill when zero independent shops are active for this search', () => {
+    mockUsePlatforms(WITH_INDIE_GROUPS)
+    mockUseSearches([makeSearch(['ebay'])])
+
+    render(<SearchesClient />)
+    expect(screen.getByText('Independent Shops')).toBeInTheDocument()
+    expect(screen.queryByText(/Independent Shops \(/)).not.toBeInTheDocument()
+  })
+
+  it('shows "Independent Shops (N) ✓" when every independent shop is active', () => {
+    mockUsePlatforms(WITH_INDIE_GROUPS)
+    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics', 'indie:comicbookaddiction'])])
+
+    render(<SearchesClient />)
+    expect(screen.getByText('Independent Shops (2) ✓')).toBeInTheDocument()
+  })
+
+  it('shows "Independent Shops (N of M) ✓" when only some independent shops are active', () => {
+    mockUsePlatforms(WITH_INDIE_GROUPS)
+    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics'])])
+
+    render(<SearchesClient />)
+    expect(screen.getByText('Independent Shops (1 of 2) ✓')).toBeInTheDocument()
+  })
+
+  it('the three Core pills still render exactly as before, alongside the new pill (regression)', () => {
+    mockUsePlatforms(WITH_INDIE_GROUPS)
+    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics'])])
+
+    render(<SearchesClient />)
+    expect(screen.getByText('eBay ✓')).toBeInTheDocument()
+    expect(screen.getByText('Heritage')).toBeInTheDocument()
+    expect(screen.getByText('MyComicShop')).toBeInTheDocument()
   })
 })

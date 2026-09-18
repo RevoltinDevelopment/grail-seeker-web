@@ -6,16 +6,35 @@
  */
 
 import { render, screen, within } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { WeekReport, PastWeekSummary, ReportsResponse } from '@/types/report.types'
 
 vi.mock('@/hooks/useReports', () => ({
   useReports: vi.fn(),
 }))
 
+vi.mock('@/hooks/usePlatforms', () => ({
+  usePlatforms: vi.fn(),
+}))
+
 // eslint-disable-next-line import/order -- must follow vi.mock() above
 import { useReports } from '@/hooks/useReports'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { usePlatforms } from '@/hooks/usePlatforms'
 import ReportsClient from './ReportsClient'
+
+// Story 1.49: default mock has no registry entries, so displayNameFor's
+// fallback-to-raw-key behavior is what every pre-existing (Story 1.44) test
+// exercises unchanged -- only the new describe block below overrides it.
+beforeEach(() => {
+  vi.mocked(usePlatforms).mockReturnValue({
+    groups: [],
+    isLoading: false,
+    error: null,
+    displayNameFor: (slug: string) => slug,
+    defaultEnabledSlugs: [],
+  })
+})
 
 // Explicitly typed against the real WeekReport/PastWeekSummary/ReportsResponse
 // interfaces (not an untyped object literal) so tsc catches fixture drift --
@@ -232,5 +251,68 @@ describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
     render(<ReportsClient />)
     expect(screen.getByText(/Search counts tracked since/)).toBeInTheDocument()
     expect(screen.queryByText(/eBay search counts tracked/)).not.toBeInTheDocument()
+  })
+})
+
+describe('ReportsClient — Independent Shops slug resolution (Story 1.49)', () => {
+  it('resolves a raw registry slug to its real display name, never showing it verbatim', () => {
+    vi.mocked(usePlatforms).mockReturnValue({
+      groups: [],
+      isLoading: false,
+      error: null,
+      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
+      defaultEnabledSlugs: [],
+    })
+    mockUseReports(
+      makeReportsResponse({
+        currentWeek: makeWeekReport({
+          searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 },
+        }),
+      })
+    )
+
+    render(<ReportsClient />)
+    expect(screen.getByText("Bry's Comics searches run")).toBeInTheDocument()
+    expect(screen.queryByText('indie:bryscomics searches run')).not.toBeInTheDocument()
+  })
+
+  it('leaves the three known capitalized names untouched, unresolved (they are already correct)', () => {
+    vi.mocked(usePlatforms).mockReturnValue({
+      groups: [],
+      isLoading: false,
+      error: null,
+      displayNameFor: () => 'SHOULD NOT BE CALLED FOR KNOWN NAMES',
+      defaultEnabledSlugs: [],
+    })
+    mockUseReports(
+      makeReportsResponse({
+        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 } }),
+      })
+    )
+
+    render(<ReportsClient />)
+    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
+    expect(screen.getByText('Heritage searches run')).toBeInTheDocument()
+    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
+  })
+
+  it('still sums resolved and unresolved counts correctly into the headline total', () => {
+    vi.mocked(usePlatforms).mockReturnValue({
+      groups: [],
+      isLoading: false,
+      error: null,
+      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
+      defaultEnabledSlugs: [],
+    })
+    mockUseReports(
+      makeReportsResponse({
+        currentWeek: makeWeekReport({
+          searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 },
+        }),
+      })
+    )
+
+    render(<ReportsClient />)
+    expect(screen.getByText('16 searches')).toBeInTheDocument()
   })
 })

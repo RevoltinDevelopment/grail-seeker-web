@@ -1,9 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { usePlatforms } from '@/hooks/usePlatforms'
 import { useReports } from '@/hooks/useReports'
-import { sortMarketplaceEntries, totalSearchesRun, hasAnyMarketplaceActivity } from '@/lib/constants/marketplaceDisplayOrder'
+import {
+  sortMarketplaceEntries,
+  totalSearchesRun,
+  hasAnyMarketplaceActivity,
+  resolveMarketplaceNames,
+} from '@/lib/constants/marketplaceDisplayOrder'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
 
@@ -150,6 +156,11 @@ function WeekCard({
   isCurrentWeek?: boolean
   withLinks?: boolean
 }) {
+  const { displayNameFor } = usePlatforms()
+  const resolvedCounts = useMemo(
+    () => resolveMarketplaceNames(report.searchesRunByMarketplace, displayNameFor),
+    [report.searchesRunByMarketplace, displayNameFor]
+  )
   const searches = totalSearches(report)
   const hasFinds = report.alertsIssued > 0
   const hasAnyActivity = searches > 0
@@ -215,7 +226,7 @@ function WeekCard({
         {/* Search execution counts — one StatRow per marketplace, canonical order */}
         {hasAnyMarketplaceActivity(report.searchesRunByMarketplace) && (
           <div className="py-3">
-            {sortMarketplaceEntries(report.searchesRunByMarketplace).map(([name, count]) => (
+            {sortMarketplaceEntries(resolvedCounts).map(([name, count]) => (
               <StatRow key={name} label={`${name} searches run`} value={count} />
             ))}
           </div>

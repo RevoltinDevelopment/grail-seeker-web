@@ -8,10 +8,10 @@ import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
 import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
+import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearch, useSearches } from '@/hooks/useSearches'
 import { aliasGroupsAPI } from '@/lib/api/alias-groups'
 import type { IssueSource } from '@/lib/api/issues'
-import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -64,6 +64,9 @@ export default function EditSearchPage() {
 
   const { data: search, isLoading: isLoadingSearch } = useSearch(searchId)
   const { updateSearch } = useSearches()
+  // Story 1.49: the no-recorded-platforms fallback now uses the registry's
+  // real defaultEnabledSlugs, not the hardcoded ACTIVE_PLATFORMS array.
+  const { defaultEnabledSlugs, isLoading: isLoadingPlatforms } = usePlatforms()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
   const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
@@ -88,7 +91,7 @@ export default function EditSearchPage() {
         : null,
     [selectedSeries]
   )
-  const [platforms, setPlatforms] = useState([...ACTIVE_PLATFORMS])
+  const [platforms, setPlatforms] = useState<string[]>([])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -104,9 +107,11 @@ export default function EditSearchPage() {
     }
   }, [])
 
-  // Pre-fill form when search data loads
+  // Pre-fill form when search data loads. Also waits on usePlatforms() so
+  // the no-recorded-platforms fallback below never fires with an empty
+  // defaultEnabledSlugs before the registry has actually resolved.
   useEffect(() => {
-    if (search && !isInitialized) {
+    if (search && !isInitialized && !isLoadingPlatforms) {
       // Story 1.18: GrailSearch.series always reflects the REAL underlying
       // series (never the Alias Group), so prefilling selectedSeries from
       // it alone would silently show the wrong name in SeriesAutocomplete
@@ -159,10 +164,10 @@ export default function EditSearchPage() {
       }
 
       // API returns real values as of Migration 038; all-on fallback matches the backfill
-      setPlatforms(search.platforms || [...ACTIVE_PLATFORMS])
+      setPlatforms(search.platforms || defaultEnabledSlugs)
       setIsInitialized(true)
     }
-  }, [search, isInitialized])
+  }, [search, isInitialized, isLoadingPlatforms, defaultEnabledSlugs])
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '')
@@ -260,7 +265,11 @@ export default function EditSearchPage() {
     }
   }
 
-  if (isLoadingSearch) {
+  // Code review fix: also waits on the platform registry -- otherwise a
+  // search that loads faster than the registry (a plausible, uncorrelated
+  // race) briefly shows a fully-populated form with an empty, disabled
+  // Platforms section and no indication it's still loading.
+  if (isLoadingSearch || isLoadingPlatforms) {
     return (
       <div className="min-h-screen bg-slate-50">
         <header className="border-b border-slate-200 bg-white px-4 py-4">

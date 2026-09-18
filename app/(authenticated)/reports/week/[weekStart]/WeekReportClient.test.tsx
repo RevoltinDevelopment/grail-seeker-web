@@ -5,16 +5,35 @@
  */
 
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { WeekReport } from '@/types/report.types'
 
 vi.mock('@/hooks/useReports', () => ({
   useWeekReport: vi.fn(),
 }))
 
+vi.mock('@/hooks/usePlatforms', () => ({
+  usePlatforms: vi.fn(),
+}))
+
 // eslint-disable-next-line import/order -- must follow vi.mock() above
 import { useWeekReport } from '@/hooks/useReports'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { usePlatforms } from '@/hooks/usePlatforms'
 import WeekReportClient from './WeekReportClient'
+
+// Story 1.49: default mock has no registry entries -- displayNameFor's
+// fallback-to-raw-key behavior is what every pre-existing (Story 1.44) test
+// exercises unchanged.
+beforeEach(() => {
+  vi.mocked(usePlatforms).mockReturnValue({
+    groups: [],
+    isLoading: false,
+    error: null,
+    displayNameFor: (slug: string) => slug,
+    defaultEnabledSlugs: [],
+  })
+})
 
 function makeWeekReport(overrides: Partial<WeekReport> = {}): WeekReport {
   return {
@@ -100,5 +119,40 @@ describe('WeekReportClient — per-marketplace search counts (Story 1.44)', () =
 
     render(<WeekReportClient weekStart="2026-08-31" />)
     expect(screen.getByText('No monitoring activity recorded for this week.')).toBeInTheDocument()
+  })
+})
+
+describe('WeekReportClient — Independent Shops slug resolution (Story 1.49)', () => {
+  it('resolves a raw registry slug to its real display name, never showing it verbatim', () => {
+    vi.mocked(usePlatforms).mockReturnValue({
+      groups: [],
+      isLoading: false,
+      error: null,
+      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
+      defaultEnabledSlugs: [],
+    })
+    mockUseWeekReport(makeWeekReport({ searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 } }))
+
+    render(<WeekReportClient weekStart="2026-08-31" />)
+    expect(screen.getByText("Bry's Comics searches run")).toBeInTheDocument()
+    expect(screen.queryByText('indie:bryscomics searches run')).not.toBeInTheDocument()
+  })
+
+  it('leaves the three known capitalized names untouched, unresolved', () => {
+    vi.mocked(usePlatforms).mockReturnValue({
+      groups: [],
+      isLoading: false,
+      error: null,
+      displayNameFor: () => 'SHOULD NOT BE CALLED FOR KNOWN NAMES',
+      defaultEnabledSlugs: [],
+    })
+    mockUseWeekReport(
+      makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 } })
+    )
+
+    render(<WeekReportClient weekStart="2026-08-31" />)
+    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
+    expect(screen.getByText('Heritage searches run')).toBeInTheDocument()
+    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
   })
 })

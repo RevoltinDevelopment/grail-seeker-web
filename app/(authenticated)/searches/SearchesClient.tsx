@@ -3,11 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearches } from '@/hooks/useSearches'
 import { formatIssueNumber, formatSeriesShort } from '@/lib/utils/series-formatter'
 
 export default function SearchesClient() {
   const { searches, isLoading, deleteSearch, updateSearchStatus } = useSearches()
+  // Story 1.49: the Independent Shops group renders as one aggregate pill,
+  // never one pill per store -- see ux-design-independent-shops-platform-selector.md.
+  const { groups } = usePlatforms()
+  const indieGroup = groups.find((g) => g.label !== 'Core')
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const handleDelete = async (id: string) => {
@@ -165,6 +170,27 @@ export default function SearchesClient() {
                   ) : (
                     <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">MyComicShop</span>
                   )}
+                  {indieGroup &&
+                    indieGroup.platforms.length > 0 &&
+                    (() => {
+                      const total = indieGroup.platforms.length
+                      const active = indieGroup.platforms.filter((p) =>
+                        search.platforms.includes(p.slug)
+                      ).length
+                      if (active === 0) {
+                        return (
+                          <span className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-400">
+                            {indieGroup.label}
+                          </span>
+                        )
+                      }
+                      const label = active === total ? `(${active})` : `(${active} of ${total})`
+                      return (
+                        <span className="rounded bg-collector-navy px-2 py-1 text-xs text-white">
+                          {indieGroup.label} {label} ✓
+                        </span>
+                      )
+                    })()}
                 </div>
               </div>
 

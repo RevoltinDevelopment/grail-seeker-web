@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
@@ -8,9 +8,9 @@ import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
 import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
+import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearches } from '@/hooks/useSearches'
 import type { IssueSource } from '@/lib/api/issues'
-import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -37,6 +37,9 @@ const GRADING_AUTHORITY_OPTIONS = ['Any', 'CGC', 'CBCS', 'PGX']
 export default function CreateSearchPage() {
   const router = useRouter()
   const { createSearch } = useSearches()
+  // Story 1.49: platforms now default from the live registry's real
+  // defaultEnabledSlugs, not the hardcoded ACTIVE_PLATFORMS array.
+  const { defaultEnabledSlugs, isLoading: isLoadingPlatforms } = usePlatforms()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
   const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
@@ -46,7 +49,17 @@ export default function CreateSearchPage() {
   const [gradingAuthority, setGradingAuthority] = useState('Any')
   const [maxPrice, setMaxPrice] = useState<string>('')
   const [maxPriceDisplay, setMaxPriceDisplay] = useState<string>('')
-  const [platforms, setPlatforms] = useState([...ACTIVE_PLATFORMS])
+  const [platforms, setPlatforms] = useState<string[]>([])
+
+  // defaultEnabledSlugs resolves asynchronously (React Query) -- prefill
+  // exactly once, the moment it's ready, mirroring the edit page's own
+  // isInitialized-gated prefill pattern. Guarded so a later refetch never
+  // clobbers a subscriber's in-progress selection.
+  useEffect(() => {
+    if (!isLoadingPlatforms && platforms.length === 0 && defaultEnabledSlugs.length > 0) {
+      setPlatforms(defaultEnabledSlugs)
+    }
+  }, [isLoadingPlatforms, defaultEnabledSlugs, platforms.length])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)

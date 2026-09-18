@@ -3,6 +3,7 @@ import {
   sortMarketplaceEntries,
   totalSearchesRun,
   hasAnyMarketplaceActivity,
+  resolveMarketplaceNames,
   KNOWN_MARKETPLACE_DISPLAY_ORDER,
 } from './marketplaceDisplayOrder'
 
@@ -96,5 +97,39 @@ describe('defensive undefined/null handling (code review LOW-4)', () => {
 describe('KNOWN_MARKETPLACE_DISPLAY_ORDER', () => {
   it('is exactly eBay, Heritage, MyComicShop, in that order', () => {
     expect(KNOWN_MARKETPLACE_DISPLAY_ORDER).toEqual(['eBay', 'Heritage', 'MyComicShop'])
+  })
+})
+
+// Story 1.49 (code review fix): extracted from ReportsClient.tsx and
+// WeekReportClient.tsx, which each defined an identical copy -- now has one
+// real, shared, dedicated unit test suite instead of two.
+describe('resolveMarketplaceNames', () => {
+  it('leaves the three known capitalized names untouched, never calling displayNameFor for them', () => {
+    const displayNameFor = () => 'SHOULD NOT BE CALLED'
+    const result = resolveMarketplaceNames({ eBay: 12, Heritage: 3, MyComicShop: 5 }, displayNameFor)
+    expect(result).toEqual({ eBay: 12, Heritage: 3, MyComicShop: 5 })
+  })
+
+  it('resolves a raw registry slug to its real display name', () => {
+    const displayNameFor = (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug)
+    const result = resolveMarketplaceNames({ eBay: 12, 'indie:bryscomics': 4 }, displayNameFor)
+    expect(result).toEqual({ eBay: 12, "Bry's Comics": 4 })
+  })
+
+  it('falls back to the raw slug when displayNameFor has no match, never dropping the count', () => {
+    const displayNameFor = (slug: string) => slug
+    const result = resolveMarketplaceNames({ 'indie:somefutureshop': 2 }, displayNameFor)
+    expect(result).toEqual({ 'indie:somefutureshop': 2 })
+  })
+
+  it('merges counts when two source keys resolve to the same display name, never silently drops one', () => {
+    const displayNameFor = () => 'Same Name'
+    const result = resolveMarketplaceNames({ 'indie:a': 3, 'indie:b': 4 }, displayNameFor)
+    expect(result).toEqual({ 'Same Name': 7 })
+  })
+
+  it('defaults to an empty object for undefined/null input, matching this module\'s other functions', () => {
+    expect(resolveMarketplaceNames(undefined, (s) => s)).toEqual({})
+    expect(resolveMarketplaceNames(null, (s) => s)).toEqual({})
   })
 })

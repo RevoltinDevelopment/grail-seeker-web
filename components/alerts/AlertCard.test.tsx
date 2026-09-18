@@ -4,14 +4,34 @@
  * ternary that mislabeled every MyComicShop alert as "View on eBay", and
  * (2) auctionStartTime (shipped by the backend in Story 1.34) was never
  * read or displayed anywhere in this repo.
+ *
+ * Story 1.49: both platform-display call sites now resolve through the live
+ * registry (usePlatforms().displayNameFor()) instead of the hardcoded
+ * PLATFORM_LABELS map. A second, previously-undocumented and previously
+ * UNTESTED bug is fixed here too: the platform badge rendered
+ * `platform.toUpperCase()` with no lookup at all -- for an independent shop
+ * this would have printed a raw slug like "INDIE:BRYSCOMICS" verbatim.
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { ToastProvider } from '@/contexts/ToastContext'
 import type { Alert } from '@/types/alert.types'
 import { AlertCard } from './AlertCard'
+
+vi.mock('@/hooks/usePlatforms', () => ({
+  usePlatforms: vi.fn(() => ({
+    groups: [],
+    isLoading: false,
+    error: null,
+    displayNameFor: (slug: string) =>
+      ({ ebay: 'eBay', heritage: 'Heritage', mycomicshop: 'MyComicShop', 'indie:bryscomics': "Bry's Comics" })[
+        slug
+      ] ?? slug,
+    defaultEnabledSlugs: [],
+  })),
+}))
 
 function renderWithProviders(alert: Alert) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -67,9 +87,34 @@ describe('AlertCard — "View on X" label dispatch (Story 1.35)', () => {
     expect(screen.getByRole('link')).toHaveTextContent('View on MyComicShop')
   })
 
-  it('falls back to "View on eBay" for an unrecognized platform value', () => {
-    renderWithProviders(makeAlert({ platform: 'somethingNew' }))
-    expect(screen.getByRole('link')).toHaveTextContent('View on eBay')
+  it('shows "View on Bry\'s Comics" for a real independent-shop listing', () => {
+    renderWithProviders(makeAlert({ platform: 'indie:bryscomics' }))
+    expect(screen.getByRole('link')).toHaveTextContent("View on Bry's Comics")
+  })
+
+  it('Story 1.49: falls back to the raw slug for an unrecognized platform, never silently claims eBay', () => {
+    renderWithProviders(makeAlert({ platform: 'indie:somefutureshop' }))
+    expect(screen.getByRole('link')).toHaveTextContent('View on indie:somefutureshop')
+    expect(screen.getByRole('link')).not.toHaveTextContent('View on eBay')
+  })
+})
+
+describe('AlertCard — platform badge (Story 1.49)', () => {
+  it('shows the real display name for eBay, not a raw uppercased slug', () => {
+    renderWithProviders(makeAlert({ platform: 'ebay' }))
+    expect(screen.getByText('eBay')).toBeInTheDocument()
+    expect(screen.queryByText('EBAY')).not.toBeInTheDocument()
+  })
+
+  it('shows the real display name for a real independent shop, correctly cased with its apostrophe', () => {
+    renderWithProviders(makeAlert({ platform: 'indie:bryscomics' }))
+    expect(screen.getByText("Bry's Comics")).toBeInTheDocument()
+  })
+
+  it('falls back to the raw slug for an unrecognized platform, not an uppercased garble', () => {
+    renderWithProviders(makeAlert({ platform: 'indie:somefutureshop' }))
+    expect(screen.getByText('indie:somefutureshop')).toBeInTheDocument()
+    expect(screen.queryByText('INDIE:SOMEFUTURESHOP')).not.toBeInTheDocument()
   })
 })
 

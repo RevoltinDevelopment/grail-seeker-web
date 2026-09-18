@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-import { ACTIVE_PLATFORMS } from '@/lib/constants/platforms'
+import { usePlatforms } from '@/hooks/usePlatforms'
 import type { GrailSearch } from '@/types/search.types'
 
 // sessionStorage (not localStorage): dismissal lasts for the browser session,
@@ -21,13 +21,24 @@ interface PlatformNudgeBannerProps {
  */
 export function PlatformNudgeBanner({ searches }: PlatformNudgeBannerProps) {
   const [dismissed, setDismissed] = useState(true) // hidden until mounted to avoid SSR flash
+  // Story 1.49 (code review correction): checks every DEFAULT-ENABLED
+  // registry platform, Core and Independent Shops alike -- confirmed policy
+  // is "treat Independent Shops exactly like Core," and Core's own slugs
+  // are always defaultEnabled, so comparing against defaultEnabledSlugs
+  // (identical to comparing against every slug, for Core) is the correct
+  // generalization. Comparing against every registry slug unconditionally
+  // was wrong: architecture.md seeds a new Independent Shop row
+  // default_enabled=false until Mahan flips it, and this banner would have
+  // nagged every existing search about a shop deliberately not yet turned
+  // on for anyone -- the exact silent-regression class this review caught.
+  const { defaultEnabledSlugs } = usePlatforms()
 
   useEffect(() => {
     setDismissed(sessionStorage.getItem(DISMISS_KEY) === 'true')
   }, [])
 
   const affected = searches.filter(
-    (s) => s.isActive && ACTIVE_PLATFORMS.some((p) => !s.platforms?.includes(p))
+    (s) => s.isActive && defaultEnabledSlugs.some((p) => !s.platforms?.includes(p))
   )
 
   if (dismissed || affected.length === 0) {

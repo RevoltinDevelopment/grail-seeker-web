@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/contexts/ToastContext'
+import { usePlatforms } from '@/hooks/usePlatforms'
 import { alertsAPI } from '@/lib/api/alerts'
-import { PLATFORM_LABELS } from '@/lib/constants/platforms'
 import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 
@@ -19,6 +19,9 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const queryClient = useQueryClient()
   const { showToast } = useToast()
+  // Story 1.49: both call sites below resolve through the live registry
+  // instead of the hardcoded PLATFORM_LABELS map / a raw uppercased slug.
+  const { displayNameFor } = usePlatforms()
 
   const archiveMutation = useMutation({
     mutationFn: () => alertsAPI.archive(alert.id),
@@ -168,7 +171,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
               </span>
             )}
             <span className="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-              {alert.listing.platform.toUpperCase()}
+              {displayNameFor(alert.listing.platform)}
             </span>
             {alert.notificationSent && (
               <span className="whitespace-nowrap text-xs text-slate-500">📱 SMS sent</span>
@@ -196,7 +199,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
                 : 'bg-collector-blue text-white hover:bg-blue-800'
             }`}
           >
-            View on {PLATFORM_LABELS[alert.listing.platform] ?? 'eBay'}{isArchived ? ' (Listing Ended)' : ' →'}
+            View on {displayNameFor(alert.listing.platform)}{isArchived ? ' (Listing Ended)' : ' →'}
           </a>
         )}
       </div>

@@ -42,3 +42,27 @@ export function totalSearchesRun(counts: Record<string, number> | undefined | nu
 export function hasAnyMarketplaceActivity(counts: Record<string, number> | undefined | null): boolean {
   return Object.values(counts ?? {}).some((v) => v > 0)
 }
+
+/**
+ * Story 1.49 (code review fix — extracted from ReportsClient.tsx and
+ * WeekReportClient.tsx, which each defined an identical copy): resolves any
+ * non-legacy searchesRunByMarketplace key (a real marketplace_platform_registry
+ * slug, e.g. "indie:bryscomics") to its real display name before
+ * sortMarketplaceEntries() ever sees it. The three KNOWN_MARKETPLACE_DISPLAY_ORDER
+ * names pass through untouched -- they're the different key-space this
+ * module's own header comment already documents, already human-readable,
+ * and already correctly ordered. Call with usePlatforms().displayNameFor.
+ */
+export function resolveMarketplaceNames(
+  counts: Record<string, number> | undefined | null,
+  displayNameFor: (slug: string) => string
+): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [key, count] of Object.entries(counts ?? {})) {
+    const resolved = KNOWN_MARKETPLACE_DISPLAY_ORDER.includes(key as MarketplaceName)
+      ? key
+      : displayNameFor(key)
+    out[resolved] = (out[resolved] ?? 0) + count
+  }
+  return out
+}
