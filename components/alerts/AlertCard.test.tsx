@@ -136,3 +136,26 @@ describe('AlertCard — auction-start-date display (Story 1.35)', () => {
     expect(screen.queryByText('Auction Starts:')).not.toBeInTheDocument()
   })
 })
+
+describe('AlertCard — links come from the API (Story 1.59)', () => {
+  // The backend builds every listing link (eBay Partner Network tracking plus the no-redirect flag,
+  // MyComicShop AffID); the card must render it as given, never rebuild it.
+  const EBAY_URL =
+    'https://www.ebay.com/itm/398325409850?nordt=true&mkcid=1&mkrid=711-53200-19255-0&siteid=0&campid=5339123882&customid=&toolid=10001&mkevt=1'
+
+  it('renders the API url for an eBay alert, even when an eBay item id is present', () => {
+    renderWithProviders(makeAlert({ platform: 'ebay', ebayItemId: 'v1|398325409850|0', url: EBAY_URL }))
+    expect(screen.getByRole('link')).toHaveAttribute('href', EBAY_URL)
+  })
+
+  it('renders the API url for a non-eBay alert', () => {
+    const url = 'https://www.mycomicshop.com/search?itemid=65374166&AffID=1341950P01'
+    renderWithProviders(makeAlert({ platform: 'mycomicshop', ebayItemId: '65374166', url }))
+    expect(screen.getByRole('link')).toHaveAttribute('href', url)
+  })
+
+  it('renders no link when the API url is null', () => {
+    renderWithProviders(makeAlert({ platform: 'ebay', ebayItemId: 'v1|1|0', url: null }))
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+})

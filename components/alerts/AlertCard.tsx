@@ -5,7 +5,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/contexts/ToastContext'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { alertsAPI } from '@/lib/api/alerts'
-import { buildEbayCampaignUrl } from '@/lib/ebay/campaign-url'
 import { formatIssueNumber } from '@/lib/utils/series-formatter'
 
 import type { Alert } from '@/types/alert.types'
@@ -43,11 +42,10 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
     setShowMenu(false)
   }
 
-  // Build eBay campaign tracking URL if we have an eBay item ID
-  const listingUrl =
-    alert.listing.platform === 'ebay' && alert.listing.ebayItemId
-      ? buildEbayCampaignUrl(alert.listing.ebayItemId)
-      : alert.listing.url
+  // Story 1.59: the API builds every listing link (eBay Partner Network tracking plus the no-redirect
+  // flag, MyComicShop AffID), so the card renders it as given. The card used to rebuild eBay links
+  // with its own copy of the builder; one builder, in the backend, is now the only source.
+  const listingUrl = alert.listing.url
 
   return (
     <div
