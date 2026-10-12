@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/contexts/ToastContext'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { alertsAPI } from '@/lib/api/alerts'
-import { formatIssueNumber } from '@/lib/utils/series-formatter'
+import { formatGrade, formatIssueNumber } from '@/lib/utils/series-formatter'
 
 import type { Alert } from '@/types/alert.types'
 
@@ -139,7 +139,7 @@ export function AlertCard({ alert, isArchived = false }: AlertCardProps) {
             {alert.listing.grade && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">Grade:</span>
-                <span className="text-lg font-semibold">{alert.listing.grade}</span>
+                <span className="text-lg font-semibold">{formatGrade(alert.listing.grade)}</span>
               </div>
             )}
             {alert.listing.gradingAuthority && (

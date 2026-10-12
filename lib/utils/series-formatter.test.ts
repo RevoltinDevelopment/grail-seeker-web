@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ComicSeries } from '@/types/search.types'
-import { volumeToOrdinal, formatYearRange, formatSeriesDisplay, formatSeriesShort, formatIssueNumber } from './series-formatter'
+import { volumeToOrdinal, formatYearRange, formatSeriesDisplay, formatSeriesShort, formatIssueNumber, formatGrade } from './series-formatter'
 
 function makeSeries(overrides: Partial<ComicSeries> = {}): ComicSeries {
   return {
@@ -96,5 +96,19 @@ describe('formatIssueNumber', () => {
 
   it('omits the prefix when issueVolumeText is null', () => {
     expect(formatIssueNumber('7', null)).toBe('#7')
+  })
+})
+
+describe('formatGrade', () => {
+  it('writes a whole grade with its decimal', () => {
+    expect(formatGrade(7)).toBe('7.0')
+    expect(formatGrade(10)).toBe('10.0')
+    expect(formatGrade('5')).toBe('5.0')
+  })
+
+  it('leaves every other grade as it is', () => {
+    expect(formatGrade(9.8)).toBe('9.8')
+    expect(formatGrade(0.5)).toBe('0.5')
+    expect(formatGrade('9.6')).toBe('9.6')
   })
 })

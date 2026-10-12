@@ -183,3 +183,16 @@ export function formatSeriesShort(series: Pick<ComicSeries, 'volume' | 'yearRang
 export function formatIssueNumber(issueNumber: string, issueVolumeText: string | null): string {
   return issueVolumeText ? `Vol. ${issueVolumeText} #${issueNumber}` : `#${issueNumber}`
 }
+
+/**
+ * Format a certified grade for display: a whole grade always carries its
+ * decimal ("7.0", "10.0"), as the grading companies print it; every other
+ * grade is unchanged ("9.8"). Mirrors grail-seeker's
+ * src/domain/services/comicTitleFormatting.ts formatGrade (same name, same
+ * behavior). Found 2026-10-11: alert cards read "7" for a CGC 7.0.
+ */
+export function formatGrade(grade: number | string | null | undefined): string {
+  const value = typeof grade === 'number' ? grade : Number(grade)
+  if (!Number.isFinite(value)) return String(grade)
+  return Number.isInteger(value) ? value.toFixed(1) : String(value)
+}
