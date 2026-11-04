@@ -279,7 +279,7 @@ export default function EditSearchPage() {
             </Link>
           </div>
         </header>
-        <main className="container-custom max-w-2xl py-12">
+        <main className="container-custom max-w-2xl pb-12 pt-5">
           <div className="py-12 text-center">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
             <p className="mt-4 text-slate-600">Loading search...</p>
@@ -299,7 +299,7 @@ export default function EditSearchPage() {
             </Link>
           </div>
         </header>
-        <main className="container-custom max-w-2xl py-12">
+        <main className="container-custom max-w-2xl pb-12 pt-5">
           <div className="py-12 text-center">
             <h1 className="mb-4 text-2xl font-bold">Search Not Found</h1>
             <p className="mb-6 text-slate-600">The search you're looking for doesn't exist.</p>
@@ -327,7 +327,7 @@ export default function EditSearchPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container-custom max-w-2xl py-12">
+      <main className="container-custom max-w-2xl pb-12 pt-5">
         <h1 className="mb-2 text-3xl font-bold">Edit Search</h1>
         <p className="mb-8 text-slate-600">Update your grail search criteria</p>
 

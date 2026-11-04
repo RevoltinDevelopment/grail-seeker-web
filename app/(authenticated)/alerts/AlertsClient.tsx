@@ -97,7 +97,7 @@ export default function AlertsClient() {
 
   if (isLoading && !prefsLoaded) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="py-12 text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
           <p className="mt-4 text-slate-600">Loading alerts...</p>
@@ -107,7 +107,7 @@ export default function AlertsClient() {
   }
 
   return (
-    <div className="container-custom py-12">
+    <div className="container-custom pb-12 pt-5">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h2 className="mb-2 text-3xl font-bold">Active Alerts</h2>

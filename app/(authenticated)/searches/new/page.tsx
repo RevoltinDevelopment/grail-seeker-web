@@ -192,7 +192,7 @@ export default function CreateSearchPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container-custom max-w-2xl py-12">
+      <main className="container-custom max-w-2xl pb-12 pt-5">
         <h1 className="mb-2 text-3xl font-bold">Create New Search</h1>
         <p className="mb-8 text-slate-600">What book are you seeking?</p>
 

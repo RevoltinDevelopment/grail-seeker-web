@@ -45,7 +45,7 @@ export default function SettingsClient() {
 
   if (!user) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="py-12 text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
           <p className="mt-4 text-slate-600">Loading settings...</p>
@@ -55,7 +55,7 @@ export default function SettingsClient() {
   }
 
   return (
-    <div className="container-custom py-8">
+    <div className="container-custom pb-12 pt-5">
       {/* Page Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-slate-950">Settings</h2>

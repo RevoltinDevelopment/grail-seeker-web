@@ -354,7 +354,7 @@ export default function ReportsClient() {
 
   if (isLoading) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="py-12 text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue" />
           <p className="mt-4 text-slate-600">Loading your report...</p>
@@ -365,7 +365,7 @@ export default function ReportsClient() {
 
   if (!report) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center shadow-sm">
           <div className="mb-4 text-5xl">📊</div>
           <h3 className="mb-2 text-xl font-semibold">Report unavailable</h3>
@@ -381,7 +381,7 @@ export default function ReportsClient() {
   }
 
   return (
-    <div className="container-custom py-12">
+    <div className="container-custom pb-12 pt-5">
       {/* Page header */}
       <div className="mb-8">
         <h2 className="mb-2 text-3xl font-bold">Reports</h2>

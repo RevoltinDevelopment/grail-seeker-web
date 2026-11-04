@@ -103,7 +103,7 @@ export default function WeekReportClient({ weekStart }: Props) {
 
   if (isLoading) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="py-12 text-center">
           <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue" />
           <p className="mt-4 text-slate-600">Loading report...</p>
@@ -114,7 +114,7 @@ export default function WeekReportClient({ weekStart }: Props) {
 
   if (!report) {
     return (
-      <div className="container-custom py-12">
+      <div className="container-custom pb-12 pt-5">
         <div className="rounded-lg border border-slate-200 bg-white p-12 text-center shadow-sm">
           <div className="mb-4 text-5xl">📭</div>
           <h3 className="mb-2 text-xl font-semibold">No report found</h3>
@@ -131,7 +131,7 @@ export default function WeekReportClient({ weekStart }: Props) {
   const hasFinds = report.alertsIssued > 0
 
   return (
-    <div className="container-custom py-12">
+    <div className="container-custom pb-12 pt-5">
       {/* Back link */}
       <div className="mb-6">
         <Link href="/reports" className="text-sm font-medium text-collector-blue hover:underline">
