@@ -59,12 +59,6 @@ export default function AuthenticatedError({ error, reset }: ErrorProps) {
             Try again
           </button>
           <a
-            href="/dashboard"
-            className="w-full rounded-md border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-          >
-            Back to Dashboard
-          </a>
-          <a
             href="/searches"
             className="w-full rounded-md border border-slate-300 px-4 py-3 text-center font-medium text-slate-600 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >

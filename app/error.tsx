@@ -59,10 +59,10 @@ export default function Error({ error, reset }: ErrorProps) {
             Try again
           </button>
           <a
-            href="/dashboard"
+            href="/searches"
             className="w-full rounded-md border border-slate-300 px-4 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
           >
-            Go to Dashboard
+            Go to Searches
           </a>
         </div>
       </div>

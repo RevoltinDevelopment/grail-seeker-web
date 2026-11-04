@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Redirect to dashboard or specified page
+      // To Searches, or the page the link named (Story 1.77)
       return NextResponse.redirect(new URL(next, request.url))
     }
 

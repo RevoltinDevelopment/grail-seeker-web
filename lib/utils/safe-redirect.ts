@@ -9,8 +9,8 @@
  * to `//host`: the resolved path is checked by the same rule as the raw value.
  */
 
-// U-04 changes this to '/searches' when the Dashboard is removed.
-export const DEFAULT_AFTER_SIGN_IN = '/dashboard'
+// Story 1.82 (U-04): Searches is the app's home; the Dashboard is gone.
+export const DEFAULT_AFTER_SIGN_IN = '/searches'
 
 const PLACEHOLDER_ORIGIN = 'https://app.invalid'
 

@@ -50,6 +50,16 @@ export const alertsAPI = {
     return apiClient.get<AlertStats>('/api/alerts/stats')
   },
 
+  // Story 1.82 (Decision #103): the header's count of new alerts
+  getUnseenCount: () => {
+    return apiClient.get<{ unseen: number }>('/api/alerts/unseen-count')
+  },
+
+  // Story 1.82 (Decision #103): the alerts a page showed; the server marks the caller's own, once
+  markSeen: (alertIds: string[]) => {
+    return apiClient.post<{ marked: number }>('/api/alerts/seen', { alertIds })
+  },
+
   // Archive system: Archive (dismiss) an alert
   archive: (alertId: string) => {
     return apiClient.post<{ success: boolean; message: string }>(`/api/alerts/${alertId}/archive`)

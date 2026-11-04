@@ -39,7 +39,7 @@
   "redirects": [
     {
       "source": "/home",
-      "destination": "/dashboard",
+      "destination": "/searches",
       "permanent": true
     }
   ],

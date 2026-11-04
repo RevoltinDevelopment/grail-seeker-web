@@ -519,7 +519,7 @@ export function SignUpFlow({ className = '' }: SignUpFlowProps) {
       </div>
       <h2 className="mb-2 text-xl font-bold text-slate-950">Account Created!</h2>
       <p className="mb-6 text-sm text-slate-600">
-        Your phone number has been verified. Redirecting to your dashboard...
+        Your phone number has been verified. Taking you to your searches...
       </p>
       <div className="mx-auto h-2 w-32 overflow-hidden rounded-full bg-slate-200">
         <div className="h-full w-full animate-pulse bg-info-blue"></div>

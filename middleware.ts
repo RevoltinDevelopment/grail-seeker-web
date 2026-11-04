@@ -38,9 +38,13 @@ export async function middleware(request: NextRequest) {
     console.error('Middleware: Failed to verify user with Supabase:', error)
   }
 
+  // Story 1.82: the Dashboard is gone; old bookmarks land on Searches, the app's home.
+  if (request.nextUrl.pathname === '/dashboard' || request.nextUrl.pathname.startsWith('/dashboard/')) {
+    return NextResponse.redirect(new URL('/searches', request.url))
+  }
+
   // Protect authenticated routes
   if (
-    request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/searches') ||
     request.nextUrl.pathname.startsWith('/alerts') ||
     request.nextUrl.pathname.startsWith('/reports') ||
@@ -54,10 +58,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect root to /login or /dashboard based on auth state
+  // Redirect root to /login or /searches based on auth state
   if (request.nextUrl.pathname === '/') {
     if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/searches', request.url))
     } else {
       return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -78,7 +82,7 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   if (request.nextUrl.pathname.startsWith('/login')) {
     if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/searches', request.url))
     }
   }
 

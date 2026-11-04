@@ -1,231 +1,262 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
 import { useLogout } from '@/hooks/useLogout'
+import { useUnseenCount } from '@/hooks/useUnseenAlerts'
+
 import type { User } from '@supabase/supabase-js'
+
+/**
+ * Story 1.82 (U-04): the app's header, as drawn (docs/ux/mockups/subscriber-experience/
+ * searches-home.html, phone-menu.js; UX plan section 10). The chalice and wordmark lead to
+ * Searches; from 700 pixels, Searches, Alerts with the count of new alerts, and Reports; the
+ * avatar menu holds Settings and Log out. On a phone: the menu button (an X while open, a dot
+ * while there are new alerts), the wordmark centred, the avatar. On the design tokens throughout.
+ */
 
 interface HeaderProps {
   user: User
 }
 
+const NAV = [
+  { href: '/searches', label: 'Searches' },
+  { href: '/alerts', label: 'Alerts' },
+  { href: '/reports', label: 'Reports' },
+] as const
+
+/** "3", or "99+" above 99. */
+export function countLabel(count: number): string {
+  return count > 99 ? '99+' : String(count)
+}
+
+function initialsOf(email: string): string {
+  const name = email.split('@')[0]
+  const parts = name.split(/[._-]/)
+  if (parts.length >= 2 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function isCurrent(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function NewCount({ count, long = false }: { count: number; long?: boolean }) {
+  if (count <= 0) return null
+  return (
+    <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-primary px-[7px] text-xs font-bold text-primary-foreground">
+      <span aria-hidden="true">{long ? `${countLabel(count)} new` : countLabel(count)}</span>
+      <span className="sr-only">{`${count} new ${count === 1 ? 'alert' : 'alerts'}`}</span>
+    </span>
+  )
+}
+
 export default function Header({ user }: HeaderProps) {
   const pathname = usePathname()
   const logout = useLogout()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
-  const mobileAvatarRef = useRef<HTMLDivElement>(null)
-  const desktopAvatarRef = useRef<HTMLDivElement>(null)
+  const unseen = useUnseenCount()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [avatarOpen, setAvatarOpen] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  const avatarArea = useRef<HTMLDivElement>(null)
+  const avatarButton = useRef<HTMLButtonElement>(null)
 
-  const handleLogout = async () => {
-    await logout()
-  }
-
-  // Get user initials from email
-  const getInitials = (email: string) => {
-    const name = email.split('@')[0]
-    const parts = name.split(/[._-]/)
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return name.slice(0, 2).toUpperCase()
-  }
-
-  const initials = getInitials(user.email || '')
-
-  // App navigation links (hamburger on mobile, visible on tablet+)
-  const appNavLinks = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/searches', label: 'Searches' },
-    { href: '/alerts', label: 'Alerts' },
-    { href: '/reports', label: 'Reports' },
-  ]
-
-  // Close avatar menu when clicking outside
+  // Escape closes whichever menu is open and returns focus to its button.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const clickedInsideMobile =
-        mobileAvatarRef.current && mobileAvatarRef.current.contains(event.target as Node)
-      const clickedInsideDesktop =
-        desktopAvatarRef.current && desktopAvatarRef.current.contains(event.target as Node)
-
-      if (!clickedInsideMobile && !clickedInsideDesktop) {
-        setAvatarMenuOpen(false)
+    if (!menuOpen && !avatarOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (menuOpen) {
+        setMenuOpen(false)
+        menuButton.current?.focus()
+      }
+      if (avatarOpen) {
+        setAvatarOpen(false)
+        avatarButton.current?.focus()
       }
     }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen, avatarOpen])
 
-    if (avatarMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
+  // A click outside the avatar menu closes it.
+  useEffect(() => {
+    if (!avatarOpen) return
+    const onDown = (event: MouseEvent) => {
+      if (avatarArea.current && !avatarArea.current.contains(event.target as Node))
+        setAvatarOpen(false)
     }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [avatarOpen])
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [avatarMenuOpen])
+  // Moving to another page closes both menus.
+  useEffect(() => {
+    setMenuOpen(false)
+    setAvatarOpen(false)
+  }, [pathname])
 
   return (
-    <header className="border-b border-slate-200 bg-white px-4 py-4">
-      <div className="container-custom">
-        {/* Mobile Layout: Hamburger | Centered Logo | Avatar */}
-        <div className="flex items-center justify-between md:hidden">
-          {/* Hamburger Menu */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-md hover:bg-slate-100"
-            aria-label="Toggle navigation menu"
+    <header className="relative border-b border-line bg-surface">
+      <div className="mx-auto grid min-h-16 max-w-[1200px] grid-cols-[1fr_auto_1fr] items-center gap-x-4 px-4 tablet:flex tablet:px-8">
+        {/* Phone: the menu button, with a dot while there are new alerts */}
+        <button
+          ref={menuButton}
+          type="button"
+          className="relative -ml-2.5 inline-grid h-11 w-11 place-items-center justify-self-start rounded-button text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary tablet:hidden"
+          aria-expanded={menuOpen}
+          aria-controls="app-menu"
+          aria-label={
+            menuOpen
+              ? 'Close menu'
+              : unseen > 0
+                ? `Open menu, ${unseen} new ${unseen === 1 ? 'alert' : 'alerts'}`
+                : 'Open menu'
+          }
+          onClick={() => {
+            setAvatarOpen(false)
+            setMenuOpen((open) => !open)
+          }}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
           >
+            <path d={menuOpen ? 'M6 6l12 12M18 6L6 18' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
+          {unseen > 0 && !menuOpen && (
             <span
-              className={`h-0.5 w-6 bg-slate-700 transition-all ${
-                mobileMenuOpen ? 'translate-y-2 rotate-45' : ''
-              }`}
-            ></span>
-            <span
-              className={`h-0.5 w-6 bg-slate-700 transition-all ${
-                mobileMenuOpen ? 'opacity-0' : ''
-              }`}
-            ></span>
-            <span
-              className={`h-0.5 w-6 bg-slate-700 transition-all ${
-                mobileMenuOpen ? '-translate-y-2 -rotate-45' : ''
-              }`}
-            ></span>
+              className="absolute right-[7px] top-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-surface"
+              data-testid="menu-dot"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+
+        {/* The chalice and the wordmark, a link to Searches */}
+        <Link
+          href="/searches"
+          className="flex min-h-11 items-center gap-2.5 justify-self-center text-ink no-underline"
+        >
+          <Image src="/images/chalice.png" alt="" width={34} height={34} priority />
+          <span className="whitespace-nowrap font-cinzel text-[17px] font-semibold tracking-[0.08em]">
+            GRAIL SEEKER
+          </span>
+        </Link>
+
+        {/* From 700 pixels: the main links */}
+        <nav className="ml-4 hidden gap-1 tablet:flex" aria-label="Main">
+          {NAV.map((link) => {
+            const current = isCurrent(pathname, link.href)
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={current ? 'page' : undefined}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-button px-3 text-[15px] no-underline ${
+                  current
+                    ? 'bg-primary-tint font-semibold text-ink'
+                    : 'font-medium text-muted-foreground hover:text-ink'
+                }`}
+              >
+                {link.label}
+                {link.href === '/alerts' && <NewCount count={unseen} />}
+              </Link>
+            )
+          })}
+        </nav>
+
+        {/* The avatar and its menu */}
+        <div
+          ref={avatarArea}
+          className="relative justify-self-end tablet:ml-auto"
+          onBlur={(event) => {
+            // Focus leaving the avatar and its list closes the list (a keyboard user tabbing past).
+            if (avatarOpen && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setAvatarOpen(false)
+            }
+          }}
+        >
+          <button
+            ref={avatarButton}
+            type="button"
+            className="h-11 w-11 rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+            aria-label="Account menu"
+            aria-expanded={avatarOpen}
+            aria-controls="account-menu"
+            onClick={() => {
+              setMenuOpen(false)
+              setAvatarOpen((open) => !open)
+            }}
+          >
+            {initialsOf(user.email || '')}
           </button>
-
-          {/* Centered Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-2xl">⚱️</span>
-            <h1 className="text-xl font-bold text-collector-navy">Grail Seeker</h1>
-          </Link>
-
-          {/* Avatar */}
-          <div className="relative" ref={mobileAvatarRef}>
-            <button
-              onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-collector-blue text-sm font-semibold text-white transition-colors hover:bg-blue-800"
-              aria-label="Account menu"
+          {avatarOpen && (
+            <nav
+              id="account-menu"
+              className="absolute right-0 top-14 z-50 flex w-[260px] flex-col rounded-card border border-line-strong bg-surface p-1.5 shadow-lg"
+              aria-label="Account"
             >
-              {initials}
-            </button>
-
-            {/* Avatar Dropdown */}
-            {avatarMenuOpen && (
-              <div className="absolute right-0 top-12 z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg">
-                <div className="border-b border-slate-200 px-4 py-3">
-                  <p className="truncate text-sm text-slate-700">{user.email}</p>
-                </div>
-                <nav className="py-2">
-                  <Link
-                    href="/settings"
-                    onClick={() => setAvatarMenuOpen(false)}
-                    className={`block px-4 py-2 text-sm transition-colors ${
-                      pathname === '/settings'
-                        ? 'bg-blue-50 text-collector-blue'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    Logout
-                  </button>
-                </nav>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tablet/Desktop Layout: Logo | Nav Links | Avatar */}
-        <div className="hidden items-center justify-between md:flex">
-          {/* Logo + Nav Links */}
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <span className="text-2xl">⚱️</span>
-              <h1 className="text-xl font-bold text-collector-navy">Grail Seeker</h1>
-            </Link>
-
-            <nav className="flex items-center gap-6">
-              {appNavLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-sm transition-colors ${
-                    pathname === link.href
-                      ? 'font-medium text-collector-blue'
-                      : 'text-slate-700 hover:text-collector-blue'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              <p className="truncate border-b border-line px-3 pb-2 pt-2.5 text-[13px] text-muted-foreground">
+                {user.email}
+              </p>
+              <Link
+                href="/settings"
+                onClick={() => setAvatarOpen(false)}
+                className={`flex min-h-11 items-center rounded-button px-3 text-[15px] font-semibold text-ink no-underline ${
+                  isCurrent(pathname, '/settings') ? 'bg-primary-tint' : 'hover:bg-chip'
+                }`}
+              >
+                Settings
+              </Link>
+              <hr className="my-1.5 border-0 border-t border-line" />
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="flex min-h-11 items-center rounded-button px-3 text-left text-[15px] font-semibold text-ink hover:bg-chip"
+              >
+                Log out
+              </button>
             </nav>
-          </div>
-
-          {/* Avatar */}
-          <div className="relative" ref={desktopAvatarRef}>
-            <button
-              onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-collector-blue text-sm font-semibold text-white transition-colors hover:bg-blue-800"
-              aria-label="Account menu"
-            >
-              {initials}
-            </button>
-
-            {/* Avatar Dropdown */}
-            {avatarMenuOpen && (
-              <div className="absolute right-0 top-12 z-50 w-48 rounded-lg border border-slate-200 bg-white shadow-lg">
-                <div className="border-b border-slate-200 px-4 py-3">
-                  <p className="truncate text-sm text-slate-700">{user.email}</p>
-                </div>
-                <nav className="py-2">
-                  <Link
-                    href="/settings"
-                    onClick={() => setAvatarMenuOpen(false)}
-                    className={`block px-4 py-2 text-sm transition-colors ${
-                      pathname === '/settings'
-                        ? 'bg-blue-50 text-collector-blue'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    Logout
-                  </button>
-                </nav>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="mt-4 border-t border-slate-200 pt-4 md:hidden">
-            <nav className="flex flex-col gap-2">
-              {appNavLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block rounded-md px-3 py-2 text-sm transition-colors ${
-                    pathname === link.href
-                      ? 'bg-blue-50 font-medium text-collector-blue'
-                      : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        )}
       </div>
+
+      {/* Phone: the menu, under the header */}
+      {menuOpen && (
+        <nav
+          id="app-menu"
+          className="flex flex-col border-t border-line bg-surface px-4 pb-3 pt-1.5 tablet:hidden"
+          aria-label="Main"
+        >
+          {NAV.map((link) => {
+            const current = isCurrent(pathname, link.href)
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={current ? 'page' : undefined}
+                onClick={() => setMenuOpen(false)}
+                className={`flex min-h-12 items-center justify-between rounded-button px-3 text-base font-semibold text-ink no-underline ${
+                  current ? 'bg-primary-tint' : ''
+                }`}
+              >
+                {link.label}
+                {link.href === '/alerts' && <NewCount count={unseen} long />}
+              </Link>
+            )
+          })}
+        </nav>
+      )}
     </header>
   )
 }

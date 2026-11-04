@@ -48,6 +48,13 @@ export interface GrailSearch {
   gradingAuthority: string | null
   platforms: string[]
   isActive: boolean
+  // Story 1.81 (backend): when the subscriber paused it; null while running, and for searches
+  // paused before Migration 076.
+  pausedAt?: string | null
+  // Story 1.73 (backend): whether the SYSTEM has stopped it, and why; separate from isActive.
+  held?: boolean
+  heldReason?: 'lapse' | 'downgrade' | null
+  heldAt?: string | null
   notificationsEnabled: boolean
   alertCount?: number
   currentAlertCount?: number

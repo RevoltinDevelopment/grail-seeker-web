@@ -8,6 +8,7 @@ import { AlertFilters } from '@/components/alerts/AlertFilters'
 import { AlertGroupHeader } from '@/components/alerts/AlertGroupHeader'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
+import { useReportSeen } from '@/hooks/useUnseenAlerts'
 import type { AlertsSortMode } from '@/lib/api/user'
 import type { AlertPlatformFilter } from '@/lib/constants/platforms'
 import { groupAlertsBySearch } from '@/lib/utils/groupAlertsBySearch'
@@ -63,6 +64,15 @@ export default function AlertsClient() {
     if (!isBookSort) return null
     return groupAlertsBySearch(alerts)
   }, [alerts, isBookSort])
+
+  // Story 1.82 (Decision #103): report the alerts on screen as seen. In By Book mode only the
+  // expanded groups' cards are on screen; a collapsed group's alerts stay new until it is opened.
+  const shownAlertIds = useMemo(() => {
+    if (!prefsLoaded) return []
+    if (groupedAlerts) return groupedAlerts.filter((g) => !isGroupCollapsed(g.id)).flatMap((g) => g.alerts.map((a) => a.id))
+    return alerts.map((a) => a.id)
+  }, [alerts, groupedAlerts, isGroupCollapsed, prefsLoaded])
+  useReportSeen(shownAlertIds)
 
   const collapseState: 'all' | 'none' | 'mixed' = useMemo(() => {
     if (!groupedAlerts || groupedAlerts.length === 0) return 'none'

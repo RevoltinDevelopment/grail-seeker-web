@@ -15,6 +15,13 @@ vi.mock('@/hooks/usePlatforms', () => ({
   usePlatforms: vi.fn(),
 }))
 
+// Story 1.82: the page now holds the toast listener and Latest matches (tested on its own)
+const toast = vi.hoisted(() => ({ showToast: vi.fn() }))
+vi.mock('@/contexts/ToastContext', () => ({ useToast: () => toast }))
+vi.mock('@/components/searches/LatestMatches', () => ({
+  LatestMatches: () => <aside aria-label="Latest matches stand-in" />,
+}))
+
 // eslint-disable-next-line import/order -- must follow vi.mock() above
 import { useSearches } from '@/hooks/useSearches'
 // eslint-disable-next-line import/order -- must follow vi.mock() above
@@ -220,3 +227,60 @@ describe('SearchesClient — Independent Shops aggregate pill (Story 1.49)', () 
     expect(screen.getByText('MyComicShop')).toBeInTheDocument()
   })
 })
+
+// Story 1.82 (U-04): the page around the cards
+describe('SearchesClient: the home page (Story 1.82)', () => {
+  it('says what the searches are doing under the title, and offers New search', () => {
+    vi.mocked(useSearches).mockReturnValue({
+      searches: [makeSearch(['ebay'], { isActive: true }), makeSearch(['ebay'], { id: 's2', isActive: false }), makeSearch(['ebay'], { id: 's3', isActive: true, held: true })],
+      isLoading: false,
+      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
+      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
+    } as never)
+    render(<SearchesClient />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Searches' })).toBeInTheDocument()
+    expect(screen.getByText('3 searches: 1 running, 1 paused, 1 on hold')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'New search' })).toHaveAttribute('href', '/searches/new')
+    expect(screen.getByLabelText('Latest matches stand-in')).toBeInTheDocument()
+  })
+
+  it('welcomes an account with no searches', () => {
+    vi.mocked(useSearches).mockReturnValue({
+      searches: [],
+      isLoading: false,
+      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
+      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
+    } as never)
+    render(<SearchesClient />)
+    expect(screen.queryByText('No searches yet')).toBeNull() // the card says it; the title line does not repeat it
+    expect(screen.getByRole('heading', { name: 'Start your first search' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Create your first search' })).toHaveAttribute('href', '/searches/new')
+  })
+
+  it('a failed load says so and never shows the welcome for an account with no searches', () => {
+    vi.mocked(useSearches).mockReturnValue({
+      searches: [],
+      isLoading: false,
+      error: new Error('down'),
+      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
+      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
+    } as never)
+    render(<SearchesClient />)
+    expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded')
+    expect(screen.queryByText('Create your first search')).toBeNull()
+  })
+
+  it('shows the new-match toast when a match is found while the page is open (moved from the Dashboard)', () => {
+    vi.mocked(useSearches).mockReturnValue({
+      searches: [],
+      isLoading: false,
+      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
+      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
+    } as never)
+    toast.showToast.mockReset()
+    render(<SearchesClient />)
+    window.dispatchEvent(new CustomEvent('new-alert', { detail: {} }))
+    expect(toast.showToast).toHaveBeenCalledWith('New match found', expect.stringContaining('new match'), 'success', 8000)
+  })
+})
+

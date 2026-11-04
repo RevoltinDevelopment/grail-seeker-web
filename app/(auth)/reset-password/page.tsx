@@ -62,9 +62,9 @@ export default function ResetPasswordPage() {
       setSuccess(true)
       setLoading(false)
 
-      // Redirect to dashboard after 2 seconds
+      // Story 1.82: to Searches, the app's home, after 2 seconds
       setTimeout(() => {
-        router.push('/dashboard')
+        router.push('/searches')
       }, 2000)
     }
   }
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
               <div className="mb-4 text-5xl">✅</div>
               <h1 className="mb-4 text-2xl font-bold">Password Reset!</h1>
               <p className="mb-6 text-slate-700">Your password has been successfully reset.</p>
-              <p className="text-sm text-slate-600">Redirecting to dashboard...</p>
+              <p className="text-sm text-slate-600">Taking you to your searches...</p>
             </div>
           </div>
         </main>
