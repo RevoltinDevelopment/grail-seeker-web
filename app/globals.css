@@ -7,32 +7,30 @@
 @layer base {
   /* Typography Scale (Sally's v1.1 Design Spec) */
   h1 {
-    @apply text-4xl font-bold leading-tight text-slate-950;
+    @apply text-page-title font-bold leading-tight text-ink;
   }
 
   h2 {
-    @apply text-2xl font-semibold leading-snug text-slate-950;
+    @apply text-2xl font-semibold leading-snug text-ink;
   }
 
   h3 {
-    @apply text-lg font-semibold leading-normal text-slate-950;
+    @apply text-lg font-semibold leading-normal text-ink;
   }
 
   body {
-    /* Story 1.16: shadcn init's own default (bg-background text-foreground)
-       reverted to the project's existing token -- 0.145 0 0 reads as
-       near-identical to slate-950 but isn't the same value, and this is a
-       site-wide selector with no reason to drift from the established
-       design system for a foundation-setup task. New shadcn components can
-       still use bg-background/text-foreground locally; body doesn't need to. */
-    @apply text-base leading-normal text-slate-950;
+    /* Story 1.79: body text is the design's ink (#0f172a), was slate-950. The page background
+       stays with each layout until its page moves onto the tokens. */
+    @apply text-base leading-normal text-ink;
   }
 
-  /* Mobile adjustments */
-  @media (max-width: 640px) {
+  /* Mobile adjustments. The page title follows the design's 700px breakpoint (Story 1.79). */
+  @media (max-width: 699px) {
     h1 {
-      @apply text-3xl;
+      @apply text-page-title-sm;
     }
+  }
+  @media (max-width: 640px) {
     h2 {
       @apply text-xl;
     }
@@ -40,150 +38,69 @@
       @apply text-base;
     }
   }
+  /* Story 1.79 (U-02): the design tokens, from docs/ux/mockups/grail-seeker.css (UX plan 7b).
+     Each holds RGB channels so Tailwind can add opacity: rgb(var(--x) / <alpha-value>).
+     Names follow the design; tailwind.config.ts maps them, and shadcn's names alias onto them.
+     Light on :root; dark on .dark, which no page sets until U-17 switches dark mode on.
+     Careful: --muted is the design's secondary TEXT colour (Tailwind `text-muted-foreground`);
+     Tailwind's `bg-muted` is shadcn's quiet background, which is --chip. */
   :root {
+    --bg: 248 250 252; /* #f8fafc */
+    --surface: 255 255 255; /* #ffffff */
+    --ink: 15 23 42; /* #0f172a */
+    --muted: 71 85 105; /* #475569 */
+    --line: 226 232 240; /* #e2e8f0 */
+    --line-strong: 148 163 184; /* #94a3b8 */
+    --primary: 30 64 175; /* #1e40af */
+    --on-primary: 255 255 255; /* #ffffff */
+    --primary-tint: 239 246 255; /* #eff6ff */
+    --link: 29 78 216; /* #1d4ed8 */
+    --chip: 241 245 249; /* #f1f5f9 */
+    --danger: 185 28 28; /* #b91c1c */
+    --attn-bg: 255 251 235; /* #fffbeb */
+    --attn-ink: 69 26 3; /* #451a03 */
+    --attn-line: 217 119 6; /* #d97706 */
+    --hold-bg: 254 243 199; /* #fef3c7 */
+    --hold-ink: 120 53 15; /* #78350f */
+    --hold-line: 180 83 9; /* #b45309 */
+    --paused-bg: 238 242 246; /* #eef2f6 */
+    --over: 180 83 9; /* #b45309 */
+    --ok: 4 120 87; /* #047857 */
 
-    --background: 1 0 0;
-
-    --foreground: 0.145 0 0;
-
-    --card: 1 0 0;
-
-    --card-foreground: 0.145 0 0;
-
-    --popover: 1 0 0;
-
-    --popover-foreground: 0.145 0 0;
-
-    --primary: 0.205 0 0;
-
-    --primary-foreground: 0.985 0 0;
-
-    --secondary: 0.97 0 0;
-
-    --secondary-foreground: 0.205 0 0;
-
-    --muted: 0.97 0 0;
-
-    --muted-foreground: 0.556 0 0;
-
-    --accent: 0.97 0 0;
-
-    --accent-foreground: 0.205 0 0;
-
-    --destructive: 0.577 0.245 27.325;
-
-    --border: 0.922 0 0;
-
-    --input: 0.922 0 0;
-
-    --ring: 0.708 0 0;
-
-    --chart-1: 0.87 0 0;
-
-    --chart-2: 0.556 0 0;
-
-    --chart-3: 0.439 0 0;
-
-    --chart-4: 0.371 0 0;
-
-    --chart-5: 0.269 0 0;
-
+    /* Corners: unchanged from before Story 1.79 (lg 10px, md 8px, sm 6px); the shadcn
+       components read --radius-md directly. The design's own corners are the named
+       rounded-card (12px) and rounded-button (8px) in tailwind.config.ts. */
     --radius: 0.625rem;
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
-
-    --sidebar: 0.985 0 0;
-
-    --sidebar-foreground: 0.145 0 0;
-
-    --sidebar-primary: 0.205 0 0;
-
-    --sidebar-primary-foreground: 0.985 0 0;
-
-    --sidebar-accent: 0.97 0 0;
-
-    --sidebar-accent-foreground: 0.205 0 0;
-
-    --sidebar-border: 0.922 0 0;
-
-    --sidebar-ring: 0.708 0 0
+    color-scheme: light;
   }
   .dark {
+    --bg: 11 17 32; /* #0b1120 */
+    --surface: 17 24 39; /* #111827 */
+    --ink: 241 245 249; /* #f1f5f9 */
+    --muted: 203 213 225; /* #cbd5e1 */
+    --line: 31 41 55; /* #1f2937 */
+    --line-strong: 100 116 139; /* #64748b */
+    --primary: 37 99 235; /* #2563eb */
+    --on-primary: 255 255 255; /* #ffffff */
+    --primary-tint: 30 41 59; /* #1e293b */
+    --link: 147 197 253; /* #93c5fd */
+    --chip: 31 41 55; /* #1f2937 */
+    --danger: 252 165 165; /* #fca5a5 */
+    --attn-bg: 42 26 4; /* #2a1a04 */
+    --attn-ink: 254 243 199; /* #fef3c7 */
+    --attn-line: 217 119 6; /* #d97706 */
+    --hold-bg: 66 32 6; /* #422006 */
+    --hold-ink: 253 230 138; /* #fde68a */
+    --hold-line: 245 158 11; /* #f59e0b */
+    --paused-bg: 11 17 32; /* #0b1120 */
+    --over: 245 158 11; /* #f59e0b */
+    --ok: 52 211 153; /* #34d399 */
 
-    --background: 0.145 0 0;
-
-    --foreground: 0.985 0 0;
-
-    --card: 0.205 0 0;
-
-    --card-foreground: 0.985 0 0;
-
-    --popover: 0.205 0 0;
-
-    --popover-foreground: 0.985 0 0;
-
-    --primary: 0.922 0 0;
-
-    --primary-foreground: 0.205 0 0;
-
-    --secondary: 0.269 0 0;
-
-    --secondary-foreground: 0.985 0 0;
-
-    --muted: 0.269 0 0;
-
-    --muted-foreground: 0.708 0 0;
-
-    --accent: 0.269 0 0;
-
-    --accent-foreground: 0.985 0 0;
-
-    --destructive: 0.704 0.191 22.216;
-
-    /* Code review finding: shadcn's original defaults here were
-       oklch(1 0 0 / 10%) -- semi-transparent white -- but got mistranscribed
-       to bare "1 0 0" (opaque white) during the oklch-to-bare-channel
-       conversion, losing the alpha entirely. Combined with the `* { @apply
-       border-border }` universal reset below, this made every unstyled
-       border in dark mode solid white instead of a subtle 10% overlay.
-       oklch doesn't carry a 4th alpha channel in the bare-channel form this
-       file uses elsewhere -- shadcn's withAlpha() wrapper in
-       tailwind.config.ts already supplies the /NN opacity via Tailwind's
-       <alpha-value>, so approximating the intended low-visibility tone
-       with a darker channel value here is the closest same-mechanism fix. */
-    --border: 0.279 0 0;
-
-    --input: 0.279 0 0;
-
-    --ring: 0.556 0 0;
-
-    --chart-1: 0.87 0 0;
-
-    --chart-2: 0.556 0 0;
-
-    --chart-3: 0.439 0 0;
-
-    --chart-4: 0.371 0 0;
-
-    --chart-5: 0.269 0 0;
-
-    --sidebar: 0.205 0 0;
-
-    --sidebar-foreground: 0.985 0 0;
-
-    --sidebar-primary: 0.488 0.243 264.376;
-
-    --sidebar-primary-foreground: 0.985 0 0;
-
-    --sidebar-accent: 0.269 0 0;
-
-    --sidebar-accent-foreground: 0.985 0 0;
-
-    --sidebar-border: 1 0 0;
-
-    --sidebar-ring: 0.556 0 0
+    color-scheme: dark;
   }
   * {
     @apply border-border outline-ring/50;

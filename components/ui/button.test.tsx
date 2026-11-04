@@ -23,4 +23,17 @@ describe('Button (toolchain smoke test)', () => {
     await user.click(screen.getByRole('button'))
     expect(clicked).toBe(true)
   })
+
+  // Story 1.79: the design's buttons are 44px tall at least; the small sizes stay for
+  // controls inside other controls (dialog and sheet close buttons).
+  it('is 44px tall at least by default, and not at the small icon size', () => {
+    render(
+      <>
+        <Button>Save</Button>
+        <Button size="icon-sm" aria-label="Close" />
+      </>
+    )
+    expect(screen.getByRole('button', { name: 'Save' }).className).toContain('min-h-touch')
+    expect(screen.getByRole('button', { name: 'Close' }).className).not.toContain('min-h-touch')
+  })
 })

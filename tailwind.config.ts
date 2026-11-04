@@ -1,20 +1,35 @@
 import type { Config } from 'tailwindcss'
 
-// Story 1.16: see the color-token comment below for why this wrapper is
-// needed -- Tailwind's <alpha-value> placeholder gets substituted with the
-// opacity from a `/NN` modifier (e.g. `ring-ring/50`), letting a single
-// CSS-variable-backed token support opacity utilities.
-function withAlpha(cssVariable: string): string {
-  return `oklch(var(${cssVariable}) / <alpha-value>)`
+// Story 1.79 (U-02): every design token is a CSS variable in app/globals.css holding RGB
+// channels ("248 250 252"). Wrapping it as rgb(var(--x) / <alpha-value>) lets Tailwind add
+// opacity from a `/NN` modifier (`bg-primary/80`, used by the shadcn components).
+function token(cssVariable: string): string {
+  return `rgb(var(${cssVariable}) / <alpha-value>)`
 }
 
 const config: Config = {
+  // Story 1.79: class-based, so the Settings choice can set it (U-17). Was Tailwind v3's
+  // default, 'media', which applied the shadcn components' dark: styles on dark devices.
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    // Story 1.79: the design lays out at 700 and 1000 pixels (UX plan 15). Tailwind's own
+    // breakpoints stay, since pages use them; the whole list is declared here, in width order,
+    // because Tailwind emits breakpoints in the order given, and extending would put 700 and
+    // 1000 after 1024.
+    screens: {
+      sm: '640px',
+      tablet: '700px',
+      md: '768px',
+      desktop: '1000px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         // Primary Colors (Sally's v1.1)
@@ -32,79 +47,88 @@ const config: Config = {
         'heritage-bronze': '#8B4513',
         'mycomicshop-blue': '#0052C1',
 
-        // Story 1.16: shadcn/ui's color tokens, mapped to the CSS custom
-        // properties its own init generated in app/globals.css. Required
-        // on Tailwind v3 (unlike v4, a v3 project has to declare these
-        // utility-class mappings explicitly) -- shadcn's init generated
-        // the CSS variables and components that reference classes like
-        // `border-border`/`bg-background`, but never wired this file to
-        // connect them. Caught by `next build`'s real Tailwind compile,
-        // not tsc/eslint/vitest (none of them parse Tailwind classes
-        // against the actual utility set).
-        //
-        // Each CSS variable holds bare oklch channel numbers (e.g.
-        // "0.708 0 0"), not a full `oklch(...)` value -- wrapping it here
-        // as `oklch(var(--x) / <alpha-value>)` is what lets Tailwind
-        // synthesize opacity-modified utilities like `ring-ring/50`
-        // (used throughout the generated components in components/ui/).
-        // A bare `var(--x)` reference (the first attempt) builds fine for
-        // plain utilities but Tailwind can't inject an alpha channel into
-        // an opaque variable reference with no visible structure, so every
-        // `/NN` opacity modifier failed with "class does not exist" --
-        // only caught by next build, not tsc/eslint/vitest.
-        border: withAlpha('--border'),
-        input: withAlpha('--input'),
-        ring: withAlpha('--ring'),
-        background: withAlpha('--background'),
-        foreground: withAlpha('--foreground'),
+        // Story 1.79: the design tokens (UX plan 7b; docs/ux/mockups/grail-seeker.css).
+        // Secondary text is `text-muted-foreground`: shadcn's `muted` is a quiet background.
+        background: token('--bg'),
+        surface: token('--surface'),
+        ink: token('--ink'),
+        line: {
+          DEFAULT: token('--line'),
+          strong: token('--line-strong'),
+        },
         primary: {
-          DEFAULT: withAlpha('--primary'),
-          foreground: withAlpha('--primary-foreground'),
+          DEFAULT: token('--primary'),
+          foreground: token('--on-primary'),
+          tint: token('--primary-tint'),
+        },
+        link: token('--link'),
+        chip: token('--chip'),
+        danger: token('--danger'),
+        attention: {
+          DEFAULT: token('--attn-bg'),
+          ink: token('--attn-ink'),
+          line: token('--attn-line'),
+        },
+        hold: {
+          DEFAULT: token('--hold-bg'),
+          ink: token('--hold-ink'),
+          line: token('--hold-line'),
+        },
+        paused: token('--paused-bg'),
+        over: token('--over'),
+        ok: token('--ok'),
+
+        // shadcn's names, aliased onto the same variables, so components/ui/ takes the design.
+        foreground: token('--ink'),
+        border: token('--line'),
+        input: token('--line-strong'),
+        ring: token('--link'),
+        muted: {
+          DEFAULT: token('--chip'),
+          foreground: token('--muted'),
         },
         secondary: {
-          DEFAULT: withAlpha('--secondary'),
-          foreground: withAlpha('--secondary-foreground'),
-        },
-        destructive: withAlpha('--destructive'),
-        muted: {
-          DEFAULT: withAlpha('--muted'),
-          foreground: withAlpha('--muted-foreground'),
+          DEFAULT: token('--chip'),
+          foreground: token('--ink'),
         },
         accent: {
-          DEFAULT: withAlpha('--accent'),
-          foreground: withAlpha('--accent-foreground'),
+          DEFAULT: token('--primary-tint'),
+          foreground: token('--ink'),
+        },
+        destructive: token('--danger'),
+        card: {
+          DEFAULT: token('--surface'),
+          foreground: token('--ink'),
         },
         popover: {
-          DEFAULT: withAlpha('--popover'),
-          foreground: withAlpha('--popover-foreground'),
-        },
-        card: {
-          DEFAULT: withAlpha('--card'),
-          foreground: withAlpha('--card-foreground'),
-        },
-        sidebar: {
-          DEFAULT: withAlpha('--sidebar'),
-          foreground: withAlpha('--sidebar-foreground'),
-          primary: withAlpha('--sidebar-primary'),
-          'primary-foreground': withAlpha('--sidebar-primary-foreground'),
-          accent: withAlpha('--sidebar-accent'),
-          'accent-foreground': withAlpha('--sidebar-accent-foreground'),
-          border: withAlpha('--sidebar-border'),
-          ring: withAlpha('--sidebar-ring'),
-        },
-        chart: {
-          '1': withAlpha('--chart-1'),
-          '2': withAlpha('--chart-2'),
-          '3': withAlpha('--chart-3'),
-          '4': withAlpha('--chart-4'),
-          '5': withAlpha('--chart-5'),
+          DEFAULT: token('--surface'),
+          foreground: token('--ink'),
         },
       },
       borderRadius: {
+        // Unchanged: lg 10px, md 8px (131 uses, already the design's button corner), sm 6px.
+        // Story 1.79 adds the design's named corners.
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        card: '12px',
+        button: '8px',
       },
+      // Story 1.79: the design's sizes
+      minHeight: {
+        touch: '44px',
+      },
+      height: {
+        touch: '44px',
+      },
+      fontSize: {
+        'page-title': ['32px', { lineHeight: '1.25' }],
+        'page-title-sm': ['28px', { lineHeight: '1.25' }],
+        'card-title': ['17px', { lineHeight: '1.4' }],
+        body: ['16px', { lineHeight: '1.5' }],
+        label: ['12px', { lineHeight: '1.4', letterSpacing: '0.04em' }],
+      },
+
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         cinzel: ['var(--font-cinzel)', 'serif'],

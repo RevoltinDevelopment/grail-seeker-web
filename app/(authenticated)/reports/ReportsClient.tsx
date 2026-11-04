@@ -81,7 +81,7 @@ function BooksFoundSection({ items, withLinks }: { items: BookFound[]; withLinks
 
   return (
     <div className="py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Books Found</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Books Found</p>
       <div className="mt-1 flex items-baseline gap-2">
         <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
         {!expanded && (
@@ -128,7 +128,7 @@ function BooksFoundSection({ items, withLinks }: { items: BookFound[]; withLinks
                   className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
                 >
                   <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-slate-400">archive →</span>
+                  <span className="ml-2 shrink-0 text-muted-foreground">archive →</span>
                 </Link>
               )
             })}
@@ -216,7 +216,7 @@ function WeekCard({
         {/* Books searched */}
         {report.booksSearched.length > 0 && (
           <div className="py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Books Searched
             </p>
             <BooksList items={report.booksSearched} />
@@ -274,13 +274,13 @@ function PastWeeksList({ weeks }: { weeks: PastWeekSummary[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Week
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Searches Run
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Alerts
               </th>
               <th className="w-8 px-4 py-3" />
@@ -311,10 +311,10 @@ function PastWeeksList({ weeks }: { weeks: PastWeekSummary[] }) {
                       {week.alertsIssued}
                     </span>
                   ) : (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-slate-400">
+                <td className="px-4 py-3 text-right text-muted-foreground">
                   <Link href={`/reports/week/${week.weekStart}`}>→</Link>
                 </td>
               </tr>
@@ -403,7 +403,7 @@ export default function ReportsClient() {
       <PastWeeksList weeks={report.pastWeeks} />
 
       {/* Tracking since note */}
-      <p className="mt-6 text-center text-xs text-slate-400">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
         Search counts tracked since{' '}
         {new Date(report.trackingSince + 'T00:00:00Z').toLocaleDateString('en-US', {
           month: 'long',

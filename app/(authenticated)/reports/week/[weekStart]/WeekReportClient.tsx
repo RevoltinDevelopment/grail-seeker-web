@@ -43,7 +43,7 @@ function BooksFoundSection({ items }: { items: BookFound[] }) {
 
   return (
     <div className="py-3">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Books Found</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Books Found</p>
       <div className="flex items-baseline gap-2">
         <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
         {!expanded && (
@@ -76,7 +76,7 @@ function BooksFoundSection({ items }: { items: BookFound[] }) {
                   className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
                 >
                   <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-slate-400">archive →</span>
+                  <span className="ml-2 shrink-0 text-muted-foreground">archive →</span>
                 </Link>
               )
             })}
@@ -175,7 +175,7 @@ export default function WeekReportClient({ weekStart }: Props) {
           {/* Books searched — sorted alphabetically */}
           {report.booksSearched.length > 0 && (
             <div className="py-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Books Searched
               </p>
               {[...report.booksSearched]
