@@ -58,7 +58,7 @@ describe('LatestMatches', () => {
   it('a failed load says so, never "No matches yet"', () => {
     state.error = new Error('down')
     render(<LatestMatches />)
-    expect(screen.getByText(/could not be loaded/)).toBeInTheDocument()
+    expect(screen.getByText("Your latest matches couldn't be loaded right now. Refresh the page to try again.")).toBeInTheDocument()
     expect(screen.queryByText(/No matches yet/)).toBeNull()
   })
 

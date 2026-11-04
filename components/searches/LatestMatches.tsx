@@ -58,7 +58,7 @@ export function LatestMatches({ className = '' }: { className?: string }) {
         <p className="text-sm text-muted-foreground">Loading matches...</p>
       ) : error ? (
         <p className="text-sm text-muted-foreground">
-          Your latest matches could not be loaded. They are on Alerts.
+          Your latest matches couldn&apos;t be loaded right now. Refresh the page to try again.
         </p>
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted-foreground">
