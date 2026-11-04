@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
+import { scrubServerEvent } from './lib/sentry/scrub-event'
+
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN
 
 Sentry.init({
@@ -16,4 +18,7 @@ Sentry.init({
 
   // Only enable in production
   enabled: process.env.NODE_ENV === 'production',
+
+  // Story 1.77: never send the session cookies or sensitive query values
+  beforeSend: scrubServerEvent,
 })

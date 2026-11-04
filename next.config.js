@@ -76,7 +76,7 @@ const sentryWebpackPluginOptions = {
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
 
-  // Automatically annotate React components to show their full name in breadcrumbs and session replay
+  // Automatically annotate React components to show their full name in breadcrumbs (session replay is off, Story 1.77)
   reactComponentAnnotation: {
     enabled: true,
   },

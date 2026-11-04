@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/client'
+import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 
 interface SignInFormProps {
   className?: string
@@ -36,7 +37,7 @@ export function SignInForm({ className = '' }: SignInFormProps) {
       setError(error.message)
       setLoading(false)
     } else {
-      const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+      const redirectTo = safeRedirectPath(searchParams.get('redirectTo'))
       router.push(redirectTo)
       router.refresh()
     }

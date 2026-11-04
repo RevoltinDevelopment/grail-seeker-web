@@ -43,6 +43,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/searches') ||
     request.nextUrl.pathname.startsWith('/alerts') ||
+    request.nextUrl.pathname.startsWith('/reports') ||
     request.nextUrl.pathname.startsWith('/settings')
   ) {
     if (!user) {
@@ -90,6 +91,7 @@ export const config = {
     '/dashboard/:path*',
     '/searches/:path*',
     '/alerts/:path*',
+    '/reports/:path*',
     '/settings/:path*',
     '/login',
     '/register/:path*',

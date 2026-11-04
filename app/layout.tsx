@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: 'Grail Seeker - Find Your Holy Grail Comics',
   description:
     'Multi-platform comic book monitoring with SMS alerts. Monitor eBay, Heritage Auctions, ComicLink and more.',
+  // Story 1.77: the app stays out of search results; only the landing site is listed.
+  // The sign-in page opts back in (app/(auth)/login/layout.tsx).
+  robots: { index: false, follow: false },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

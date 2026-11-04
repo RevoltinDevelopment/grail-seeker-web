@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
+import { scrubServerEvent } from './lib/sentry/scrub-event'
+
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN
 
 Sentry.init({
@@ -17,30 +19,6 @@ Sentry.init({
   // Only enable in production
   enabled: process.env.NODE_ENV === 'production',
 
-  // Filter out sensitive data
-  beforeSend(event) {
-    // Remove sensitive headers
-    if (event.request?.headers) {
-      const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key']
-      sensitiveHeaders.forEach((header) => {
-        if (event.request?.headers?.[header]) {
-          event.request.headers[header] = '[FILTERED]'
-        }
-      })
-    }
-
-    // Remove sensitive query parameters
-    if (event.request?.url) {
-      const url = new URL(event.request.url)
-      const sensitiveParams = ['token', 'key', 'password', 'secret']
-      sensitiveParams.forEach((param) => {
-        if (url.searchParams.has(param)) {
-          url.searchParams.set(param, '[FILTERED]')
-        }
-      })
-      event.request.url = url.toString()
-    }
-
-    return event
-  },
+  // Story 1.77: never send the session cookies or sensitive query values
+  beforeSend: scrubServerEvent,
 })

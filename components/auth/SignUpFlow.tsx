@@ -10,6 +10,7 @@ import { TermsContent } from '@/components/auth/TermsContent'
 import { PhoneInput } from '@/components/ui/PhoneInput'
 import { updateUserPreferences } from '@/lib/api/user'
 import { createClient } from '@/lib/supabase/client'
+import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 
 type SignUpStep = 'credentials' | 'phone' | 'verify' | 'success'
 
@@ -150,7 +151,7 @@ export function SignUpFlow({ className = '' }: SignUpFlowProps) {
 
       // Redirect after success
       setTimeout(() => {
-        const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+        const redirectTo = safeRedirectPath(searchParams.get('redirectTo'))
         router.push(redirectTo)
         router.refresh()
       }, 2000)
