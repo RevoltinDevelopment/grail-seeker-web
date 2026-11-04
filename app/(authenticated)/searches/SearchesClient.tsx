@@ -118,14 +118,14 @@ export default function SearchesClient() {
             <div className="flex flex-col items-center gap-3 rounded-card border border-line bg-surface px-5 py-10 text-center">
               <h3 className="text-[19px] font-bold text-ink">Start your first search</h3>
               <p className="max-w-[460px] text-[15px] text-muted-foreground">
-                A search is one book, in the grades you want, at the price you&apos;ll pay. We check
-                the marketplaces for it twice a day and tell you the moment we find one.
+                {/* Mahan's words, 2026-11-04 */}
+                Create your first grail search to start monitoring.
               </p>
               <Link
                 href="/searches/new"
                 className="inline-flex min-h-touch items-center rounded-button bg-primary px-[18px] text-[15px] font-semibold text-primary-foreground no-underline"
               >
-                Create your first search
+                Create Search →
               </Link>
             </div>
           )}

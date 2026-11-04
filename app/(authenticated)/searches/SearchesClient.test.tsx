@@ -254,7 +254,8 @@ describe('SearchesClient: the home page (Story 1.82)', () => {
     render(<SearchesClient />)
     expect(screen.queryByText('No searches yet')).toBeNull() // the card says it; the title line does not repeat it
     expect(screen.getByRole('heading', { name: 'Start your first search' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Create your first search' })).toHaveAttribute('href', '/searches/new')
+    expect(screen.getByText('Create your first grail search to start monitoring.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Create Search →' })).toHaveAttribute('href', '/searches/new')
   })
 
   it('a failed load says so and never shows the welcome for an account with no searches', () => {
@@ -267,7 +268,7 @@ describe('SearchesClient: the home page (Story 1.82)', () => {
     } as never)
     render(<SearchesClient />)
     expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded')
-    expect(screen.queryByText('Create your first search')).toBeNull()
+    expect(screen.queryByText('Create Search →')).toBeNull()
   })
 
   it('shows the new-match toast when a match is found while the page is open (moved from the Dashboard)', () => {
