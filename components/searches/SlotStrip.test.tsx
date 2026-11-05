@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { AccountSummary } from '@/lib/api/account'
 
-import { SlotStrip, meterSegments, slotSentence } from './SlotStrip'
+import { SlotStrip, meterSegments, planName, slotSentence } from './SlotStrip'
 
 // Story 1.83 (U-05): the slot strip (searches-home.html).
 const base: AccountSummary = {
@@ -104,6 +104,29 @@ describe('SlotStrip', () => {
     )
     render(<SlotStrip account={lapsed} />)
     expect(screen.getByLabelText('Your slots')).toHaveTextContent('Collector plan10 slots')
+  })
+
+  it('a confirmed downgrade names the smaller plan with its date (Mahan); after the date, the plan alone', () => {
+    const pending = {
+      ...base,
+      slots: { entitled: 5, inUse: 6, free: 0, over: 1 },
+      change: {
+        kind: 'downgrade_pending' as const,
+        plan: { code: 'starter', name: 'Starter', includedSlots: 5 },
+        addonSlots: 0,
+        slots: 5,
+        effectiveAt: '2026-11-01T04:00:00Z',
+        keepSearchIds: ['a'],
+      },
+    }
+    expect(planName(pending)).toBe('Starter plan (from Nov 1)')
+    render(<SlotStrip account={pending} />)
+    expect(screen.getByLabelText('Your slots')).toHaveTextContent(
+      'Starter plan (from Nov 1)5 slots'
+    )
+    expect(planName({ ...base, plan: { ...base.plan!, name: 'Starter', includedSlots: 5 } })).toBe(
+      'Starter plan'
+    )
   })
 
   it('every search on hold: none in use', () => {

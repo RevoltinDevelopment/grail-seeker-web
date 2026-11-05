@@ -29,6 +29,24 @@ export function planSlots(account: AccountSummary): number {
   return account.slots.entitled
 }
 
+/**
+ * The plan the strip names. While a confirmed downgrade waits, the account is already limited to the
+ * smaller plan's slots, so the strip names that plan with its date: "Starter plan (from Nov 1)"
+ * (Mahan, 2026-11-04). On the date the server moves the plan and the strip reads "Starter plan".
+ */
+export function planName(account: AccountSummary): string {
+  const change = account.change
+  if (change?.kind === 'downgrade_pending') {
+    const from = new Date(change.effectiveAt).toLocaleDateString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+    })
+    return `${change.plan.name} plan (from ${from})`
+  }
+  return `${account.plan?.name ?? ''} plan`
+}
+
 export function meterSegments(account: AccountSummary): { kinds: Seg[]; limitAfter: number } {
   const { inUse } = account.slots
   const entitled = planSlots(account)
@@ -80,7 +98,7 @@ export function SlotStrip({ account }: { account: AccountSummary }) {
       aria-label="Your slots"
     >
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <span className="font-bold text-ink">{account.plan.name} plan</span>
+        <span className="font-bold text-ink">{planName(account)}</span>
         <span className="text-ink">
           {planSlots(account)} {planSlots(account) === 1 ? 'slot' : 'slots'}
         </span>
