@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { useIssues } from '@/hooks/useIssues'
 import { APIError } from '@/lib/api/client'
 import { issuesAPI, type IssueSource } from '@/lib/api/issues'
@@ -9,6 +8,7 @@ import { cn } from '@/lib/utils'
 import type { Issue, IssueVolume } from '@/types/issue.types'
 import { IssuePickerModal } from './IssuePickerModal'
 import { VariantSelect } from './VariantSelect'
+import { BUTTON_OUTLINE, FIELD, FIELD_HINT } from './formStyles'
 
 export interface IssueSelectorValue {
   issueNumber: string
@@ -191,8 +191,8 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
     const only = allIssues[0]
     const label = only.title ? `${only.number} – ${only.title}` : `Issue #${only.number}`
     return (
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-        {label} <span className="text-slate-400">— one-shot, this title has only one issue.</span>
+      <div className="rounded-button border border-line bg-background px-3.5 py-3 text-[15px] text-muted-foreground">
+        {label} <span className="text-muted-foreground">— one-shot, this title has only one issue.</span>
       </div>
     )
   }
@@ -200,7 +200,7 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
   // ---- Alias Group error (404 or any other failure): distinct, blocking, never the legacy field ----
   if (aliasGroupError) {
     return (
-      <div className="rounded-md border border-error-red bg-red-50 px-3 py-2 text-sm text-error-red">
+      <div role="alert" className="rounded-button border border-danger bg-surface px-3.5 py-3 text-[15px] text-danger">
         Couldn't load this Alias Group's issue data — contact support.
       </div>
     )
@@ -234,16 +234,13 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
             })
           }}
           placeholder='e.g., 1, 129, or "nn"'
-          className={cn(
-            'w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue',
-            error ? 'border-error-red' : 'border-slate-300'
-          )}
+          className={cn(FIELD, error && 'border-danger')}
         />
         {/* Code review finding: this hint was lost when the raw <input> was
             first replaced by IssueSelector -- restored so the legacy path
             still explains the accepted format, same as before this story. */}
-        <p className="mt-1 text-xs text-slate-600">Enter number only (e.g., 1, 129) or &quot;nn&quot;</p>
-        {error && <p className="mt-1 text-sm text-error-red">{error}</p>}
+        <p className={FIELD_HINT}>Enter number only (e.g., 1, 129) or &quot;nn&quot;</p>
+        {error && <p className="mt-1.5 text-[13px] text-danger">{error}</p>}
       </div>
     )
   }
@@ -309,7 +306,7 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
   // to display its already-known issueNumber.
   if (isLoading && !isResolved) {
     return (
-      <div className="h-10 animate-pulse rounded-md bg-slate-100" aria-label="Loading issue picker" />
+      <div className="h-10 animate-pulse rounded-md bg-chip" aria-label="Loading issue picker" />
     )
   }
 
@@ -351,10 +348,10 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
           id="issueNumber"
           type="button"
           onClick={openPicker}
-          className="flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-collector-blue"
+          className="flex h-12 w-full items-center justify-between gap-3 rounded-button border-[1.5px] border-line-strong bg-surface px-3.5 text-left text-body font-medium text-ink hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="text-slate-950">{label}</span>
-          <span className="text-collector-blue">Select to edit</span>
+          <span className="min-w-0 truncate text-ink">{label}</span>
+          <span className="flex-none text-[15px] font-semibold text-link">Select to edit</span>
         </button>
         {showVariantSelect && resolved && (
           <div className="mt-2">
@@ -389,23 +386,20 @@ export function IssueSelector({ source, seriesTitle, value, onChange, error }: I
           onBlur={handleBlur}
           placeholder="e.g., 1, 129"
           disabled={isValidating}
-          className={cn(
-            'w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue',
-            error ? 'border-error-red' : 'border-slate-300'
-          )}
+          className={cn(FIELD, error && 'border-danger')}
         />
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span className="h-px flex-1 bg-slate-200" />
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="h-px flex-1 bg-line" />
           or
-          <span className="h-px flex-1 bg-slate-200" />
+          <span className="h-px flex-1 bg-line" />
         </div>
-        <Button type="button" variant="outline" onClick={openPicker}>
+        <button type="button" onClick={openPicker} className={`${BUTTON_OUTLINE} w-full`}>
           Select Issue
-        </Button>
+        </button>
       </div>
-      {redirectMessage && <p className="mt-1 text-sm text-slate-500">{redirectMessage}</p>}
-      {blurError && <p className="mt-1 text-sm text-error-red">{blurError}</p>}
-      {error && !redirectMessage && !blurError && <p className="mt-1 text-sm text-error-red">{error}</p>}
+      {redirectMessage && <p className="mt-1.5 text-[13px] text-muted-foreground">{redirectMessage}</p>}
+      {blurError && <p className="mt-1.5 text-[13px] text-danger">{blurError}</p>}
+      {error && !redirectMessage && !blurError && <p className="mt-1.5 text-[13px] text-danger">{error}</p>}
       <IssuePickerModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

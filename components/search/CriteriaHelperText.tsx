@@ -1,5 +1,7 @@
 'use client'
 
+import { InfoIcon } from './formStyles'
+
 interface CriteriaHelperTextProps {
   /** 'Any' means unset */
   pageQuality: string
@@ -29,7 +31,8 @@ export function CriteriaHelperText({
 }: CriteriaHelperTextProps) {
   const set: string[] = []
   if (pageQuality !== 'Any') set.push('Page Quality')
-  if (gradingAuthority !== 'Any') set.push('Grading Authority')
+  // Story 1.84: the field is labelled "Graded by" (Mahan, 2026-10-21)
+  if (gradingAuthority !== 'Any') set.push('Graded by')
   if (maxPrice !== '') set.push('Maximum Price')
 
   if (set.length === 0) {
@@ -37,8 +40,11 @@ export function CriteriaHelperText({
   }
 
   return (
-    <p className="text-xs text-info-blue">
-      ℹ️ Setting {joinWithAnd(set)} will give you fewer, more targeted results.
+    <p className="flex items-start gap-2 text-sm text-ink">
+      <span className="mt-0.5 flex-none text-info-icon">
+        <InfoIcon />
+      </span>
+      <span>Setting {joinWithAnd(set)} will give you fewer, more targeted results.</span>
     </p>
   )
 }

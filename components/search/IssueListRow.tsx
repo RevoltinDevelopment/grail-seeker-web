@@ -27,8 +27,8 @@ export function IssueListRow({ issue, selected, onSelect }: IssueListRowProps) {
       className={cn(
         'w-full rounded-md border px-3 py-2 text-left text-sm transition-colors',
         selected
-          ? 'border-collector-blue bg-collector-blue/5 text-collector-blue'
-          : 'border-transparent text-slate-950 hover:bg-slate-50'
+          ? 'border-primary bg-primary-tint text-primary'
+          : 'border-transparent text-ink hover:bg-chip'
       )}
     >
       {label}

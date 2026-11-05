@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { usePlatforms } from '@/hooks/usePlatforms'
+import { marketplaceLabel } from '@/lib/marketplaceNames'
+
+import { BUTTON_OUTLINE, BUTTON_PRIMARY, CHECKBOX, DisclosureTriangle } from './formStyles'
 
 interface PlatformSelectorProps {
   platforms: string[]
@@ -34,6 +37,8 @@ type PendingConfirmation =
  */
 export function PlatformSelector({ platforms, onChange, error }: PlatformSelectorProps) {
   const { groups, displayNameFor, error: platformsError } = usePlatforms()
+  // Story 1.84: the subscriber's name for a marketplace ("Heritage Auctions"), as on the search card
+  const nameFor = (slug: string) => marketplaceLabel(slug, displayNameFor(slug))
 
   const [expanded, setExpanded] = useState(false)
   const [pending, setPending] = useState<PendingConfirmation | null>(null)
@@ -168,33 +173,33 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
 
   return (
     <div>
-      <h3 className="mb-2 font-semibold text-slate-950">Search Platforms</h3>
-      <p className="mb-4 text-sm text-slate-600">
+      <h2 className="text-[17px] font-bold text-ink">Search Platforms</h2>
+      <p className="mt-1.5 text-sm text-muted-foreground">
         No extra cost - all platforms included in your subscription
       </p>
 
       {platformsError && (
-        <p className="mb-3 text-sm text-error-red">
+        <p className="mt-3 text-sm text-danger">
           Couldn&apos;t load platforms right now. Please refresh the page and try again.
         </p>
       )}
 
-      <div className="space-y-3">
+      <div className="mt-3 flex flex-col gap-1">
         {corePlatforms.map((p) => (
-          <label key={p.slug} className="flex items-center">
+          <label key={p.slug} className="flex min-h-touch items-center gap-2.5 text-[15px] text-ink">
             <input
               type="checkbox"
               checked={platforms.includes(p.slug)}
-              onChange={() => handleCoreToggle(p.slug, displayNameFor(p.slug))}
-              className="h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+              onChange={() => handleCoreToggle(p.slug, nameFor(p.slug))}
+              className={CHECKBOX}
             />
-            <span className="ml-2 text-sm">{p.displayName} (Active)</span>
+            {nameFor(p.slug)} (Active)
           </label>
         ))}
 
-        {indieGroup ? (
+        {indieGroup && (
           <div>
-            <div className="-mx-2 flex min-h-[44px] items-center gap-2 rounded-md px-2 hover:bg-slate-50">
+            <div className="flex min-h-touch items-center gap-2.5">
               <input
                 ref={groupCheckboxRef}
                 type="checkbox"
@@ -202,88 +207,68 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
                 onChange={handleGroupToggle}
                 aria-label={`Toggle all ${indieGroup.label}`}
                 aria-checked={groupState === 'indeterminate' ? 'mixed' : groupState === 'checked'}
-                className="h-[17px] w-[17px] flex-shrink-0 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                className={CHECKBOX}
               />
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
                 aria-expanded={expanded}
-                className="flex min-h-[44px] flex-1 items-center justify-between rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-collector-blue"
+                aria-controls="independent-shops"
+                className="flex min-h-touch flex-1 items-center justify-between gap-2 rounded pr-2 text-left text-[15px] text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="flex items-center gap-1.5">
-                  <span className="text-sm text-slate-700">{indieGroup.label}</span>
-                  <span className="text-sm text-slate-600">({indiePlatforms.length})</span>
+                <span>
+                  {indieGroup.label} <span className="text-muted-foreground">({indiePlatforms.length})</span>
                 </span>
-                <svg
-                  className={`h-4 w-4 flex-shrink-0 text-slate-600 transition-transform duration-150 ${
-                    expanded ? '' : '-rotate-90'
-                  }`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <DisclosureTriangle open={expanded} />
               </button>
             </div>
 
             {expanded && (
-              <div className="ml-6 mt-2 space-y-2.5 border-l-2 border-slate-200 pl-4">
+              <div id="independent-shops" className="mb-1 ml-[9px] flex flex-col border-l-2 border-line pl-5">
                 {indiePlatforms.map((p) => (
-                  <label key={p.slug} className="flex items-center">
+                  <label key={p.slug} className="flex min-h-touch items-center gap-2.5 text-[15px] text-ink">
                     <input
                       type="checkbox"
                       checked={platforms.includes(p.slug)}
-                      onChange={() => handleIndieToggle(p.slug, displayNameFor(p.slug))}
-                      className="h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                      onChange={() => handleIndieToggle(p.slug, nameFor(p.slug))}
+                      className={CHECKBOX}
                     />
-                    <span className="ml-2 text-sm">{p.displayName}</span>
+                    {p.displayName}
                   </label>
                 ))}
               </div>
             )}
           </div>
-        ) : (
-          <label className="flex items-center opacity-50">
-            <input type="checkbox" disabled className="h-4 w-4 rounded border-slate-300" />
-            <span className="ml-2 text-sm">More marketplaces coming soon</span>
-          </label>
         )}
+
+        {/* Story 1.84: always last, as drawn (search-form.js), whether or not a shop is live */}
+        <label className="flex min-h-touch items-center gap-2.5 text-[15px] text-muted-foreground">
+          <input type="checkbox" disabled className={CHECKBOX} />
+          More marketplaces coming soon
+        </label>
       </div>
 
       {pending && (
-        <div className="mt-3 rounded-md border border-amber-400 bg-amber-50 p-3">
-          <p className="mb-2 text-sm font-medium text-amber-800">{confirmationText()}</p>
+        <div className="mt-3 rounded-[10px] border border-attention-line bg-attention p-3">
+          <p className="mb-2 text-sm font-medium text-attention-ink">{confirmationText()}</p>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={confirmTurnOff}
-              className="flex-1 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-700"
-            >
+            <button type="button" onClick={confirmTurnOff} className={`${BUTTON_PRIMARY} flex-1 text-sm`}>
               Turn Off
             </button>
-            <button
-              type="button"
-              onClick={cancelConfirmation}
-              className="flex-1 rounded-md border-2 border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            >
+            <button type="button" onClick={cancelConfirmation} className={`${BUTTON_OUTLINE} flex-1 text-sm`}>
               Keep On
             </button>
           </div>
           {pending.kind === 'indie' && (
-            <div className="mt-3 flex items-start gap-2 border-t border-amber-200 pt-3">
+            <div className="mt-3 flex items-start gap-2 border-t border-attention-line pt-3">
               <input
                 id="suppress-indie-warn"
                 type="checkbox"
                 checked={suppressChecked}
                 onChange={(e) => setSuppressChecked(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-collector-blue focus:ring-collector-blue"
+                className={`${CHECKBOX} mt-0.5`}
               />
-              <label htmlFor="suppress-indie-warn" className="text-xs text-amber-800">
+              <label htmlFor="suppress-indie-warn" className="text-[13px] text-attention-ink">
                 Do not warn for independent stores
               </label>
             </div>
@@ -292,12 +277,12 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
       )}
 
       {minOneError && (
-        <p className="mt-2 text-xs text-error-red">
+        <p className="mt-2 text-[13px] text-danger">
           You must leave at least one platform active to run a search.
         </p>
       )}
 
-      {error && <p className="mt-2 text-xs text-error-red">{error}</p>}
+      {error && <p className="mt-2 text-[13px] text-danger">{error}</p>}
     </div>
   )
 }

@@ -109,7 +109,7 @@ export function IssuePickerModal({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={`Search ${seriesTitle} by title or number...`}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-collector-blue sm:text-sm"
+          className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
           autoFocus
         />
       )}
@@ -128,10 +128,10 @@ export function IssuePickerModal({
         />
       )}
 
-      {isLoading && <p className="text-sm text-slate-500">Loading issues…</p>}
+      {isLoading && <p className="text-sm text-muted-foreground">Loading issues…</p>}
 
       {!isLoading && displayedIssues.length === 0 && (
-        <p className="text-sm text-slate-500">No issues found.</p>
+        <p className="text-sm text-muted-foreground">No issues found.</p>
       )}
 
       {layoutMode === 'list' ? (

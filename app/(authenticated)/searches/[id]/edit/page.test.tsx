@@ -4,8 +4,9 @@
  * ACTIVE_PLATFORMS constant. Scoped narrowly to that behavior.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+// eslint-disable-next-line import/order -- the page is imported before the vi.mock() stand-ins below, as before
 import EditSearchPage from './page'
 
 vi.mock('next/navigation', () => ({
@@ -13,9 +14,10 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'search-1' }),
 }))
 
+const mutateAsync = vi.fn().mockResolvedValue({})
 vi.mock('@/hooks/useSearches', () => ({
   useSearch: vi.fn(),
-  useSearches: () => ({ updateSearch: { mutateAsync: vi.fn() } }),
+  useSearches: () => ({ updateSearch: { mutateAsync } }),
 }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
@@ -28,8 +30,32 @@ vi.mock('@/components/search/IssueSelector', () => ({
   IssueSelector: () => <div data-testid="issue-selector" />,
 }))
 vi.mock('@/components/search/GradeRangeSelector', () => ({
-  GradeRangeSelector: () => <div data-testid="grade-range" />,
+  GradeRangeSelector: ({ onChange, failed }: { onChange: (a: number | null, b: number | null) => void; failed?: boolean }) => (
+    <div data-testid="grade-range" data-failed={failed ? 'yes' : 'no'}>
+      <button type="button" onClick={() => onChange(null, null)}>
+        Choose Any
+      </button>
+    </div>
+  ),
 }))
+
+vi.mock('@/hooks/useGrades', () => ({
+  useGrades: vi.fn(),
+}))
+
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { useGrades } from '@/hooks/useGrades'
+
+function mockUseGrades(state: 'loaded' | 'loading' | 'failed') {
+  vi.mocked(useGrades).mockReturnValue({
+    grades: state === 'loaded' ? [{ value: 9.4, label: '9.4 - Near Mint' }] : null,
+    isLoading: state === 'loading',
+    failed: state === 'failed',
+    isRetrying: false,
+    failedAt: 0,
+    retry: vi.fn(),
+  })
+}
 vi.mock('@/components/search/CriteriaHelperText', () => ({
   CriteriaHelperText: () => null,
 }))
@@ -57,7 +83,7 @@ function mockUsePlatforms(defaultEnabledSlugs: string[], isLoading = false) {
   })
 }
 
-function mockSearch(platforms: string[] | undefined) {
+function mockSearch(platforms: string[] | undefined, grades: { gradeMin: number | null; gradeMax: number | null } = { gradeMin: null, gradeMax: null }) {
   vi.mocked(useSearch).mockReturnValue({
     data: {
       id: 'search-1',
@@ -67,8 +93,7 @@ function mockSearch(platforms: string[] | undefined) {
       issueVolumeText: '3',
       issuePublicationYear: 1946,
       aliasGroupId: null,
-      gradeMin: null,
-      gradeMax: null,
+      ...grades,
       pageQuality: null,
       gradingAuthority: null,
       maxPrice: null,
@@ -77,6 +102,11 @@ function mockSearch(platforms: string[] | undefined) {
     isLoading: false,
   } as unknown as ReturnType<typeof useSearch>)
 }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockUseGrades('loaded')
+})
 
 describe('EditSearchPage — no-recorded-platforms fallback (Story 1.49)', () => {
   it('uses the search\'s own recorded platforms when present, ignoring the registry default', async () => {
@@ -101,7 +131,56 @@ describe('EditSearchPage — no-recorded-platforms fallback (Story 1.49)', () =>
     mockUsePlatforms([], true)
     mockSearch(['ebay'])
     render(<EditSearchPage />)
-    expect(screen.getByText('Loading search...')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Loading search')
     expect(screen.queryByTestId('platform-selector')).not.toBeInTheDocument()
+  })
+})
+
+describe('EditSearchPage — grades from the API (Story 1.84)', () => {
+  it('waits for the grades, with the loading form', () => {
+    mockUseGrades('loading')
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'])
+    render(<EditSearchPage />)
+    expect(screen.getByRole('status')).toHaveTextContent('Loading search')
+    expect(screen.queryByTestId('grade-range')).not.toBeInTheDocument()
+  })
+
+  it('sends "Any" as null, leaving the bounds to the server', async () => {
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.0, gradeMax: 9.4 })
+    render(<EditSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('platform-selector')).toHaveTextContent('ebay'))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Any' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Update Search' }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
+    expect(mutateAsync.mock.calls[0][0].data).toMatchObject({ gradeMin: null, gradeMax: null })
+  })
+
+  it('when the grades could not load, still saves, and leaves the saved grade to the server untouched', async () => {
+    mockUseGrades('failed')
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.0, gradeMax: 9.4 })
+    render(<EditSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('grade-range')).toHaveAttribute('data-failed', 'yes'))
+    const update = screen.getByRole('button', { name: 'Update Search' })
+    expect(update).toBeEnabled()
+    fireEvent.click(update)
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
+    // Code review: the grade is not sent at all, so the server keeps the saved one exactly
+    const sent = mutateAsync.mock.calls[0][0].data
+    expect(sent).not.toHaveProperty('gradeMin')
+    expect(sent).not.toHaveProperty('gradeMax')
+    expect(sent).toMatchObject({ platforms: ['ebay'] })
+  })
+
+  it('has the design\'s back link and title, and no old header bar', async () => {
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'])
+    render(<EditSearchPage />)
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Edit Search' })).toBeInTheDocument())
+    expect(screen.getByRole('link', { name: 'Back to Searches' })).toHaveAttribute('href', '/searches')
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument()
+    expect(screen.getByText('Graded by')).toBeInTheDocument()
   })
 })

@@ -45,8 +45,8 @@ export function VolumeBucketNav({
               className={cn(
                 'rounded-full border px-3 py-1 text-xs font-medium',
                 i === selectedVolumeIndex
-                  ? 'border-collector-blue bg-collector-blue text-white'
-                  : 'border-slate-300 text-slate-950 hover:border-collector-blue'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-line-strong text-ink hover:border-primary'
               )}
             >
               {v.volume === null ? 'Vol.' : `Vol. ${v.volume}`}
@@ -69,8 +69,8 @@ export function VolumeBucketNav({
                 className={cn(
                   'rounded-full border px-3 py-1 text-xs font-medium',
                   i === selectedBucketIndex
-                    ? 'border-collector-blue bg-collector-blue text-white'
-                    : 'border-slate-300 text-slate-950 hover:border-collector-blue'
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-line-strong text-ink hover:border-primary'
                 )}
               >
                 {first && last ? `${first.number}–${last.number}` : ''}

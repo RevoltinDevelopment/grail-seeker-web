@@ -7,7 +7,19 @@ import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
 import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
+import {
+  FORM_CARD,
+  OtherCriteriaFields,
+  RequiredLabel,
+  SaveRow,
+  SearchFormPage,
+  SearchFormSkeleton,
+  SubmitError,
+} from '@/components/search/SearchFormLayout'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
+import { BUTTON_PRIMARY } from '@/components/search/formStyles'
+import { gradeText } from '@/components/searches/SearchCard'
+import { useGrades } from '@/hooks/useGrades'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearch, useSearches } from '@/hooks/useSearches'
 import { aliasGroupsAPI } from '@/lib/api/alias-groups'
@@ -44,19 +56,6 @@ async function fetchAliasGroupDisplay(aliasGroupId: string): Promise<ComicSeries
   }
 }
 
-const PAGE_QUALITY_OPTIONS = [
-  'Any',
-  'White',
-  'Off-White to White',
-  'Off-White',
-  'Cream to Off-White',
-  'Cream',
-  'Tan',
-  'Brown',
-]
-
-const GRADING_AUTHORITY_OPTIONS = ['Any', 'CGC', 'CBCS', 'PGX']
-
 export default function EditSearchPage() {
   const router = useRouter()
   const params = useParams()
@@ -67,6 +66,9 @@ export default function EditSearchPage() {
   // Story 1.49: the no-recorded-platforms fallback now uses the registry's
   // real defaultEnabledSlugs, not the hardcoded ACTIVE_PLATFORMS array.
   const { defaultEnabledSlugs, isLoading: isLoadingPlatforms } = usePlatforms()
+  // Story 1.84 (S-04): the grades come from the server. If they cannot be loaded, the saved grade
+  // stays as it is and everything else on the search can still be changed.
+  const grades = useGrades()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
   const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
@@ -248,8 +250,10 @@ export default function EditSearchPage() {
           issueVolumeText: issueValue.issueVolumeText,
           issuePublicationYear: issueValue.issuePublicationYear,
           maxPrice: maxPrice ? parseFloat(maxPrice) : null,
-          gradeMin: gradeMin === null ? 0.5 : gradeMin, // Convert "Any" to 0.5 on submit
-          gradeMax: gradeMax === null ? 10.0 : gradeMax, // Convert "Any" to 10.0 on submit
+          // Story 1.84: "Any" is sent as null; the server fills it with its lowest or highest grade.
+          // Without the grade list the grade is not sent at all, so the server keeps the saved one
+          // exactly as it is, whatever happened on screen before the list went (code review).
+          ...(grades.grades ? { gradeMin, gradeMax } : {}),
           pageQuality: pageQuality === 'Any' ? null : pageQuality,
           gradingAuthority: gradingAuthority === 'Any' ? null : gradingAuthority,
           platforms,
@@ -269,240 +273,111 @@ export default function EditSearchPage() {
   // search that loads faster than the registry (a plausible, uncorrelated
   // race) briefly shows a fully-populated form with an empty, disabled
   // Platforms section and no indication it's still loading.
-  if (isLoadingSearch || isLoadingPlatforms) {
+  if (isLoadingSearch || isLoadingPlatforms || grades.isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="border-b border-slate-200 bg-white px-4 py-4">
-          <div className="container-custom">
-            <Link href="/searches" className="text-sm text-collector-blue hover:underline">
-              ← Back to Searches
-            </Link>
-          </div>
-        </header>
-        <main className="container-custom max-w-2xl pb-12 pt-5">
-          <div className="py-12 text-center">
-            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-            <p className="mt-4 text-slate-600">Loading search...</p>
-          </div>
-        </main>
-      </div>
+      <SearchFormPage>
+        <SearchFormSkeleton label="Loading search" />
+      </SearchFormPage>
     )
   }
 
   if (!search) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="border-b border-slate-200 bg-white px-4 py-4">
-          <div className="container-custom">
-            <Link href="/searches" className="text-sm text-collector-blue hover:underline">
-              ← Back to Searches
-            </Link>
-          </div>
-        </header>
-        <main className="container-custom max-w-2xl pb-12 pt-5">
-          <div className="py-12 text-center">
-            <h1 className="mb-4 text-2xl font-bold">Search Not Found</h1>
-            <p className="mb-6 text-slate-600">The search you're looking for doesn't exist.</p>
-            <Link
-              href="/searches"
-              className="inline-block rounded-md bg-collector-blue px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-800"
-            >
-              Back to Searches
-            </Link>
-          </div>
-        </main>
-      </div>
+      <SearchFormPage>
+        <div className="py-12 text-center">
+          <h1 className="mb-4 text-page-title-sm font-bold text-ink">Search Not Found</h1>
+          <p className="mb-6 text-muted-foreground">The search you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/searches" className={BUTTON_PRIMARY}>
+            Back to Searches
+          </Link>
+        </div>
+      </SearchFormPage>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white px-4 py-4">
-        <div className="container-custom">
-          <Link href="/searches" className="text-sm text-collector-blue hover:underline">
-            ← Back to Searches
-          </Link>
+    <SearchFormPage title="Edit Search" lede="Update your grail search criteria">
+      <SubmitError message={errors.submit} />
+
+      <form onSubmit={handleSubmit} aria-label="Edit Search" className={FORM_CARD}>
+        {/* Series Autocomplete */}
+        <SeriesAutocomplete
+          value={selectedSeries}
+          onSelect={(series) => {
+            // Story 1.16: reset the resolved issue pick when the user
+            // actively changes the series (not on the initial prefill
+            // above, which sets both together from the loaded search)
+            // -- issueId is a real FK into comic_issues, so carrying a
+            // stale pick forward would submit a mismatched pair.
+            setSelectedSeries(series)
+            setIssueValue(EMPTY_ISSUE_VALUE)
+          }}
+          error={errors.series}
+          required
+        />
+
+        {/* Issue Number */}
+        <div>
+          <RequiredLabel htmlFor="issueNumber">Issue Number</RequiredLabel>
+          {selectedSeries ? (
+            <IssueSelector
+              source={issueSource!}
+              seriesTitle={selectedSeries.title}
+              value={issueValue}
+              onChange={setIssueValue}
+              error={errors.issueNumber}
+            />
+          ) : (
+            <>
+              <p className="text-[15px] text-muted-foreground">Select a series first.</p>
+              {/* Code review finding: this duplicated IssueSelector's
+                  own error rendering once a series is selected -- kept
+                  only for the no-series-yet placeholder branch above,
+                  the one case where IssueSelector doesn't render at
+                  all to show it itself. */}
+              {errors.issueNumber && <p className="mt-1.5 text-[13px] text-danger">{errors.issueNumber}</p>}
+            </>
+          )}
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container-custom max-w-2xl pb-12 pt-5">
-        <h1 className="mb-2 text-3xl font-bold">Edit Search</h1>
-        <p className="mb-8 text-slate-600">Update your grail search criteria</p>
+        {/* Grade, from the server (Story 1.84) */}
+        <GradeRangeSelector
+          grades={grades.grades}
+          failed={grades.failed}
+          retrying={grades.isRetrying}
+          failedAt={grades.failedAt}
+          onRetry={grades.retry}
+          mode="edit"
+          savedGradeText={gradeText(search.gradeMin, search.gradeMax)}
+          savedSlots={search.slotsUsed}
+          gradeMin={gradeMin}
+          gradeMax={gradeMax}
+          onChange={(min, max) => {
+            setGradeMin(min)
+            setGradeMax(max)
+          }}
+          error={errors.gradeRange}
+        />
 
-        {errors.submit && (
-          <div className="mb-6 rounded-md border border-error-red bg-red-50 p-4 text-error-red">
-            {errors.submit}
-          </div>
-        )}
+        <OtherCriteriaFields
+          pageQuality={pageQuality}
+          onPageQualityChange={setPageQuality}
+          gradingAuthority={gradingAuthority}
+          onGradingAuthorityChange={setGradingAuthority}
+          maxPriceValue={maxPriceDisplay || maxPrice}
+          onMaxPriceChange={handleMaxPriceChange}
+          onMaxPriceFocus={handleMaxPriceFocus}
+          onMaxPriceBlur={handleMaxPriceBlur}
+        />
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
-        >
-          <div className="space-y-6">
-            {/* Series Autocomplete */}
-            <SeriesAutocomplete
-              value={selectedSeries}
-              onSelect={(series) => {
-                // Story 1.16: reset the resolved issue pick when the user
-                // actively changes the series (not on the initial prefill
-                // above, which sets both together from the loaded search)
-                // -- issueId is a real FK into comic_issues, so carrying a
-                // stale pick forward would submit a mismatched pair.
-                setSelectedSeries(series)
-                setIssueValue(EMPTY_ISSUE_VALUE)
-              }}
-              error={errors.series}
-              required
-            />
+        <CriteriaHelperText pageQuality={pageQuality} gradingAuthority={gradingAuthority} maxPrice={maxPrice} />
 
-            {/* Issue Number */}
-            <div>
-              <label
-                htmlFor="issueNumber"
-                className="mb-2 block text-sm font-medium text-slate-950"
-              >
-                Issue Number <span className="text-error-red">*</span>
-              </label>
-              {selectedSeries ? (
-                <IssueSelector
-                  source={issueSource!}
-                  seriesTitle={selectedSeries.title}
-                  value={issueValue}
-                  onChange={setIssueValue}
-                  error={errors.issueNumber}
-                />
-              ) : (
-                <>
-                  <p className="text-sm text-slate-500">Select a series first.</p>
-                  {/* Code review finding: this duplicated IssueSelector's
-                      own error rendering once a series is selected -- kept
-                      only for the no-series-yet placeholder branch above,
-                      the one case where IssueSelector doesn't render at
-                      all to show it itself. */}
-                  {errors.issueNumber && (
-                    <p className="mt-1 text-xs text-error-red">{errors.issueNumber}</p>
-                  )}
-                </>
-              )}
-            </div>
+        <div className="border-t border-line pt-6">
+          <PlatformSelector platforms={platforms} onChange={setPlatforms} error={errors.platforms} />
+        </div>
 
-            {/* Grade Range */}
-            <GradeRangeSelector
-              gradeMin={gradeMin}
-              gradeMax={gradeMax}
-              onChange={(min, max) => {
-                setGradeMin(min)
-                setGradeMax(max)
-              }}
-              error={errors.gradeRange}
-            />
-
-            {/* Page Quality */}
-            <div>
-              <label
-                htmlFor="pageQuality"
-                className="mb-2 block text-sm font-medium text-slate-950"
-              >
-                Page Quality
-              </label>
-              <select
-                id="pageQuality"
-                value={pageQuality}
-                onChange={(e) => setPageQuality(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue"
-              >
-                {PAGE_QUALITY_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Grading Authority */}
-            <div>
-              <label
-                htmlFor="gradingAuthority"
-                className="mb-2 block text-sm font-medium text-slate-950"
-              >
-                Grading Authority
-              </label>
-              <select
-                id="gradingAuthority"
-                value={gradingAuthority}
-                onChange={(e) => setGradingAuthority(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue"
-              >
-                {GRADING_AUTHORITY_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Maximum Price */}
-            <div>
-              <label htmlFor="maxPrice" className="mb-2 block text-sm font-medium text-slate-950">
-                Maximum Price
-              </label>
-              <input
-                id="maxPrice"
-                type="text"
-                value={maxPriceDisplay || maxPrice}
-                onChange={handleMaxPriceChange}
-                onFocus={handleMaxPriceFocus}
-                onBlur={handleMaxPriceBlur}
-                placeholder="Any"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue"
-              />
-              <p className="mt-1 text-xs text-slate-600">
-                Optional - leave blank to see all prices
-              </p>
-            </div>
-
-            <CriteriaHelperText
-              pageQuality={pageQuality}
-              gradingAuthority={gradingAuthority}
-              maxPrice={maxPrice}
-            />
-
-            {/* Divider */}
-            <div className="border-t border-slate-200 pt-6">
-              <PlatformSelector
-                platforms={platforms}
-                onChange={setPlatforms}
-                error={errors.platforms}
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-slate-200 pt-6">
-              {/* Action Buttons - Macintosh Style (Cancel left, CTA right) */}
-              <div className="flex gap-4">
-                <Link
-                  href="/searches"
-                  className="flex-1 rounded-md border-2 border-slate-300 px-6 py-3 text-center font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                >
-                  Cancel
-                </Link>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !isFormValid()}
-                  className="flex-1 rounded-md bg-collector-blue px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Saving...' : 'Update Search ✓'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-6 text-center text-xs text-slate-500">* Required fields</p>
-        </form>
-      </main>
-    </div>
+        <SaveRow saveLabel="Update Search" savingLabel="Saving..." isSubmitting={isSubmitting} disabled={!isFormValid()} />
+      </form>
+    </SearchFormPage>
   )
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 
+import { CORE_MARKETPLACES } from '@/lib/marketplaceNames'
 import { formatGrade, formatIssueNumber, formatSeriesShort } from '@/lib/utils/series-formatter'
 
 import type { GrailSearch } from '@/types/search.types'
@@ -41,11 +42,8 @@ interface SearchCardProps {
   onDelete: () => void
 }
 
-const CORE_CHIPS: readonly { slug: string; label: string }[] = [
-  { slug: 'ebay', label: 'eBay' },
-  { slug: 'heritage', label: 'Heritage Auctions' },
-  { slug: 'mycomicshop', label: 'MyComicShop' },
-]
+// Story 1.84: the names are shared with the search form's Search Platforms
+const CORE_CHIPS = CORE_MARKETPLACES
 
 // Dates of account events (a pause, a hold) read in Eastern, as the banner's do (review).
 const ZONE_OPTS: Intl.DateTimeFormatOptions = {

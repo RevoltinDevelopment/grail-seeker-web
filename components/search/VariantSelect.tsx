@@ -29,7 +29,7 @@ export function VariantSelect({ group, value, onChange }: VariantSelectProps) {
       value={selectValue}
       onValueChange={(v) => onChange(v === SEARCH_ALL_VARIANTS ? null : v)}
     >
-      <SelectTrigger aria-label="Variant" className="w-full">
+      <SelectTrigger aria-label="Variant" className="h-12 w-full rounded-button border-[1.5px] border-line-strong bg-surface px-3.5 text-body font-medium text-ink">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

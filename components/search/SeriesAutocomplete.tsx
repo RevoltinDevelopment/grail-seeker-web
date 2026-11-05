@@ -6,6 +6,8 @@ import { seriesAPI } from '@/lib/api/series'
 import { formatSeriesDisplay } from '@/lib/utils/series-formatter'
 import type { ComicSeries } from '@/types/search.types'
 
+import { FIELD, FIELD_ERROR, FIELD_HINT, FIELD_LABEL } from './formStyles'
+
 interface SeriesAutocompleteProps {
   value: ComicSeries | null
   onSelect: (series: ComicSeries | null) => void
@@ -127,14 +129,14 @@ export function SeriesAutocomplete({
       // ALIAS MATCH: Two-line format
       return (
         <>
-          <div className="font-semibold text-slate-950">
+          <div className="font-semibold text-ink">
             {series.matchedAlias}
             {series.aliasIssueRange && (
-              <span className="ml-1 font-normal text-slate-400">({series.aliasIssueRange})</span>
+              <span className="ml-1 font-normal text-muted-foreground">({series.aliasIssueRange})</span>
             )}
           </div>
-          <div className="mt-0.5 text-xs text-slate-500">Part of: {displayName}</div>
-          <div className="text-xs text-slate-400">{series.publisher}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">Part of: {displayName}</div>
+          <div className="text-xs text-muted-foreground">{series.publisher}</div>
         </>
       )
     }
@@ -142,16 +144,22 @@ export function SeriesAutocomplete({
     // DIRECT TITLE MATCH: Single-line format
     return (
       <>
-        <div className="font-medium text-slate-950">{displayName}</div>
-        <div className="text-xs text-slate-400">{series.publisher}</div>
+        <div className="font-medium text-ink">{displayName}</div>
+        <div className="text-xs text-muted-foreground">{series.publisher}</div>
       </>
     )
   }
 
   return (
     <div ref={wrapperRef} className="relative">
-      <label htmlFor="series" className="mb-2 block text-sm font-medium text-slate-950">
-        Comic Series {required && <span className="text-error-red">*</span>}
+      <label htmlFor="series" className={FIELD_LABEL}>
+        Comic Series{' '}
+        {required && (
+          <>
+            <span className="text-danger" aria-hidden="true">*</span>
+            <span className="sr-only">(required)</span>
+          </>
+        )}
       </label>
       <input
         id="series"
@@ -166,28 +174,27 @@ export function SeriesAutocomplete({
         onKeyDown={handleKeyDown}
         placeholder="Start typing to search..."
         required={required}
-        className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-collector-blue ${
-          error ? 'border-error-red' : value ? 'border-success-green' : 'border-slate-300'
-        }`}
+        aria-invalid={error ? true : undefined}
+        className={`${FIELD} ${error ? 'border-danger' : value ? 'border-ok' : ''}`}
       />
-      {error && <p className="mt-1 text-xs text-error-red">{error}</p>}
-      {!error && value && <p className="mt-1 text-xs text-success-green">✓ Selected</p>}
+      {error && <p className={FIELD_ERROR}>{error}</p>}
+      {!error && value && <p className="mt-1.5 text-[13px] font-semibold text-ok">✓ Selected</p>}
       {!error && !value && (
-        <p className="mt-1 text-xs text-slate-600">
+        <p className={FIELD_HINT}>
           Select series type (Annual, Giant-Size) from dropdown
         </p>
       )}
 
       {/* Dropdown Results */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-md border border-slate-300 bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-button border border-line-strong bg-surface shadow-lg">
           {isLoading ? (
-            <div className="p-4 text-center text-slate-600">
-              <div className="inline-block h-5 w-5 animate-spin rounded-full border-b-2 border-collector-blue"></div>
+            <div className="p-4 text-center text-muted-foreground">
+              <div className="inline-block h-5 w-5 animate-spin rounded-full border-b-2 border-primary"></div>
               <span className="ml-2">Searching...</span>
             </div>
           ) : results.length === 0 ? (
-            <div className="p-4 text-center text-slate-600">No results found</div>
+            <div className="p-4 text-center text-muted-foreground">No results found</div>
           ) : (
             results.map((series, index) => (
               <button
@@ -195,8 +202,8 @@ export function SeriesAutocomplete({
                 type="button"
                 onClick={() => handleSelect(series)}
                 onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full px-4 py-3 text-left hover:bg-blue-50 ${
-                  index === selectedIndex ? 'bg-blue-50' : ''
+                className={`w-full px-4 py-3 text-left hover:bg-primary-tint ${
+                  index === selectedIndex ? 'bg-primary-tint' : ''
                 }`}
               >
                 {renderSeriesOption(series)}

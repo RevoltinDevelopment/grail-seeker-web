@@ -24,8 +24,8 @@ export function IssueGridButton({ issue, selected, onSelect }: IssueGridButtonPr
       className={cn(
         'flex h-11 w-11 items-center justify-center rounded-md border text-sm font-medium transition-colors',
         selected
-          ? 'border-collector-blue bg-collector-blue text-white'
-          : 'border-slate-300 bg-white text-slate-950 hover:border-collector-blue hover:text-collector-blue'
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-line-strong bg-surface text-ink hover:border-primary hover:text-link'
       )}
     >
       {issue.number}

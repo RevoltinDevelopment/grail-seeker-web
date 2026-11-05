@@ -60,7 +60,8 @@ describe('PlatformSelector', () => {
       mockGroups(CORE_ONLY)
       render(<PlatformSelector platforms={['ebay', 'heritage']} onChange={vi.fn()} />)
       expect(screen.getByRole('checkbox', { name: /eBay \(Active\)/ })).toBeInTheDocument()
-      expect(screen.getByRole('checkbox', { name: /Heritage \(Active\)/ })).toBeInTheDocument()
+      // Story 1.84: the subscriber's name, as on the search card, not the registry's "Heritage"
+      expect(screen.getByRole('checkbox', { name: 'Heritage Auctions (Active)' })).toBeInTheDocument()
       const mcs = screen.getByRole('checkbox', { name: /MyComicShop \(Active\)/ })
       expect(mcs).toBeEnabled()
       expect(mcs).not.toBeChecked()
@@ -110,7 +111,7 @@ describe('PlatformSelector', () => {
       const onChange = vi.fn()
       render(<PlatformSelector platforms={['ebay', 'heritage']} onChange={onChange} />)
       await user.click(screen.getByRole('checkbox', { name: /Heritage/ }))
-      expect(screen.getByText(/turn off Heritage/i)).toBeInTheDocument()
+      expect(screen.getByText(/turn off Heritage Auctions for this search/i)).toBeInTheDocument()
       await user.click(screen.getByRole('checkbox', { name: /MyComicShop/ }))
       expect(screen.queryByText(/turn off Heritage/i)).not.toBeInTheDocument()
     })
@@ -136,6 +137,21 @@ describe('PlatformSelector', () => {
       render(<PlatformSelector platforms={['ebay']} onChange={vi.fn()} />)
       expect(screen.getByText('More marketplaces coming soon')).toBeInTheDocument()
       expect(screen.queryByRole('checkbox', { name: /Toggle all/ })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('More marketplaces coming soon (Story 1.84)', () => {
+    it('is always the last row, disabled, also when an independent shop is live', () => {
+      mockGroups([
+        { label: 'Core', platforms: CORE_PLATFORMS },
+        { label: 'Independent Shops', platforms: [{ slug: 'indie:example', displayName: 'Example Comics', defaultEnabled: true }] },
+      ])
+      render(<PlatformSelector platforms={['ebay']} onChange={vi.fn()} />)
+      expect(screen.getByRole('checkbox', { name: /Toggle all/ })).toBeInTheDocument()
+      const soon = screen.getByRole('checkbox', { name: 'More marketplaces coming soon' })
+      expect(soon).toBeDisabled()
+      const boxes = screen.getAllByRole('checkbox')
+      expect(boxes[boxes.length - 1]).toBe(soon)
     })
   })
 
