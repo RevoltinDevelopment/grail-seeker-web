@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
+import { HeldSearchView } from '@/components/search/HeldSearchView'
 import { IssueSelector, type IssueSelectorValue } from '@/components/search/IssueSelector'
 import { PlatformSelector } from '@/components/search/PlatformSelector'
 import {
@@ -17,13 +19,18 @@ import {
   SubmitError,
 } from '@/components/search/SearchFormLayout'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
+import { FormNotice, NarrowOnlyLine, SlotBadge, SlotCount } from '@/components/search/SlotParts'
 import { BUTTON_PRIMARY } from '@/components/search/formStyles'
 import { gradeText } from '@/components/searches/SearchCard'
+import { ACCOUNT_SUMMARY_KEY, useAccountSummary } from '@/hooks/useAccountSummary'
 import { useGrades } from '@/hooks/useGrades'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearch, useSearches } from '@/hooks/useSearches'
 import { aliasGroupsAPI } from '@/lib/api/alias-groups'
 import type { IssueSource } from '@/lib/api/issues'
+import { formSlots } from '@/lib/formSlots'
+import { readRefusal, type SlotRefusal } from '@/lib/slotRefusal'
+import { slotsForRange } from '@/lib/slots'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -45,9 +52,10 @@ async function fetchAliasGroupDisplay(aliasGroupId: string): Promise<ComicSeries
     id: group.id,
     title: group.displayName,
     volume: 0,
-    yearRange: group.endYear && group.endYear !== group.startYear
-      ? `${group.startYear}-${group.endYear}`
-      : `${group.startYear ?? ''}`,
+    yearRange:
+      group.endYear && group.endYear !== group.startYear
+        ? `${group.startYear}-${group.endYear}`
+        : `${group.startYear ?? ''}`,
     type: 'aliasGroup',
     publisher: group.publisherName || 'Unknown',
     displayName: group.displayName,
@@ -69,6 +77,9 @@ export default function EditSearchPage() {
   // Story 1.84 (S-04): the grades come from the server. If they cannot be loaded, the saved grade
   // stays as it is and everything else on the search can still be changed.
   const grades = useGrades()
+  // Story 1.85 (S-10): the account's slots, for the badge, the hint and the slots alert
+  const { account, isLoading: isLoadingAccount, error: accountError } = useAccountSummary()
+  const queryClient = useQueryClient()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
   const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
@@ -89,7 +100,10 @@ export default function EditSearchPage() {
   const issueSource: IssueSource | null = useMemo(
     () =>
       selectedSeries
-        ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+        ? {
+            kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series',
+            id: selectedSeries.id,
+          }
         : null,
     [selectedSeries]
   )
@@ -98,6 +112,15 @@ export default function EditSearchPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  // Story 1.85: Save was pressed on a change that does not fit; a slot refusal the server sent; the
+  // search went on hold while this form was open (Update Search met SEARCH_HELD)
+  const [attempted, setAttempted] = useState(false)
+  const [refusal, setRefusal] = useState<SlotRefusal | null>(null)
+  // Code review: each Save draws its notice afresh, so the same refusal twice is announced twice
+  const [saveCount, setSaveCount] = useState(0)
+  const [heldOnSave, setHeldOnSave] = useState<{ reason: 'lapse' | 'downgrade' | null } | null>(
+    null
+  )
 
   // Code review finding: guards the async Alias Group display fetch below
   // against a setState-after-unmount warning if the user navigates away
@@ -137,7 +160,10 @@ export default function EditSearchPage() {
             // leaving the field in an inconsistent state -- log so a
             // genuine Alias Group lookup failure isn't silently invisible,
             // distinct from "no Alias Group was involved at all."
-            console.warn('Failed to load Alias Group display info, falling back to the real series:', err)
+            console.warn(
+              'Failed to load Alias Group display info, falling back to the real series:',
+              err
+            )
           })
       } else {
         setSelectedSeries(search.series)
@@ -228,10 +254,54 @@ export default function EditSearchPage() {
     return Object.keys(newErrors).length === 0
   }
 
+  // Story 1.85: the slots the saved search uses (the server's), and its saved grades
+  const savedSlots =
+    search?.slotsUsed ??
+    (search && grades.grades ? slotsForRange(grades.grades, search.gradeMin, search.gradeMax) : 0)
+  const lowest = grades.grades?.[0]?.value ?? 0.5
+  const highest = grades.grades?.[grades.grades.length - 1]?.value ?? 10
+  const slots = formSlots({
+    mode: 'edit',
+    grades: grades.grades,
+    account,
+    // Code review: a failed refresh with an account still in hand is not a failure to read it
+    accountFailed: !!accountError && !account,
+    savedSlots,
+    savedRange: search ? { min: search.gradeMin ?? lowest, max: search.gradeMax ?? highest } : null,
+    gradeMin,
+    gradeMax,
+    attempted,
+    refusal,
+  })
+
+  // Code review: while the grades can only narrow, the choice is kept inside the saved range, so the
+  // lists (which then have no "Any") show what is held and what is sent. A side saved as "Any" is
+  // the lowest or highest grade, which is what the server stored for it.
+  const narrowMin = slots.narrowTo?.min ?? null
+  const narrowMax = slots.narrowTo?.max ?? null
+  useEffect(() => {
+    if (narrowMin === null || narrowMax === null || !isInitialized) return
+    const clamp = (g: number | null, fallback: number) =>
+      Math.min(narrowMax, Math.max(narrowMin, g ?? fallback))
+    const min = clamp(gradeMin, narrowMin)
+    const max = clamp(gradeMax, narrowMax)
+    if (min !== gradeMin) setGradeMin(min)
+    if (max !== gradeMax) setGradeMax(max)
+  }, [narrowMin, narrowMax, gradeMin, gradeMax, isInitialized])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Code review: a refusal from an earlier Save is not this Save's
+    setRefusal(null)
+    setSaveCount((n) => n + 1)
 
     if (!validateForm()) {
+      return
+    }
+
+    // Story 1.85: a change the form already knows does not fit is not sent (as on a new search)
+    if (slots.shortNow) {
+      setAttempted(true)
       return
     }
 
@@ -262,6 +332,21 @@ export default function EditSearchPage() {
 
       router.push('/searches')
     } catch (error) {
+      const refused = readRefusal(error)
+      // Story 1.85: the search went on hold while the form was open: the held page follows, saying
+      // the changes were not saved (mockup 8); the search and the account are read again
+      if (refused?.kind === 'held') {
+        setHeldOnSave({ reason: refused.heldReason })
+        queryClient.invalidateQueries({ queryKey: ['searches'] })
+        queryClient.invalidateQueries({ queryKey: ACCOUNT_SUMMARY_KEY })
+        return
+      }
+      // Story 1.85: a slot refusal is shown as drawn, with its details (need 21)
+      if (refused?.kind === 'slot_limit') {
+        setRefusal(refused)
+        queryClient.invalidateQueries({ queryKey: ACCOUNT_SUMMARY_KEY })
+        return
+      }
       const message = error instanceof Error ? error.message : 'Failed to update search'
       setErrors({ submit: message })
     } finally {
@@ -273,7 +358,7 @@ export default function EditSearchPage() {
   // search that loads faster than the registry (a plausible, uncorrelated
   // race) briefly shows a fully-populated form with an empty, disabled
   // Platforms section and no indication it's still loading.
-  if (isLoadingSearch || isLoadingPlatforms || grades.isLoading) {
+  if (isLoadingSearch || isLoadingPlatforms || grades.isLoading || isLoadingAccount) {
     return (
       <SearchFormPage>
         <SearchFormSkeleton label="Loading search" />
@@ -286,7 +371,9 @@ export default function EditSearchPage() {
       <SearchFormPage>
         <div className="py-12 text-center">
           <h1 className="mb-4 text-page-title-sm font-bold text-ink">Search Not Found</h1>
-          <p className="mb-6 text-muted-foreground">The search you&apos;re looking for doesn&apos;t exist.</p>
+          <p className="mb-6 text-muted-foreground">
+            The search you&apos;re looking for doesn&apos;t exist.
+          </p>
           <Link href="/searches" className={BUTTON_PRIMARY}>
             Back to Searches
           </Link>
@@ -295,8 +382,26 @@ export default function EditSearchPage() {
     )
   }
 
+  // Story 1.85: a held search cannot be changed: its page shows it read-only, with Delete (mockup 8)
+  if (heldOnSave || search.held) {
+    return (
+      <HeldSearchView
+        search={search}
+        reason={heldOnSave?.reason ?? search.heldReason ?? null}
+        notSaved={!!heldOnSave}
+      />
+    )
+  }
+
   return (
-    <SearchFormPage title="Edit Search" lede="Update your grail search criteria">
+    <SearchFormPage
+      title="Edit Search"
+      lede="Update your grail search criteria"
+      aside={slots.badge !== null && <SlotBadge available={slots.badge} edit />}
+    >
+      {slots.notice && (
+        <FormNotice key={`${saveCount}-${slots.notice.heading}`} notice={slots.notice} />
+      )}
       <SubmitError message={errors.submit} />
 
       <form onSubmit={handleSubmit} aria-label="Edit Search" className={FORM_CARD}>
@@ -335,7 +440,9 @@ export default function EditSearchPage() {
                   only for the no-series-yet placeholder branch above,
                   the one case where IssueSelector doesn't render at
                   all to show it itself. */}
-              {errors.issueNumber && <p className="mt-1.5 text-[13px] text-danger">{errors.issueNumber}</p>}
+              {errors.issueNumber && (
+                <p className="mt-1.5 text-[13px] text-danger">{errors.issueNumber}</p>
+              )}
             </>
           )}
         </div>
@@ -355,9 +462,16 @@ export default function EditSearchPage() {
           onChange={(min, max) => {
             setGradeMin(min)
             setGradeMax(max)
+            setAttempted(false)
+            setRefusal(null)
           }}
           error={errors.gradeRange}
-        />
+          narrowTo={slots.narrowTo}
+          describedBy="slot-count"
+        >
+          {slots.narrowTo && !grades.failed && <NarrowOnlyLine />}
+          {!grades.failed && <SlotCount id="slot-count" hint={slots.hint} alert={slots.alert} />}
+        </GradeRangeSelector>
 
         <OtherCriteriaFields
           pageQuality={pageQuality}
@@ -370,13 +484,27 @@ export default function EditSearchPage() {
           onMaxPriceBlur={handleMaxPriceBlur}
         />
 
-        <CriteriaHelperText pageQuality={pageQuality} gradingAuthority={gradingAuthority} maxPrice={maxPrice} />
+        <CriteriaHelperText
+          pageQuality={pageQuality}
+          gradingAuthority={gradingAuthority}
+          maxPrice={maxPrice}
+        />
 
         <div className="border-t border-line pt-6">
-          <PlatformSelector platforms={platforms} onChange={setPlatforms} error={errors.platforms} />
+          <PlatformSelector
+            platforms={platforms}
+            onChange={setPlatforms}
+            error={errors.platforms}
+          />
         </div>
 
-        <SaveRow saveLabel="Update Search" savingLabel="Saving..." isSubmitting={isSubmitting} disabled={!isFormValid()} />
+        <SaveRow
+          saveLabel="Update Search"
+          savingLabel="Saving..."
+          isSubmitting={isSubmitting}
+          disabled={!isFormValid()}
+          why={slots.why}
+        />
       </form>
     </SearchFormPage>
   )

@@ -17,6 +17,9 @@ import type { GrailSearch } from '@/types/search.types'
  * dates. They are chosen only when `billing` carries them, which nothing does yet.
  */
 
+/** The marketplace nudge's dismissal, for the session (Searches; the plan page honours it too, Story 1.85) */
+export const NUDGE_DISMISS_KEY = 'platform-nudge-dismissed'
+
 export type BannerTone = 'hold' | 'attention' | 'info'
 
 export interface BannerAction {
@@ -85,7 +88,7 @@ function action(
   return BUILT_PAGES[page] ? { label, href: PAGE_HREF[page], filled } : null
 }
 
-export function chooseBanner(input: BannerInput): Banner | null {
+function* bannersOf(input: BannerInput): Generator<Banner> {
   const { account, billing } = input
   const now = input.now ?? new Date()
   const change = account?.change ?? null
@@ -104,7 +107,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
     billing?.lapseCause === 'payment_failed' &&
     billing.deleteSearchesAt
   ) {
-    return {
+    yield {
       state: 1,
       tone: 'hold',
       heading: 'Your searches are on hold',
@@ -124,7 +127,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
     billing.endedAt &&
     billing.deleteSearchesAt
   ) {
-    return {
+    yield {
       state: 2,
       tone: 'hold',
       heading: 'Your searches are on hold',
@@ -139,7 +142,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
 
   // 3. On hold: the date to choose has passed
   if (change?.kind === 'pick_needed' && change.overdue && change.dueAt) {
-    return {
+    yield {
       state: 3,
       tone: 'hold',
       heading: 'Your searches are on hold until you choose',
@@ -155,7 +158,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
 
   // 4. Payment failed: grace (billing)
   if (account?.status === 'grace' && billing?.graceEndsAt) {
-    return {
+    yield {
       state: 4,
       tone: 'attention',
       heading: 'Your last payment did not go through',
@@ -175,7 +178,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
       const welcome = change.reason === 'return'
       if (!change.dueAt) {
         // A return pick has no deadline (Migration 074): nothing is said about a date.
-        return {
+        yield {
           state: 5,
           tone: 'attention',
           heading: welcome ? 'Welcome back.' : 'Choose which searches to keep',
@@ -186,28 +189,28 @@ export function chooseBanner(input: BannerInput): Banner | null {
           due: null,
           dismissible: false,
         }
+      } else {
+        yield {
+          state: 5,
+          tone: 'attention',
+          heading: welcome ? 'Welcome back.' : 'Choose which searches to keep',
+          paragraphs: [
+            `Your plan now has ${change.slotsToFit} slots and your searches use ${account!.slots.inUse}. Choose the searches to keep by ${longDay(beforeDeadline(change.dueAt))}. Every search keeps running until then.`,
+            'If you have not chosen by then, every search goes on hold until you do.',
+          ],
+          action: action('pick', 'Choose searches', true),
+          due: daysLeft(change.dueAt, now),
+          dismissible: false,
+        }
       }
-      return {
-        state: 5,
-        tone: 'attention',
-        heading: welcome ? 'Welcome back.' : 'Choose which searches to keep',
-        paragraphs: [
-          `Your plan now has ${change.slotsToFit} slots and your searches use ${account!.slots.inUse}. Choose the searches to keep by ${longDay(beforeDeadline(change.dueAt))}. Every search keeps running until then.`,
-          'If you have not chosen by then, every search goes on hold until you do.',
-        ],
-        action: action('pick', 'Choose searches', true),
-        due: daysLeft(change.dueAt, now),
-        dismissible: false,
-      }
-    }
-    // 6. Choose what to keep: chosen, date not reached
-    if (change.dueAt) {
+    } else if (change.dueAt) {
+      // 6. Choose what to keep: chosen, date not reached
       // Searches coming back on the day (held, picked to return) continue too (review).
       const continuing =
         account!.searches.filter((s) => s.fate === 'continues').length +
         account!.heldSearches.filter((s) => s.fate === 'returns').length
       const stopping = account!.searches.filter((s) => s.fate === 'stops').length
-      return {
+      yield {
         state: 6,
         tone: 'info',
         heading: 'You have chosen what to keep',
@@ -228,7 +231,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
       account!.searches.filter((s) => s.fate === 'continues').length +
       account!.heldSearches.filter((s) => s.fate === 'returns').length
     const stopping = account!.searches.filter((s) => s.fate === 'stops').length
-    return {
+    yield {
       state: 7,
       tone: 'info',
       heading: `Your move to ${change.plan.name} is on ${shortDay(change.effectiveAt)}`,
@@ -247,7 +250,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
 
   // 8. Over plan, nothing to choose
   if (account && enforced && account.slots.over > 0 && !change) {
-    return {
+    yield {
       state: 8,
       tone: 'info',
       heading: 'Your searches use more slots than your plan',
@@ -267,7 +270,7 @@ export function chooseBanner(input: BannerInput): Banner | null {
         s.isActive && !s.held && input.defaultEnabledSlugs.some((p) => !s.platforms?.includes(p))
     ).length
     if (affected > 0) {
-      return {
+      yield {
         state: 9,
         tone: 'info',
         heading: 'You may be missing matches',
@@ -280,5 +283,16 @@ export function chooseBanner(input: BannerInput): Banner | null {
       }
     }
   }
-  return null
+}
+
+/**
+ * Story 1.85: every banner that applies, in the banner's order. The plan page's "Needs your
+ * attention" lists them all (plan-page.js); the Searches page shows the first.
+ */
+export function listBanners(input: BannerInput): Banner[] {
+  return [...bannersOf(input)]
+}
+
+export function chooseBanner(input: BannerInput): Banner | null {
+  return bannersOf(input).next().value ?? null
 }

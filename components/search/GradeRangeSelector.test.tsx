@@ -13,12 +13,16 @@ const GRADES = [
 ]
 
 function optionTexts(name: string) {
-  return Array.from((screen.getByRole('combobox', { name }) as HTMLSelectElement).options).map((o) => o.textContent)
+  return Array.from((screen.getByRole('combobox', { name }) as HTMLSelectElement).options).map(
+    (o) => o.textContent
+  )
 }
 
 describe('GradeRangeSelector (Story 1.84)', () => {
   it('lists "Any" and then the given grades with their labels, in order, on both sides', () => {
-    render(<GradeRangeSelector grades={GRADES} gradeMin={null} gradeMax={null} onChange={vi.fn()} />)
+    render(
+      <GradeRangeSelector grades={GRADES} gradeMin={null} gradeMax={null} onChange={vi.fn()} />
+    )
     const expected = ['Any', ...GRADES.map((g) => g.label)]
     expect(optionTexts('Minimum grade')).toEqual(expected)
     expect(optionTexts('Maximum grade')).toEqual(expected)
@@ -29,45 +33,72 @@ describe('GradeRangeSelector (Story 1.84)', () => {
 
   it('shows a saved whole-number grade as selected (10 matches "10.0")', () => {
     render(<GradeRangeSelector grades={GRADES} gradeMin={9.4} gradeMax={10} onChange={vi.fn()} />)
-    expect(screen.getByRole('combobox', { name: 'Minimum grade' })).toHaveDisplayValue('9.4 - Near Mint')
-    expect(screen.getByRole('combobox', { name: 'Maximum grade' })).toHaveDisplayValue('10.0 - Gem Mint')
+    expect(screen.getByRole('combobox', { name: 'Minimum grade' })).toHaveDisplayValue(
+      '9.4 - Near Mint'
+    )
+    expect(screen.getByRole('combobox', { name: 'Maximum grade' })).toHaveDisplayValue(
+      '10.0 - Gem Mint'
+    )
   })
 
   it('code review: shows a saved grade that is not on the list for what it is, never as "Any"', () => {
     render(<GradeRangeSelector grades={GRADES} gradeMin={9.3} gradeMax={9.8} onChange={vi.fn()} />)
-    expect(screen.getByRole('combobox', { name: 'Minimum grade' })).toHaveDisplayValue('9.3 - not a standard grade')
+    expect(screen.getByRole('combobox', { name: 'Minimum grade' })).toHaveDisplayValue(
+      '9.3 - not a standard grade'
+    )
     expect(optionTexts('Maximum grade')).not.toContain('9.3 - not a standard grade')
   })
 
   it('moves the Maximum up when the Minimum passes it', () => {
     const onChange = vi.fn()
     render(<GradeRangeSelector grades={GRADES} gradeMin={9.4} gradeMax={9.6} onChange={onChange} />)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Minimum grade' }), { target: { value: '9.8' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Minimum grade' }), {
+      target: { value: '9.8' },
+    })
     expect(onChange).toHaveBeenCalledWith(9.8, 9.8)
   })
 
   it('moves the Minimum down when the Maximum passes it', () => {
     const onChange = vi.fn()
     render(<GradeRangeSelector grades={GRADES} gradeMin={9.8} gradeMax={10} onChange={onChange} />)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Maximum grade' }), { target: { value: '9.6' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Maximum grade' }), {
+      target: { value: '9.6' },
+    })
     expect(onChange).toHaveBeenCalledWith(9.6, 9.6)
   })
 
   it('never corrects "Any", and choosing "Any" sends null', () => {
     const onChange = vi.fn()
-    render(<GradeRangeSelector grades={GRADES} gradeMin={null} gradeMax={9.6} onChange={onChange} />)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Minimum grade' }), { target: { value: '9.8' } })
+    render(
+      <GradeRangeSelector grades={GRADES} gradeMin={null} gradeMax={9.6} onChange={onChange} />
+    )
+    fireEvent.change(screen.getByRole('combobox', { name: 'Minimum grade' }), {
+      target: { value: '9.8' },
+    })
     expect(onChange).toHaveBeenLastCalledWith(9.8, 9.8)
-    fireEvent.change(screen.getByRole('combobox', { name: 'Maximum grade' }), { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Maximum grade' }), {
+      target: { value: '' },
+    })
     expect(onChange).toHaveBeenLastCalledWith(null, null)
   })
 
   it('a new search that could not load its grades says so, with no dropdowns and Try again', () => {
     const onRetry = vi.fn()
-    render(<GradeRangeSelector grades={null} failed onRetry={onRetry} gradeMin={null} gradeMax={null} onChange={vi.fn()} />)
+    render(
+      <GradeRangeSelector
+        grades={null}
+        failed
+        onRetry={onRetry}
+        gradeMin={null}
+        gradeMax={null}
+        onChange={vi.fn()}
+      />
+    )
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('The list of grades could not be loaded')
-    expect(screen.getByRole('alert')).toHaveTextContent('This search cannot be saved until they load. Nothing you entered is lost.')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This search cannot be saved until they load. Nothing you entered is lost.'
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
@@ -94,15 +125,75 @@ describe('GradeRangeSelector (Story 1.84)', () => {
 
   it('says "1 slot", and leaves the slots out when the search does not carry them', () => {
     const { rerender } = render(
-      <GradeRangeSelector grades={null} failed mode="edit" savedGradeText="9.8" savedSlots={1} gradeMin={9.8} gradeMax={9.8} onChange={vi.fn()} />
+      <GradeRangeSelector
+        grades={null}
+        failed
+        mode="edit"
+        savedGradeText="9.8"
+        savedSlots={1}
+        gradeMin={9.8}
+        gradeMax={9.8}
+        onChange={vi.fn()}
+      />
     )
     expect(screen.getByText('saved grade, 1 slot')).toBeInTheDocument()
-    rerender(<GradeRangeSelector grades={null} failed mode="edit" savedGradeText="9.8" gradeMin={9.8} gradeMax={9.8} onChange={vi.fn()} />)
+    rerender(
+      <GradeRangeSelector
+        grades={null}
+        failed
+        mode="edit"
+        savedGradeText="9.8"
+        gradeMin={9.8}
+        gradeMax={9.8}
+        onChange={vi.fn()}
+      />
+    )
     expect(screen.getByText('saved grade')).toBeInTheDocument()
   })
 
   it('shows "Trying again..." and cannot be pressed twice while a retry is in flight', () => {
-    render(<GradeRangeSelector grades={null} failed retrying onRetry={vi.fn()} gradeMin={null} gradeMax={null} onChange={vi.fn()} />)
+    render(
+      <GradeRangeSelector
+        grades={null}
+        failed
+        retrying
+        onRetry={vi.fn()}
+        gradeMin={null}
+        gradeMax={null}
+        onChange={vi.fn()}
+      />
+    )
     expect(screen.getByRole('button', { name: 'Trying again...' })).toBeDisabled()
+  })
+
+  it('Story 1.85: over plan, the lists hold only the saved range, without "Any"', () => {
+    render(
+      <GradeRangeSelector
+        grades={GRADES}
+        gradeMin={9.6}
+        gradeMax={9.8}
+        narrowTo={{ min: 9.6, max: 9.8 }}
+        onChange={vi.fn()}
+      />
+    )
+    expect(optionTexts('Minimum grade')).toEqual(['9.6 - NM+', '9.7 - Test Grade', '9.8 - NM/M'])
+    expect(optionTexts('Maximum grade')).toEqual(['9.6 - NM+', '9.7 - Test Grade', '9.8 - NM/M'])
+  })
+
+  it('Story 1.85: draws what it is given under the dropdowns, and the dropdowns are described by it', () => {
+    render(
+      <GradeRangeSelector
+        grades={GRADES}
+        gradeMin={null}
+        gradeMax={null}
+        onChange={vi.fn()}
+        describedBy="cnt"
+      >
+        <p id="cnt">A search in every grade would use 5 slots</p>
+      </GradeRangeSelector>
+    )
+    expect(screen.getByRole('combobox', { name: 'Minimum grade' })).toHaveAccessibleDescription(
+      'A search in every grade would use 5 slots'
+    )
   })
 })

@@ -20,6 +20,22 @@ export interface IndependentShops {
   shops: readonly { slug: string; name: string }[]
 }
 
+/**
+ * The independent shops, from the platform registry's groups: every group but Core (Story 1.83).
+ * Shared by Searches, the plan page and the held search's page (Story 1.85).
+ */
+export function independentShopsOf(
+  groups: readonly { label: string; platforms: readonly { slug: string; displayName: string }[] }[]
+): IndependentShops | null {
+  const group = groups.find((g) => g.label !== 'Core')
+  return group
+    ? {
+        label: 'Independent shops',
+        shops: group.platforms.map((p) => ({ slug: p.slug, name: p.displayName })),
+      }
+    : null
+}
+
 // Below NAME_SHOPS_BELOW shops the card names each shop a search covers; from it, one chip counts them
 // ("Independent shops (3 of 5)"). Shared with the search form (Story 1.84); re-exported for callers.
 export { NAME_SHOPS_BELOW }
@@ -37,6 +53,12 @@ interface SearchCardProps {
   onAskDelete: () => void
   onCancelDelete: () => void
   onDelete: () => void
+  /** Story 1.85: on the plan page, a held card's line about coming back (plan-page.js .back-line) */
+  backLine?: string
+  /** Story 1.85: on the held search's own page there is nothing to View; Delete only */
+  hideView?: boolean
+  /** Story 1.85: on the plan page, a held search the subscriber had paused says it comes back paused */
+  showHeldPause?: boolean
 }
 
 // Story 1.84: the names are shared with the search form's Search Platforms
@@ -108,6 +130,22 @@ const PauseIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <rect x="6" y="5" width="4" height="14" rx="1" />
     <rect x="14" y="5" width="4" height="14" rx="1" />
+  </svg>
+)
+const ReturnIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 12a8 8 0 1 0 2.5-5.8" />
+    <path d="M4 4v4.5h4.5" />
   </svg>
 )
 const PlayIcon = () => (
@@ -243,6 +281,24 @@ export function SearchCard(props: SearchCardProps) {
         ))}
       </ul>
 
+      {held && props.showHeldPause && !search.isActive && (
+        <p className="flex items-start gap-2 text-sm font-semibold text-ink">
+          <span className="mt-[3px] flex-none">
+            <PauseIcon />
+          </span>
+          <span>Paused by you. It comes back paused.</span>
+        </p>
+      )}
+
+      {props.backLine && (
+        <p className="flex items-start gap-2 text-sm font-semibold text-ink">
+          <span className="mt-[3px] flex-none text-link">
+            <ReturnIcon />
+          </span>
+          <span>{props.backLine}</span>
+        </p>
+      )}
+
       {paused && (
         <p className="flex items-start gap-2 text-sm font-semibold text-ink">
           <span className="mt-[3px] flex-none">
@@ -306,9 +362,11 @@ export function SearchCard(props: SearchCardProps) {
       ) : (
         <div className="mt-auto flex gap-2">
           {held ? (
-            <Link href={`/searches/${search.id}/edit`} className={OUTLINE}>
-              View
-            </Link>
+            !props.hideView && (
+              <Link href={`/searches/${search.id}/edit`} className={OUTLINE}>
+                View
+              </Link>
+            )
           ) : (
             <>
               <Link href={`/searches/${search.id}/edit`} className={OUTLINE}>

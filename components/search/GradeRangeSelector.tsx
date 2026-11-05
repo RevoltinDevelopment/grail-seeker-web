@@ -2,7 +2,14 @@
 
 import type { GradeOption } from '@/lib/api/grades'
 
-import { BUTTON_OUTLINE, FIELD_ERROR, FIELD_HINT, FIELD_LABEL, SELECT, SelectWrap } from './formStyles'
+import {
+  BUTTON_OUTLINE,
+  FIELD_ERROR,
+  FIELD_HINT,
+  FIELD_LABEL,
+  SELECT,
+  SelectWrap,
+} from './formStyles'
 
 interface GradeRangeSelectorProps {
   /** The grades from GET /api/grades (Story 1.84); null while loading or when they could not be loaded */
@@ -24,6 +31,15 @@ interface GradeRangeSelectorProps {
   gradeMax: number | null
   onChange: (gradeMin: number | null, gradeMax: number | null) => void
   error?: string
+  /**
+   * Story 1.85: over plan while the limit is enforced, an edit can only narrow: the lists hold only
+   * the saved range, without "Any" (search-form-over-plan.html)
+   */
+  narrowTo?: { min: number; max: number } | null
+  /** Story 1.85: the hint or slots alert under the dropdowns, read with them */
+  describedBy?: string
+  /** Story 1.85: drawn under the dropdowns, inside the Grade group (the hint, the slots alert) */
+  children?: React.ReactNode
 }
 
 /**
@@ -44,16 +60,21 @@ export function GradeRangeSelector({
   gradeMax,
   onChange,
   error,
+  narrowTo = null,
+  describedBy,
+  children,
 }: GradeRangeSelectorProps) {
   // Auto-correction per Product Owner requirements: a Minimum above the Maximum moves the Maximum up
   // to it, and the reverse. "Any" (null) on either side is never corrected.
   const handleGradeMinChange = (newMin: number | null) => {
-    const adjustedMax = newMin !== null && gradeMax !== null && newMin > gradeMax ? newMin : gradeMax
+    const adjustedMax =
+      newMin !== null && gradeMax !== null && newMin > gradeMax ? newMin : gradeMax
     onChange(newMin, adjustedMax)
   }
 
   const handleGradeMaxChange = (newMax: number | null) => {
-    const adjustedMin = newMax !== null && gradeMin !== null && newMax < gradeMin ? newMax : gradeMin
+    const adjustedMin =
+      newMax !== null && gradeMin !== null && newMax < gradeMin ? newMax : gradeMin
     onChange(adjustedMin, newMax)
   }
 
@@ -65,13 +86,21 @@ export function GradeRangeSelector({
   const offList = (grade: number | null) =>
     grade !== null && !(grades ?? []).some((g) => g.value.toFixed(1) === valueOf(grade))
 
+  // Story 1.85: compared at one decimal, as the values are written
+  const tenths = (g: number) => Math.round(Number(g) * 10)
+  const listed = narrowTo
+    ? (grades ?? []).filter(
+        (g) => tenths(g.value) >= tenths(narrowTo.min) && tenths(g.value) <= tenths(narrowTo.max)
+      )
+    : (grades ?? [])
+
   const options = (side: 'min' | 'max', current: number | null) => (
     <>
-      <option value="">Any</option>
+      {!narrowTo && <option value="">Any</option>}
       {offList(current) && (
         <option value={valueOf(current)}>{valueOf(current)} - not a standard grade</option>
       )}
-      {(grades ?? []).map((g) => (
+      {listed.map((g) => (
         <option key={`${side}-${g.value}`} value={g.value.toFixed(1)}>
           {g.label}
         </option>
@@ -93,6 +122,7 @@ export function GradeRangeSelector({
             <SelectWrap>
               <select
                 aria-label="Minimum grade"
+                aria-describedby={describedBy}
                 aria-invalid={error ? true : undefined}
                 value={valueOf(gradeMin)}
                 onChange={(e) => handleGradeMinChange(parse(e.target.value))}
@@ -110,6 +140,7 @@ export function GradeRangeSelector({
             <SelectWrap>
               <select
                 aria-label="Maximum grade"
+                aria-describedby={describedBy}
                 aria-invalid={error ? true : undefined}
                 value={valueOf(gradeMax)}
                 onChange={(e) => handleGradeMaxChange(parse(e.target.value))}
@@ -130,7 +161,9 @@ export function GradeRangeSelector({
               <strong className="font-semibold text-ink">{savedGradeText}</strong>
               <span className="text-muted-foreground">
                 saved grade
-                {savedSlots !== undefined ? `, ${savedSlots} ${savedSlots === 1 ? 'slot' : 'slots'}` : ''}
+                {savedSlots !== undefined
+                  ? `, ${savedSlots} ${savedSlots === 1 ? 'slot' : 'slots'}`
+                  : ''}
               </span>
             </p>
           )}
@@ -156,6 +189,8 @@ export function GradeRangeSelector({
           </div>
         </>
       )}
+
+      {children}
 
       {error && <p className={FIELD_ERROR}>{error}</p>}
     </div>

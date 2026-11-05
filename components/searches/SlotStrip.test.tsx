@@ -148,10 +148,10 @@ describe('SlotStrip', () => {
     expect(slotSentence(held).text).toBe('None in use while your searches are on hold.')
   })
 
-  it('no plan, no strip; no "View plan" until the plan page exists', () => {
+  it('no plan, no strip; with one, "View plan" leads to the plan page (Story 1.85)', () => {
     const { container } = render(<SlotStrip account={{ ...base, plan: null }} />)
     expect(container).toBeEmptyDOMElement()
     render(<SlotStrip account={base} />)
-    expect(screen.queryByRole('link', { name: 'View plan' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'View plan' })).toHaveAttribute('href', '/plan')
   })
 })

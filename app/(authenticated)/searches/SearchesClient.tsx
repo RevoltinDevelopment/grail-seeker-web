@@ -6,18 +6,17 @@ import Link from 'next/link'
 
 import { AttentionBanner } from '@/components/searches/AttentionBanner'
 import { LatestMatches } from '@/components/searches/LatestMatches'
-import { SearchCard } from '@/components/searches/SearchCard'
+import { independentShopsOf, SearchCard } from '@/components/searches/SearchCard'
 import { SlotStrip } from '@/components/searches/SlotStrip'
 import { useToast } from '@/contexts/ToastContext'
 import { useAccountSummary } from '@/hooks/useAccountSummary'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearches } from '@/hooks/useSearches'
 import { APIError } from '@/lib/api/client'
-import { chooseBanner } from '@/lib/attention'
+import { chooseBanner, NUDGE_DISMISS_KEY } from '@/lib/attention'
 import { searchesSummary } from '@/lib/utils/searches-summary'
 
 // The marketplace nudge's dismissal lasts the browser session, as it did on the Dashboard.
-const NUDGE_DISMISS_KEY = 'platform-nudge-dismissed'
 
 /** Pause met a hold (Story 1.83, AC 4; searches-pause-held.html). */
 export function refusedPauseWords(
@@ -38,13 +37,7 @@ export default function SearchesClient() {
   const { searches, isLoading, error, deleteSearch, updateSearchStatus } = useSearches()
   const { account, isLoading: accountLoading, error: accountError } = useAccountSummary()
   const { groups, defaultEnabledSlugs } = usePlatforms()
-  const indieGroup = groups.find((g) => g.label !== 'Core')
-  const independentShops = indieGroup
-    ? {
-        label: 'Independent shops',
-        shops: indieGroup.platforms.map((p) => ({ slug: p.slug, name: p.displayName })),
-      }
-    : null
+  const independentShops = independentShopsOf(groups)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [refused, setRefused] = useState<Record<string, string>>({})
   const [nudgeDismissed, setNudgeDismissed] = useState(true) // hidden until read, so it never flashes

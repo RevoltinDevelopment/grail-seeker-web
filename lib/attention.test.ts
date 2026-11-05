@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { chooseBanner, daysLeft, type BannerInput } from './attention'
+import { chooseBanner, daysLeft, listBanners, type BannerInput } from './attention'
 
 import type { AccountSummary } from './api/account'
 
@@ -373,8 +373,25 @@ describe('chooseBanner', () => {
     })
   })
 
-  it("buttons for pages not built yet are not shown; the nudge's is", () => {
-    expect(chooseBanner(input({ account: eight }))!.action).toBeNull()
+  it("buttons for pages not built yet are not shown (the pick screen, S-12); the plan page's and the nudge's are", () => {
+    const pick = {
+      ...eight,
+      change: {
+        kind: 'pick_needed' as const,
+        reason: 'reduce' as const,
+        dueAt: OCT27,
+        overdue: false,
+        slotsToFit: 5,
+        pickedSearchIds: null,
+      },
+    }
+    expect(chooseBanner(input({ account: pick }))!.action).toBeNull()
+    // Story 1.85: the plan page is built
+    expect(chooseBanner(input({ account: eight }))!.action).toEqual({
+      label: 'View plan',
+      href: '/plan',
+      filled: false,
+    })
     expect(
       chooseBanner(
         input({ searches: [{ id: 'a', isActive: true, platforms: ['ebay'], held: false }] })
@@ -395,6 +412,49 @@ describe('chooseBanner', () => {
       filled: false,
     })
     vi.doUnmock('@/lib/built-pages')
+  })
+})
+
+describe('listBanners (Story 1.85): every banner that applies, in order', () => {
+  it('lists a pick and the marketplace nudge, with chooseBanner the first of them', () => {
+    const i = input({
+      account: {
+        ...eight,
+        change: {
+          kind: 'pick_needed',
+          reason: 'reduce',
+          dueAt: OCT27,
+          overdue: false,
+          slotsToFit: 5,
+          pickedSearchIds: null,
+        },
+      },
+      searches: [{ id: 'a', isActive: true, platforms: ['ebay'], held: false }],
+    })
+    expect(listBanners(i).map((b) => b.state)).toEqual([5, 9])
+    expect(chooseBanner(i)?.state).toBe(5)
+  })
+
+  it('is empty when nothing applies', () => {
+    expect(listBanners(input())).toEqual([])
+    expect(chooseBanner(input())).toBeNull()
+  })
+
+  it('never lists both forms of state 5', () => {
+    const i = input({
+      account: {
+        ...eight,
+        change: {
+          kind: 'pick_needed',
+          reason: 'return',
+          dueAt: null,
+          overdue: false,
+          slotsToFit: 5,
+          pickedSearchIds: null,
+        },
+      },
+    })
+    expect(listBanners(i).filter((b) => b.state === 5)).toHaveLength(1)
   })
 })
 

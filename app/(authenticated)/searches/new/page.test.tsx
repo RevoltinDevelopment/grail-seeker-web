@@ -46,12 +46,68 @@ vi.mock('@/components/search/IssueSelector', () => ({
 }))
 
 vi.mock('@/components/search/GradeRangeSelector', () => ({
-  GradeRangeSelector: ({ grades, failed }: { grades: { label: string }[] | null; failed?: boolean }) => (
-    <div data-testid="grade-range" data-failed={failed ? 'yes' : 'no'}>
-      {(grades ?? []).map((g) => g.label).join('|')}
+  GradeRangeSelector: ({
+    grades,
+    failed,
+    onChange,
+    children,
+  }: {
+    grades: { label: string }[] | null
+    failed?: boolean
+    onChange: (min: number | null, max: number | null) => void
+    children?: React.ReactNode
+  }) => (
+    <div>
+      <div data-testid="grade-range" data-failed={failed ? 'yes' : 'no'}>
+        {(grades ?? []).map((g) => g.label).join('|')}
+      </div>
+      <button type="button" onClick={() => onChange(9.4, 9.8)}>
+        Choose 9.4 to 9.8
+      </button>
+      {children}
     </div>
   ),
 }))
+
+// Story 1.85: the account, for the slots; none by default (an account with no plan sees no badge)
+vi.mock('@/hooks/useAccountSummary', () => ({
+  ACCOUNT_SUMMARY_KEY: ['account-summary'],
+  useAccountSummary: vi.fn(),
+}))
+
+const invalidateQueries = vi.fn()
+vi.mock('@tanstack/react-query', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
+  useQueryClient: () => ({ invalidateQueries }),
+}))
+
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { useAccountSummary } from '@/hooks/useAccountSummary'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import type { AccountSummary } from '@/lib/api/account'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { APIError } from '@/lib/api/client'
+
+function mockAccount(account: Partial<AccountSummary> | null, slots = { entitled: 10, inUse: 6, free: 4, over: 0 }) {
+  vi.mocked(useAccountSummary).mockReturnValue({
+    account: account
+      ? {
+          plan: { code: 'collector', name: 'Collector', includedSlots: 10, textsIncluded: true },
+          addonSlots: 0,
+          status: 'active',
+          slots,
+          searches: [],
+          heldSearches: [],
+          change: null,
+          enforcement: 'enforce',
+          ...account,
+        }
+      : null,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useAccountSummary>)
+}
 
 vi.mock('@/hooks/useGrades', () => ({
   useGrades: vi.fn(),
@@ -74,6 +130,7 @@ function mockUseGrades(state: 'loaded' | 'loading' | 'failed') {
 beforeEach(() => {
   vi.clearAllMocks()
   mockUseGrades('loaded')
+  mockAccount(null)
 })
 
 vi.mock('@/components/search/CriteriaHelperText', () => ({
@@ -184,5 +241,95 @@ describe('CreateSearchPage — grades from the API (Story 1.84)', () => {
     expect(screen.getByText('Graded by')).toBeInTheDocument()
     expect(screen.getByText('Page Quality')).toBeInTheDocument()
     expect(screen.getByText('Maximum Price')).toBeInTheDocument()
+  })
+})
+
+describe('CreateSearchPage — slots (Story 1.85, S-10)', () => {
+  function completeTheForm() {
+    fireEvent.click(screen.getByRole('button', { name: 'Choose series' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Choose issue' }))
+  }
+
+  it('shows the badge with the free slots, and the cost of every grade under Grade', () => {
+    mockAccount({})
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    expect(screen.getByRole('group', { name: 'Search slots: 4 available' })).toHaveTextContent('Search Slots4Available')
+    expect(screen.getByText('A search in every grade would use 2 slots')).toBeInTheDocument()
+  })
+
+  it('an account with no plan sees no badge', () => {
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    expect(screen.queryByRole('group', { name: /Search slots/ })).not.toBeInTheDocument()
+  })
+
+  it('at enforce, Save on an untouched grade that does not fit is not sent, and says why in the agreed words', async () => {
+    mockAccount({}, { entitled: 10, inUse: 9, free: 1, over: 0 })
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('platform-selector')).toHaveTextContent('ebay'))
+    completeTheForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Save Search' }))
+    const notice = await screen.findByRole('alert', { name: 'Your search is not saved yet' })
+    expect(notice).toHaveTextContent(
+      'This search needs 2 slots and you have 1 free. Choose fewer grades, or delete a search you no longer need.'
+    )
+    expect(notice).toHaveTextContent('Everything you entered is still here.')
+    expect(screen.getByRole('link', { name: 'Manage slots' })).toHaveAttribute('href', '/plan')
+    expect(mutateAsync).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Save Search' })).toHaveAccessibleDescription(
+      'Every grade needs more slots than you have free.'
+    )
+  })
+
+  it("shows a refusal from the server in its words, reads the account again, and clears it when the grade changes", async () => {
+    mockAccount({ enforcement: 'observe' })
+    mutateAsync.mockRejectedValueOnce(
+      new APIError(409, 'SLOT_LIMIT_EXCEEDED', 'This search needs 2 slots and you have 1 free. Choose fewer grades, or delete a search you no longer need.', undefined, {
+        reason: 'no_room',
+        needed: 2,
+        available: 1,
+        inUse: 9,
+        entitled: 10,
+      })
+    )
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('platform-selector')).toHaveTextContent('ebay'))
+    completeTheForm()
+    fireEvent.click(screen.getByRole('button', { name: 'Save Search' }))
+    expect(await screen.findByRole('alert', { name: 'Your search is not saved yet' })).toHaveTextContent(
+      'This search needs 2 slots and you have 1 free.'
+    )
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['account-summary'] })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose 9.4 to 9.8' }))
+    expect(screen.queryByRole('alert', { name: 'Your search is not saved yet' })).not.toBeInTheDocument()
+  })
+
+  it('over plan at enforce: the notice, and no form', () => {
+    mockAccount({ plan: { code: 'starter', name: 'Starter', includedSlots: 5, textsIncluded: true } }, { entitled: 5, inUse: 8, free: 0, over: 3 })
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    expect(screen.getByRole('region', { name: 'Your searches use more slots than your plan' })).toHaveTextContent(
+      'To add this search, first narrow or delete a search to make room.'
+    )
+    expect(screen.queryByRole('form')).not.toBeInTheDocument()
+    // As drawn: no badge without the form (code review)
+    expect(screen.queryByRole('group', { name: /Search slots/ })).not.toBeInTheDocument()
+  })
+
+  it('lapsed: Save cannot be pressed, and says why', async () => {
+    mockAccount({ status: 'lapsed', enforcement: 'observe' }, { entitled: 0, inUse: 0, free: 0, over: 0 })
+    mockUsePlatforms(['ebay'])
+    render(<CreateSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('platform-selector')).toHaveTextContent('ebay'))
+    completeTheForm()
+    expect(screen.getByRole('button', { name: 'Save Search' })).toHaveAccessibleDescription(
+      'Your searches are on hold, so a search cannot be added.'
+    )
+    fireEvent.submit(screen.getByRole('form', { name: 'Create New Search' }))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(mutateAsync).not.toHaveBeenCalled()
   })
 })

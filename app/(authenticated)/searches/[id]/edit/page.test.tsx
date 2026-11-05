@@ -15,9 +15,10 @@ vi.mock('next/navigation', () => ({
 }))
 
 const mutateAsync = vi.fn().mockResolvedValue({})
+const deleteAsync = vi.fn().mockResolvedValue({})
 vi.mock('@/hooks/useSearches', () => ({
   useSearch: vi.fn(),
-  useSearches: () => ({ updateSearch: { mutateAsync } }),
+  useSearches: () => ({ updateSearch: { mutateAsync }, deleteSearch: { mutateAsync: deleteAsync, isPending: false } }),
 }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
@@ -30,14 +31,65 @@ vi.mock('@/components/search/IssueSelector', () => ({
   IssueSelector: () => <div data-testid="issue-selector" />,
 }))
 vi.mock('@/components/search/GradeRangeSelector', () => ({
-  GradeRangeSelector: ({ onChange, failed }: { onChange: (a: number | null, b: number | null) => void; failed?: boolean }) => (
-    <div data-testid="grade-range" data-failed={failed ? 'yes' : 'no'}>
+  GradeRangeSelector: ({
+    onChange,
+    failed,
+    narrowTo,
+    children,
+  }: {
+    onChange: (a: number | null, b: number | null) => void
+    failed?: boolean
+    narrowTo?: { min: number; max: number } | null
+    children?: React.ReactNode
+  }) => (
+    <div data-testid="grade-range" data-failed={failed ? 'yes' : 'no'} data-narrow={narrowTo ? `${narrowTo.min}-${narrowTo.max}` : ''}>
       <button type="button" onClick={() => onChange(null, null)}>
         Choose Any
       </button>
+      {children}
     </div>
   ),
 }))
+
+// Story 1.85: the account, for the slots; none by default
+vi.mock('@/hooks/useAccountSummary', () => ({
+  ACCOUNT_SUMMARY_KEY: ['account-summary'],
+  useAccountSummary: vi.fn(),
+}))
+
+const invalidateQueries = vi.fn()
+vi.mock('@tanstack/react-query', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
+  useQueryClient: () => ({ invalidateQueries }),
+}))
+
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { useAccountSummary } from '@/hooks/useAccountSummary'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import type { AccountSummary } from '@/lib/api/account'
+// eslint-disable-next-line import/order -- must follow vi.mock() above
+import { APIError } from '@/lib/api/client'
+
+function mockAccount(account: Partial<AccountSummary> | null, slots = { entitled: 10, inUse: 6, free: 4, over: 0 }) {
+  vi.mocked(useAccountSummary).mockReturnValue({
+    account: account
+      ? {
+          plan: { code: 'collector', name: 'Collector', includedSlots: 10, textsIncluded: true },
+          addonSlots: 0,
+          status: 'active',
+          slots,
+          searches: [],
+          heldSearches: [],
+          change: null,
+          enforcement: 'enforce',
+          ...account,
+        }
+      : null,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useAccountSummary>)
+}
 
 vi.mock('@/hooks/useGrades', () => ({
   useGrades: vi.fn(),
@@ -48,7 +100,7 @@ import { useGrades } from '@/hooks/useGrades'
 
 function mockUseGrades(state: 'loaded' | 'loading' | 'failed') {
   vi.mocked(useGrades).mockReturnValue({
-    grades: state === 'loaded' ? [{ value: 9.4, label: '9.4 - Near Mint' }] : null,
+    grades: state === 'loaded' ? [{ value: 9.4, label: '9.4 - Near Mint' }, { value: 9.8, label: '9.8 - NM/M' }] : null,
     isLoading: state === 'loading',
     failed: state === 'failed',
     isRetrying: false,
@@ -83,7 +135,11 @@ function mockUsePlatforms(defaultEnabledSlugs: string[], isLoading = false) {
   })
 }
 
-function mockSearch(platforms: string[] | undefined, grades: { gradeMin: number | null; gradeMax: number | null } = { gradeMin: null, gradeMax: null }) {
+function mockSearch(
+  platforms: string[] | undefined,
+  grades: { gradeMin: number | null; gradeMax: number | null } = { gradeMin: null, gradeMax: null },
+  extra: Record<string, unknown> = {}
+) {
   vi.mocked(useSearch).mockReturnValue({
     data: {
       id: 'search-1',
@@ -98,6 +154,7 @@ function mockSearch(platforms: string[] | undefined, grades: { gradeMin: number 
       gradingAuthority: null,
       maxPrice: null,
       platforms,
+      ...extra,
     },
     isLoading: false,
   } as unknown as ReturnType<typeof useSearch>)
@@ -106,6 +163,7 @@ function mockSearch(platforms: string[] | undefined, grades: { gradeMin: number 
 beforeEach(() => {
   vi.clearAllMocks()
   mockUseGrades('loaded')
+  mockAccount(null)
 })
 
 describe('EditSearchPage — no-recorded-platforms fallback (Story 1.49)', () => {
@@ -182,5 +240,57 @@ describe('EditSearchPage — grades from the API (Story 1.84)', () => {
     expect(screen.getByRole('link', { name: 'Back to Searches' })).toHaveAttribute('href', '/searches')
     expect(screen.queryByRole('banner')).not.toBeInTheDocument()
     expect(screen.getByText('Graded by')).toBeInTheDocument()
+  })
+})
+
+describe('EditSearchPage — slots and holds (Story 1.85, S-10)', () => {
+  it('the badge counts the slots the search already uses: "Available to this search"', async () => {
+    mockAccount({})
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.4, gradeMax: 9.4 }, { slotsUsed: 3 })
+    render(<EditSearchPage />)
+    const badge = await screen.findByRole('group', { name: 'Search slots: 7 available to this search' })
+    expect(badge).toHaveTextContent('Search Slots7AvailableTo This Search')
+    expect(screen.getByText('9.4 = 1 slot')).toBeInTheDocument()
+  })
+
+  it('over plan at enforce: the grades can only narrow, and the notice says so', async () => {
+    mockAccount({}, { entitled: 5, inUse: 8, free: 0, over: 3 })
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.4, gradeMax: 9.4 }, { slotsUsed: 1 })
+    render(<EditSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('grade-range')).toHaveAttribute('data-narrow', '9.4-9.4'))
+    expect(screen.getByText('While your searches use more slots than your plan, the grades here can only narrow.')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Your searches use more slots than your plan' })).toHaveTextContent(
+      'You can still change anything on this search, and narrow its grade.'
+    )
+  })
+
+  it('a held search shows its held page: read-only, with Delete, and no form', async () => {
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.4, gradeMax: 9.4 }, { held: true, heldReason: 'downgrade', heldAt: '2026-10-03T13:00:00Z', isActive: true, slotsUsed: 1 })
+    render(<EditSearchPage />)
+    const notice = await screen.findByRole('region', { name: 'This search is on hold' })
+    expect(notice).toHaveTextContent('It does not fit your current plan, so it cannot be changed while it is on hold.')
+    expect(notice).toHaveTextContent('Nothing has been deleted, and its alerts are kept.')
+    expect(screen.queryByRole('form')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'View' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Airboy Comics')
+    fireEvent.click(screen.getByRole('button', { name: /^Delete / }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(deleteAsync).toHaveBeenCalledWith('search-1'))
+  })
+
+  it('Update Search meeting SEARCH_HELD shows "Your changes were not saved" and reads the search again', async () => {
+    mutateAsync.mockRejectedValueOnce(new APIError(409, 'SEARCH_HELD', 'This search is on hold.', undefined, { heldReason: 'lapse' }))
+    mockUsePlatforms(['ebay'])
+    mockSearch(['ebay'], { gradeMin: 9.4, gradeMax: 9.4 })
+    render(<EditSearchPage />)
+    await waitFor(() => expect(screen.getByTestId('platform-selector')).toHaveTextContent('ebay'))
+    fireEvent.click(screen.getByRole('button', { name: 'Update Search' }))
+    const notice = await screen.findByRole('alert', { name: 'Your changes were not saved' })
+    expect(notice).toHaveTextContent('Every search is on hold while your subscription is not active.')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['searches'] })
+    expect(screen.queryByRole('form')).not.toBeInTheDocument()
   })
 })

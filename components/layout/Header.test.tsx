@@ -8,6 +8,10 @@ const state = vi.hoisted(() => ({ unseen: 0, pathname: '/searches', logout: vi.f
 vi.mock('next/navigation', () => ({ usePathname: () => state.pathname }))
 vi.mock('@/hooks/useLogout', () => ({ useLogout: () => state.logout }))
 vi.mock('@/hooks/useUnseenAlerts', () => ({ useUnseenCount: () => state.unseen }))
+const account = vi.hoisted(() => ({ value: null as unknown }))
+vi.mock('@/hooks/useAccountSummary', () => ({
+  useAccountSummary: () => ({ account: account.value }),
+}))
 vi.mock('next/image', () => ({
   // eslint-disable-next-line @next/next/no-img-element -- a stand-in for next/image in tests
   default: (props: Record<string, unknown>) => <img alt="" {...props} />,
@@ -16,6 +20,7 @@ vi.mock('next/image', () => ({
 const user = { email: 'mary.kaplan@example.com' } as never
 
 beforeEach(() => {
+  account.value = null
   state.unseen = 0
   state.pathname = '/searches'
   state.logout.mockReset()
@@ -89,5 +94,28 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
     expect(state.logout).toHaveBeenCalled()
+  })
+
+  it('Story 1.85: the avatar menu leads to "Plan and slots", with the plan and the slots in use', () => {
+    account.value = {
+      plan: { code: 'collector', name: 'Collector', includedSlots: 10, textsIncluded: true },
+      status: 'active',
+      slots: { entitled: 10, inUse: 6, free: 4, over: 0 },
+    }
+    render(<Header user={user} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    const item = screen.getByRole('link', { name: /Plan and slots/ })
+    expect(item).toHaveAttribute('href', '/plan')
+    expect(item).toHaveTextContent('Plan and slotsCollector · 6 of 10')
+    const menu = screen.getByRole('navigation', { name: 'Account' })
+    const links = Array.from(menu.querySelectorAll('a')).map((a) => a.textContent)
+    expect(links[0]).toMatch(/^Plan and slots/)
+    expect(links[1]).toBe('Settings')
+  })
+
+  it('Story 1.85: no "Plan and slots" for an account with no plan', () => {
+    render(<Header user={user} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    expect(screen.queryByRole('link', { name: /Plan and slots/ })).not.toBeInTheDocument()
   })
 })

@@ -5,8 +5,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { useAccountSummary } from '@/hooks/useAccountSummary'
 import { useLogout } from '@/hooks/useLogout'
 import { useUnseenCount } from '@/hooks/useUnseenAlerts'
+import { BUILT_PAGES, PAGE_HREF } from '@/lib/built-pages'
 
 import type { User } from '@supabase/supabase-js'
 
@@ -14,7 +16,7 @@ import type { User } from '@supabase/supabase-js'
  * Story 1.82 (U-04): the app's header, as drawn (docs/ux/mockups/subscriber-experience/
  * searches-home.html, phone-menu.js; UX plan section 10). The chalice and wordmark lead to
  * Searches; from 700 pixels, Searches, Alerts with the count of new alerts, and Reports; the
- * avatar menu holds Settings and Log out. On a phone: the menu button (an X while open, a dot
+ * avatar menu holds "Plan and slots" (Story 1.85, for an account with a plan), Settings and Log out. On a phone: the menu button (an X while open, a dot
  * while there are new alerts), the wordmark centred, the avatar. On the design tokens throughout.
  */
 
@@ -58,6 +60,15 @@ export default function Header({ user }: HeaderProps) {
   const pathname = usePathname()
   const logout = useLogout()
   const unseen = useUnseenCount()
+  // Story 1.85 (plan-page-way-in.html): "Plan and slots", with the plan and the slots in use beneath
+  const { account } = useAccountSummary()
+  // Code review: through the built-pages switch, as every other way to the plan page
+  const planLine =
+    BUILT_PAGES.plan && account?.plan
+      ? account.status === 'lapsed'
+        ? `${account.plan.name} · on hold`
+        : `${account.plan.name} · ${account.slots.inUse} of ${account.slots.entitled}`
+      : null
   const [menuOpen, setMenuOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   const menuButton = useRef<HTMLButtonElement>(null)
@@ -209,6 +220,19 @@ export default function Header({ user }: HeaderProps) {
               <p className="truncate border-b border-line px-3 pb-2 pt-2.5 text-[13px] text-muted-foreground">
                 {user.email}
               </p>
+              {planLine && (
+                <Link
+                  href={PAGE_HREF.plan}
+                  onClick={() => setAvatarOpen(false)}
+                  aria-current={isCurrent(pathname, PAGE_HREF.plan) ? 'page' : undefined}
+                  className={`flex min-h-11 flex-col justify-center rounded-button px-3 py-1.5 text-[15px] font-semibold text-ink no-underline ${
+                    isCurrent(pathname, PAGE_HREF.plan) ? 'bg-primary-tint' : 'hover:bg-chip'
+                  }`}
+                >
+                  <span>Plan and slots</span>
+                  <span className="text-[13px] font-normal text-muted-foreground">{planLine}</span>
+                </Link>
+              )}
               <Link
                 href="/settings"
                 onClick={() => setAvatarOpen(false)}

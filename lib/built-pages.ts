@@ -4,7 +4,7 @@
  * not exist). S-10 switches the plan page on; S-12 the pick screen.
  */
 export const BUILT_PAGES = {
-  plan: false, // S-10: /plan
+  plan: true, // S-10 (Story 1.85): /plan
   pick: false, // S-12: /plan/choose
 } as const
 

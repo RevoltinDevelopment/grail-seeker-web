@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { CriteriaHelperText } from '@/components/search/CriteriaHelperText'
 import { GradeRangeSelector } from '@/components/search/GradeRangeSelector'
@@ -16,10 +17,14 @@ import {
   SubmitError,
 } from '@/components/search/SearchFormLayout'
 import { SeriesAutocomplete } from '@/components/search/SeriesAutocomplete'
+import { FormNotice, SlotBadge, SlotCount } from '@/components/search/SlotParts'
+import { ACCOUNT_SUMMARY_KEY, useAccountSummary } from '@/hooks/useAccountSummary'
 import { useGrades } from '@/hooks/useGrades'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearches } from '@/hooks/useSearches'
 import type { IssueSource } from '@/lib/api/issues'
+import { formSlots } from '@/lib/formSlots'
+import { readRefusal, type SlotRefusal } from '@/lib/slotRefusal'
 import type { ComicSeries } from '@/types/search.types'
 
 const EMPTY_ISSUE_VALUE: IssueSelectorValue = {
@@ -38,6 +43,9 @@ export default function CreateSearchPage() {
   const { defaultEnabledSlugs, isLoading: isLoadingPlatforms } = usePlatforms()
   // Story 1.84 (S-04): the grades come from the server; there is no list of our own to fall back to
   const grades = useGrades()
+  // Story 1.85 (S-10): the account's slots, for the badge, the hint and the slots alert
+  const { account, isLoading: isLoadingAccount, error: accountError } = useAccountSummary()
+  const queryClient = useQueryClient()
 
   const [selectedSeries, setSelectedSeries] = useState<ComicSeries | null>(null)
   const [issueValue, setIssueValue] = useState<IssueSelectorValue>(EMPTY_ISSUE_VALUE)
@@ -61,6 +69,25 @@ export default function CreateSearchPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Story 1.85: Save was pressed on a search that does not fit; a refusal the server sent
+  const [attempted, setAttempted] = useState(false)
+  const [refusal, setRefusal] = useState<SlotRefusal | null>(null)
+  // Code review: each Save draws its notice afresh, so the same refusal twice is announced twice
+  const [saveCount, setSaveCount] = useState(0)
+
+  const slots = formSlots({
+    mode: 'new',
+    grades: grades.grades,
+    account,
+    // Code review: a failed refresh with an account still in hand is not a failure to read it
+    accountFailed: !!accountError && !account,
+    savedSlots: 0,
+    savedRange: null,
+    gradeMin,
+    gradeMax,
+    attempted,
+    refusal,
+  })
 
   // Story 1.18: selectedSeries.type is now meaningfully 'series' |
   // 'aliasGroup' (Story 1.17's repurposed field) -- derive IssueSelector's
@@ -72,7 +99,10 @@ export default function CreateSearchPage() {
   const issueSource: IssueSource | null = useMemo(
     () =>
       selectedSeries
-        ? { kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series', id: selectedSeries.id }
+        ? {
+            kind: selectedSeries.type === 'aliasGroup' ? 'aliasGroup' : 'series',
+            id: selectedSeries.id,
+          }
         : null,
     [selectedSeries]
   )
@@ -140,8 +170,18 @@ export default function CreateSearchPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Code review: a refusal from an earlier Save is not this Save's
+    setRefusal(null)
+    setSaveCount((n) => n + 1)
 
-    if (!validateForm() || !grades.grades) {
+    if (!validateForm() || !grades.grades || account?.status === 'lapsed') {
+      return
+    }
+
+    // Story 1.85: a search the form already knows does not fit is not sent; the form says why, in
+    // the server's words (search-form.js: "the real form may ask the server; the words are the same")
+    if (slots.shortNow) {
+      setAttempted(true)
       return
     }
 
@@ -172,6 +212,14 @@ export default function CreateSearchPage() {
 
       router.push('/searches')
     } catch (error) {
+      // Story 1.85: a slot refusal is shown as drawn, with its details (need 21); the account's
+      // numbers were out of date, so they are read again
+      const refused = readRefusal(error)
+      if (refused?.kind === 'slot_limit') {
+        setRefusal(refused)
+        queryClient.invalidateQueries({ queryKey: ACCOUNT_SUMMARY_KEY })
+        return
+      }
       const message = error instanceof Error ? error.message : 'Failed to create search'
       setErrors({ submit: message })
     } finally {
@@ -179,7 +227,7 @@ export default function CreateSearchPage() {
     }
   }
 
-  if (grades.isLoading) {
+  if (grades.isLoading || isLoadingAccount) {
     return (
       <SearchFormPage>
         <SearchFormSkeleton label="Loading the search form" />
@@ -187,8 +235,33 @@ export default function CreateSearchPage() {
     )
   }
 
+  // Story 1.85: over plan while the limit is enforced, a new search cannot be added: the notice only
+  if (slots.blocked && slots.notice) {
+    return (
+      <SearchFormPage title="Create New Search" lede="What book are you seeking?">
+        {/* As drawn: no badge without the form (code review) */}
+        <FormNotice notice={slots.notice} />
+      </SearchFormPage>
+    )
+  }
+
+  const lapsed = account?.status === 'lapsed'
+  const why = lapsed
+    ? slots.why
+    : !grades.grades
+      ? // Story 1.84: a search can be saved once the grades have loaded (S-04 AC 2); handleSubmit checks too
+        'A search can be saved once the grades have loaded.'
+      : slots.why
+
   return (
-    <SearchFormPage title="Create New Search" lede="What book are you seeking?">
+    <SearchFormPage
+      title="Create New Search"
+      lede="What book are you seeking?"
+      aside={slots.badge !== null && <SlotBadge available={slots.badge} edit={false} />}
+    >
+      {slots.notice && (
+        <FormNotice key={`${saveCount}-${slots.notice.heading}`} notice={slots.notice} />
+      )}
       <SubmitError message={errors.submit} />
 
       <form onSubmit={handleSubmit} aria-label="Create New Search" className={FORM_CARD}>
@@ -227,7 +300,9 @@ export default function CreateSearchPage() {
                   only for the no-series-yet placeholder branch above,
                   the one case where IssueSelector doesn't render at
                   all to show it itself. */}
-              {errors.issueNumber && <p className="mt-1.5 text-[13px] text-danger">{errors.issueNumber}</p>}
+              {errors.issueNumber && (
+                <p className="mt-1.5 text-[13px] text-danger">{errors.issueNumber}</p>
+              )}
             </>
           )}
         </div>
@@ -244,9 +319,14 @@ export default function CreateSearchPage() {
           onChange={(min, max) => {
             setGradeMin(min)
             setGradeMax(max)
+            setAttempted(false)
+            setRefusal(null)
           }}
           error={errors.gradeRange}
-        />
+          describedBy="slot-count"
+        >
+          {!grades.failed && <SlotCount id="slot-count" hint={slots.hint} alert={slots.alert} />}
+        </GradeRangeSelector>
 
         <OtherCriteriaFields
           pageQuality={pageQuality}
@@ -259,10 +339,18 @@ export default function CreateSearchPage() {
           onMaxPriceBlur={handleMaxPriceBlur}
         />
 
-        <CriteriaHelperText pageQuality={pageQuality} gradingAuthority={gradingAuthority} maxPrice={maxPrice} />
+        <CriteriaHelperText
+          pageQuality={pageQuality}
+          gradingAuthority={gradingAuthority}
+          maxPrice={maxPrice}
+        />
 
         <div className="border-t border-line pt-6">
-          <PlatformSelector platforms={platforms} onChange={setPlatforms} error={errors.platforms} />
+          <PlatformSelector
+            platforms={platforms}
+            onChange={setPlatforms}
+            error={errors.platforms}
+          />
         </div>
 
         <SaveRow
@@ -270,8 +358,7 @@ export default function CreateSearchPage() {
           savingLabel="Saving..."
           isSubmitting={isSubmitting}
           disabled={!isFormValid()}
-          // Story 1.84: a search can be saved once the grades have loaded (S-04 AC 2); handleSubmit checks too
-          why={grades.grades ? undefined : 'A search can be saved once the grades have loaded.'}
+          why={why}
         />
       </form>
     </SearchFormPage>
