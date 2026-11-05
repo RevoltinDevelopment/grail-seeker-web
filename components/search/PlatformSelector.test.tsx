@@ -24,10 +24,16 @@ const CORE_PLATFORMS = [
   { slug: 'mycomicshop', displayName: 'MyComicShop', defaultEnabled: true },
 ]
 
+// Five shops: from five, the shops are gathered in the Independent Shops group (Mahan, 2026-11-05).
+// The last three are invented.
 const INDIE_PLATFORMS = [
   { slug: 'indie:bryscomics', displayName: "Bry's Comics", defaultEnabled: true },
   { slug: 'indie:comicbookaddiction', displayName: 'Comic Book Addiction', defaultEnabled: false },
+  { slug: 'indie:examplea', displayName: 'Example Shop A', defaultEnabled: false },
+  { slug: 'indie:exampleb', displayName: 'Example Shop B', defaultEnabled: false },
+  { slug: 'indie:examplec', displayName: 'Example Shop C', defaultEnabled: false },
 ]
+const ALL_INDIE_SLUGS = INDIE_PLATFORMS.map((p) => p.slug)
 
 const FLAT_NAMES: Record<string, string> = {
   ebay: 'eBay',
@@ -35,6 +41,9 @@ const FLAT_NAMES: Record<string, string> = {
   mycomicshop: 'MyComicShop',
   'indie:bryscomics': "Bry's Comics",
   'indie:comicbookaddiction': 'Comic Book Addiction',
+  'indie:examplea': 'Example Shop A',
+  'indie:exampleb': 'Example Shop B',
+  'indie:examplec': 'Example Shop C',
 }
 
 function mockGroups(groups: { label: string; platforms: typeof CORE_PLATFORMS }[]) {
@@ -59,10 +68,12 @@ describe('PlatformSelector', () => {
     it('renders all three Core checkboxes from the registry, not a hardcoded list', () => {
       mockGroups(CORE_ONLY)
       render(<PlatformSelector platforms={['ebay', 'heritage']} onChange={vi.fn()} />)
-      expect(screen.getByRole('checkbox', { name: /eBay \(Active\)/ })).toBeInTheDocument()
-      // Story 1.84: the subscriber's name, as on the search card, not the registry's "Heritage"
-      expect(screen.getByRole('checkbox', { name: 'Heritage Auctions (Active)' })).toBeInTheDocument()
-      const mcs = screen.getByRole('checkbox', { name: /MyComicShop \(Active\)/ })
+      expect(screen.getByRole('checkbox', { name: 'eBay' })).toBeInTheDocument()
+      // Story 1.84: the subscriber's name, as on the search card, not the registry's "Heritage";
+      // no "(Active)" (Mahan, 2026-11-05)
+      expect(screen.getByRole('checkbox', { name: 'Heritage Auctions' })).toBeInTheDocument()
+      expect(screen.queryByText(/\(Active\)/)).not.toBeInTheDocument()
+      const mcs = screen.getByRole('checkbox', { name: 'MyComicShop' })
       expect(mcs).toBeEnabled()
       expect(mcs).not.toBeChecked()
     })
@@ -141,17 +152,58 @@ describe('PlatformSelector', () => {
   })
 
   describe('More marketplaces coming soon (Story 1.84)', () => {
-    it('is always the last row, disabled, also when an independent shop is live', () => {
-      mockGroups([
-        { label: 'Core', platforms: CORE_PLATFORMS },
-        { label: 'Independent Shops', platforms: [{ slug: 'indie:example', displayName: 'Example Comics', defaultEnabled: true }] },
-      ])
+    it('is always the last row, disabled, also when independent shops are live', () => {
+      mockGroups(WITH_INDIE)
       render(<PlatformSelector platforms={['ebay']} onChange={vi.fn()} />)
       expect(screen.getByRole('checkbox', { name: /Toggle all/ })).toBeInTheDocument()
       const soon = screen.getByRole('checkbox', { name: 'More marketplaces coming soon' })
       expect(soon).toBeDisabled()
       const boxes = screen.getAllByRole('checkbox')
       expect(boxes[boxes.length - 1]).toBe(soon)
+    })
+  })
+
+  describe('Fewer than five independent shops (Mahan, 2026-11-05)', () => {
+    const FEW = [
+      { label: 'Core', platforms: CORE_PLATFORMS },
+      { label: 'Independent Shops', platforms: INDIE_PLATFORMS.slice(0, 4) },
+    ]
+
+    it('lists each shop on its own, with no Independent Shops group', () => {
+      mockGroups(FEW)
+      render(<PlatformSelector platforms={['ebay']} onChange={vi.fn()} />)
+      expect(screen.queryByRole('checkbox', { name: /Toggle all/ })).not.toBeInTheDocument()
+      expect(screen.queryByText('Independent Shops')).not.toBeInTheDocument()
+      for (const name of ["Bry's Comics", 'Comic Book Addiction', 'Example Shop A', 'Example Shop B']) {
+        expect(screen.getByRole('checkbox', { name })).toBeInTheDocument()
+      }
+      const names = screen.getAllByRole('checkbox').map((b) => b.closest('label')?.textContent ?? b.getAttribute('aria-label'))
+      expect(names).toEqual([
+        'eBay', 'Heritage Auctions', 'MyComicShop',
+        "Bry's Comics", 'Comic Book Addiction', 'Example Shop A', 'Example Shop B',
+        'More marketplaces coming soon',
+      ])
+    })
+
+    it('a listed shop turns off with the same confirmation as inside the group', async () => {
+      const user = userEvent.setup()
+      const onChange = vi.fn()
+      mockGroups(FEW)
+      render(<PlatformSelector platforms={['ebay', 'indie:bryscomics']} onChange={onChange} />)
+      await user.click(screen.getByRole('checkbox', { name: "Bry's Comics" }))
+      expect(screen.getByText(/turn off Bry's Comics/i)).toBeInTheDocument()
+      expect(screen.getByLabelText('Do not warn for independent stores')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Turn Off' }))
+      expect(onChange).toHaveBeenCalledWith(['ebay'])
+    })
+
+    it('a listed shop turns on with no confirmation', async () => {
+      const user = userEvent.setup()
+      const onChange = vi.fn()
+      mockGroups(FEW)
+      render(<PlatformSelector platforms={['ebay']} onChange={onChange} />)
+      await user.click(screen.getByRole('checkbox', { name: 'Example Shop A' }))
+      expect(onChange).toHaveBeenCalledWith(['ebay', 'indie:examplea'])
     })
   })
 
@@ -174,7 +226,7 @@ describe('PlatformSelector', () => {
       mockGroups(WITH_INDIE)
       render(<PlatformSelector platforms={['ebay', 'heritage', 'mycomicshop']} onChange={vi.fn()} />)
       expect(screen.getByText('Independent Shops')).toBeInTheDocument()
-      expect(screen.getByText('(2)')).toBeInTheDocument()
+      expect(screen.getByText('(5)')).toBeInTheDocument()
       expect(screen.queryByText("Bry's Comics")).not.toBeInTheDocument()
     })
 
@@ -198,7 +250,7 @@ describe('PlatformSelector', () => {
       mockGroups(WITH_INDIE)
       render(
         <PlatformSelector
-          platforms={['ebay', 'indie:bryscomics', 'indie:comicbookaddiction']}
+          platforms={['ebay', ...ALL_INDIE_SLUGS]}
           onChange={vi.fn()}
         />
       )
@@ -304,13 +356,16 @@ describe('PlatformSelector', () => {
       expect(onChange).toHaveBeenLastCalledWith(['ebay'])
       rerender(<PlatformSelector platforms={['ebay']} onChange={onChange} />)
 
-      // Now bring BOTH stores back active -- this genuinely resets the suppression
-      await user.click(screen.getByRole('checkbox', { name: "Bry's Comics" }))
-      rerender(<PlatformSelector platforms={['ebay', 'indie:bryscomics']} onChange={onChange} />)
-      await user.click(screen.getByRole('checkbox', { name: 'Comic Book Addiction' }))
+      // Now bring EVERY store back active, one by one -- the last one genuinely resets the suppression
+      const active = ['ebay']
+      for (const shop of INDIE_PLATFORMS) {
+        await user.click(screen.getByRole('checkbox', { name: shop.displayName }))
+        active.push(shop.slug)
+        rerender(<PlatformSelector platforms={[...active]} onChange={onChange} />)
+      }
       rerender(
         <PlatformSelector
-          platforms={['ebay', 'indie:bryscomics', 'indie:comicbookaddiction']}
+          platforms={['ebay', ...ALL_INDIE_SLUGS]}
           onChange={onChange}
         />
       )
@@ -328,7 +383,7 @@ describe('PlatformSelector', () => {
       const onChange = vi.fn()
       render(<PlatformSelector platforms={['ebay']} onChange={onChange} />)
       await user.click(screen.getByRole('checkbox', { name: /Toggle all Independent Shops/ }))
-      expect(onChange).toHaveBeenCalledWith(['ebay', 'indie:bryscomics', 'indie:comicbookaddiction'])
+      expect(onChange).toHaveBeenCalledWith(['ebay', ...ALL_INDIE_SLUGS])
     })
 
     it('turning the whole group off requires confirmation with aggregate copy, no suppress checkbox', async () => {
@@ -337,13 +392,13 @@ describe('PlatformSelector', () => {
       const onChange = vi.fn()
       render(
         <PlatformSelector
-          platforms={['ebay', 'indie:bryscomics', 'indie:comicbookaddiction']}
+          platforms={['ebay', ...ALL_INDIE_SLUGS]}
           onChange={onChange}
         />
       )
       await user.click(screen.getByRole('checkbox', { name: /Toggle all Independent Shops/ }))
       expect(onChange).not.toHaveBeenCalled()
-      expect(screen.getByText(/turn off all 2 Independent Shops/i)).toBeInTheDocument()
+      expect(screen.getByText(/turn off all 5 Independent Shops/i)).toBeInTheDocument()
       expect(screen.queryByRole('checkbox', { name: /do not warn/i })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: 'Turn Off' }))
@@ -355,7 +410,7 @@ describe('PlatformSelector', () => {
       const user = userEvent.setup()
       const onChange = vi.fn()
       render(
-        <PlatformSelector platforms={['indie:bryscomics', 'indie:comicbookaddiction']} onChange={onChange} />
+        <PlatformSelector platforms={ALL_INDIE_SLUGS} onChange={onChange} />
       )
       await user.click(screen.getByRole('checkbox', { name: /Toggle all Independent Shops/ }))
       expect(onChange).not.toHaveBeenCalled()
@@ -368,7 +423,7 @@ describe('PlatformSelector', () => {
       const onChange = vi.fn()
       const { rerender } = render(
         <PlatformSelector
-          platforms={['ebay', 'indie:bryscomics', 'indie:comicbookaddiction']}
+          platforms={['ebay', ...ALL_INDIE_SLUGS]}
           onChange={onChange}
         />
       )

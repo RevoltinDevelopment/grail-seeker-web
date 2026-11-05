@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { usePlatforms } from '@/hooks/usePlatforms'
-import { marketplaceLabel } from '@/lib/marketplaceNames'
+import { marketplaceLabel, NAME_SHOPS_BELOW } from '@/lib/marketplaceNames'
 
 import { BUTTON_OUTLINE, BUTTON_PRIMARY, CHECKBOX, DisclosureTriangle } from './formStyles'
 
@@ -56,6 +56,7 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
   const indieGroup = indieGroupRaw && indieGroupRaw.platforms.length > 0 ? indieGroupRaw : undefined
   const indiePlatforms = indieGroup?.platforms ?? []
   const indieSlugs = indiePlatforms.map((p) => p.slug)
+  const groupShops = indiePlatforms.length >= NAME_SHOPS_BELOW
   const activeIndieCount = indiePlatforms.filter((p) => platforms.includes(p.slug)).length
 
   // Code review fix: one shared predicate for the min-one-active rule
@@ -193,11 +194,27 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
               onChange={() => handleCoreToggle(p.slug, nameFor(p.slug))}
               className={CHECKBOX}
             />
-            {nameFor(p.slug)} (Active)
+            {nameFor(p.slug)}
           </label>
         ))}
 
-        {indieGroup && (
+        {/* Mahan, 2026-11-05: below five shops each is listed on its own, as the search card names them;
+            from five, the Independent Shops group gathers them */}
+        {indieGroup &&
+          !groupShops &&
+          indiePlatforms.map((p) => (
+            <label key={p.slug} className="flex min-h-touch items-center gap-2.5 text-[15px] text-ink">
+              <input
+                type="checkbox"
+                checked={platforms.includes(p.slug)}
+                onChange={() => handleIndieToggle(p.slug, nameFor(p.slug))}
+                className={CHECKBOX}
+              />
+              {p.displayName}
+            </label>
+          ))}
+
+        {indieGroup && groupShops && (
           <div>
             <div className="flex min-h-touch items-center gap-2.5">
               <input
@@ -243,7 +260,12 @@ export function PlatformSelector({ platforms, onChange, error }: PlatformSelecto
 
         {/* Story 1.84: always last, as drawn (search-form.js), whether or not a shop is live */}
         <label className="flex min-h-touch items-center gap-2.5 text-[15px] text-muted-foreground">
-          <input type="checkbox" disabled className={CHECKBOX} />
+          {/* Greyed, so it reads as a box nobody can tick (Mahan, 2026-11-05) */}
+          <input
+            type="checkbox"
+            disabled
+            className="h-5 w-5 flex-none cursor-not-allowed appearance-none rounded-[4px] border-[1.5px] border-line-strong bg-chip"
+          />
           More marketplaces coming soon
         </label>
       </div>

@@ -6,7 +6,7 @@ import { seriesAPI } from '@/lib/api/series'
 import { formatSeriesDisplay } from '@/lib/utils/series-formatter'
 import type { ComicSeries } from '@/types/search.types'
 
-import { FIELD, FIELD_ERROR, FIELD_HINT, FIELD_LABEL } from './formStyles'
+import { FIELD, FIELD_ERROR, FIELD_LABEL } from './formStyles'
 
 interface SeriesAutocompleteProps {
   value: ComicSeries | null
@@ -179,11 +179,6 @@ export function SeriesAutocomplete({
       />
       {error && <p className={FIELD_ERROR}>{error}</p>}
       {!error && value && <p className="mt-1.5 text-[13px] font-semibold text-ok">✓ Selected</p>}
-      {!error && !value && (
-        <p className={FIELD_HINT}>
-          Select series type (Annual, Giant-Size) from dropdown
-        </p>
-      )}
 
       {/* Dropdown Results */}
       {isOpen && (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 
-import { CORE_MARKETPLACES } from '@/lib/marketplaceNames'
+import { CORE_MARKETPLACES, NAME_SHOPS_BELOW } from '@/lib/marketplaceNames'
 import { formatGrade, formatIssueNumber, formatSeriesShort } from '@/lib/utils/series-formatter'
 
 import type { GrailSearch } from '@/types/search.types'
@@ -20,12 +20,9 @@ export interface IndependentShops {
   shops: readonly { slug: string; name: string }[]
 }
 
-/**
- * Below this many shops, the card names each shop a search covers ("Comic Book Addiction"); from
- * this many, one chip counts them ("Independent shops (3 of 5)"). Mahan, 2026-11-04: a name tells a
- * subscriber more than a count, and launch will likely have fewer than five.
- */
-export const NAME_SHOPS_BELOW = 5
+// Below NAME_SHOPS_BELOW shops the card names each shop a search covers; from it, one chip counts them
+// ("Independent shops (3 of 5)"). Shared with the search form (Story 1.84); re-exported for callers.
+export { NAME_SHOPS_BELOW }
 
 interface SearchCardProps {
   search: GrailSearch
