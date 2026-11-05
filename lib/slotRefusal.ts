@@ -56,3 +56,30 @@ export function readRefusal(error: unknown): SlotRefusal | HeldRefusal | null {
   }
   return null
 }
+
+/**
+ * Story 1.86: a pick the server refused (backend Story 1.76; numbers since Story 1.81).
+ *   does_not_fit  PICK_DOES_NOT_FIT (409): the kept searches use more than the plan gives now
+ *   invalid       PICK_INVALID (400): a search not the account's (deleted since), or named twice
+ *   not_needed    NO_PICK_NEEDED (409): the account has nothing to pick any more
+ */
+export interface PickRefusal {
+  kind: 'does_not_fit' | 'invalid' | 'not_needed'
+  keptSlots: number | null
+  slotsToFit: number | null
+}
+
+export function readPickRefusal(error: unknown): PickRefusal | null {
+  if (!(error instanceof APIError)) return null
+  const body = error.body ?? {}
+  const kind =
+    error.code === 'PICK_DOES_NOT_FIT'
+      ? 'does_not_fit'
+      : error.code === 'PICK_INVALID'
+        ? 'invalid'
+        : error.code === 'NO_PICK_NEEDED'
+          ? 'not_needed'
+          : null
+  if (!kind) return null
+  return { kind, keptSlots: count(body.keptSlots), slotsToFit: count(body.slotsToFit) }
+}

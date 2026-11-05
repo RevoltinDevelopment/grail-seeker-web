@@ -57,6 +57,20 @@ export interface AccountSummary {
   nextRoundAt?: string
 }
 
+/** Story 1.86: what a pick would do (POST /api/account/pick/preview); it changes nothing */
+export interface PickPreview {
+  fits: boolean
+  keptSlots: number
+  slotsToFit: number
+  searches: { searchId: string; slots: number; fate: SearchFate | string; fateAt: string | null }[]
+}
+
 export const accountAPI = {
   getEntitlement: () => apiClient.get<AccountSummary>('/api/account/entitlement'),
+  /** Story 1.86: keepSearchIds is the full list of the searches to keep running */
+  previewPick: (keepSearchIds: string[]) =>
+    apiClient.post<PickPreview>('/api/account/pick/preview', { keepSearchIds }),
+  /** Story 1.86: make the pick; answers the account as it now is */
+  pick: (keepSearchIds: string[]) =>
+    apiClient.post<AccountSummary>('/api/account/pick', { keepSearchIds }),
 }

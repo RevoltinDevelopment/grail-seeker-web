@@ -155,9 +155,16 @@ export function NarrowOnlyLine() {
 const TONE = {
   info: 'border border-line-strong bg-surface text-ink',
   hold: 'border-2 border-dashed border-hold-line bg-hold text-hold-ink',
+  // Story 1.86: .tone-attn
+  attention: 'border border-attention-line bg-attention text-attention-ink',
+} as const
+const ICON_TONE = {
+  info: 'text-info-icon',
+  hold: 'text-hold-line',
+  attention: 'text-attention-line',
 } as const
 
-const NoticeIcon = ({ tone }: { tone: FormNoticeModel['tone'] }) => (
+const NoticeIcon = ({ tone, icon }: { tone: FormNoticeModel['tone']; icon?: 'check' }) => (
   <svg
     width="24"
     height="24"
@@ -169,10 +176,20 @@ const NoticeIcon = ({ tone }: { tone: FormNoticeModel['tone'] }) => (
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    {tone === 'hold' ? (
+    {icon === 'check' ? (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12.5l3 3 5-6" />
+      </>
+    ) : tone === 'hold' ? (
       <>
         <rect x="5" y="11" width="14" height="10" rx="2" />
         <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </>
+    ) : tone === 'attention' ? (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
       </>
     ) : (
       <>
@@ -204,8 +221,8 @@ export function FormNotice({ notice }: { notice: FormNoticeModel }) {
         many ? '' : 'tablet:grid-cols-[auto_minmax(0,1fr)_auto]'
       } tablet:px-6 tablet:py-5 ${TONE[notice.tone]}`}
     >
-      <div className={`pt-0.5 ${notice.tone === 'hold' ? 'text-hold-line' : 'text-info-icon'}`}>
-        <NoticeIcon tone={notice.tone} />
+      <div className={`pt-0.5 ${ICON_TONE[notice.tone]}`}>
+        <NoticeIcon tone={notice.tone} icon={notice.icon} />
       </div>
       <div className="flex flex-col gap-2">
         <h2 className="text-[17px] font-bold leading-[1.3]">{notice.heading}</h2>
@@ -221,19 +238,22 @@ export function FormNotice({ notice }: { notice: FormNoticeModel }) {
             many ? '' : 'tablet:col-span-1 tablet:flex-col tablet:items-end tablet:justify-center'
           }`}
         >
-          {notice.actions.map((a) => (
-            <Link
-              key={a.label}
-              href={a.href}
-              className={`inline-flex min-h-touch items-center justify-center whitespace-nowrap rounded-button border-[1.5px] px-[18px] text-[15px] font-semibold no-underline ${
-                a.filled
-                  ? 'border-transparent bg-primary text-primary-foreground'
-                  : 'border-line-strong bg-surface text-ink'
-              }`}
-            >
-              {a.label}
-            </Link>
-          ))}
+          {notice.actions.map((a) => {
+            const cls = `inline-flex min-h-touch items-center justify-center whitespace-nowrap rounded-button border-[1.5px] px-[18px] text-[15px] font-semibold no-underline ${
+              a.filled
+                ? 'border-transparent bg-primary text-primary-foreground'
+                : 'border-line-strong bg-surface text-ink'
+            }`
+            return a.onClick ? (
+              <button key={a.label} type="button" onClick={a.onClick} className={cls}>
+                {a.label}
+              </button>
+            ) : (
+              <Link key={a.label} href={a.href} className={cls}>
+                {a.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </section>

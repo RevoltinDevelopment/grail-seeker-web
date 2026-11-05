@@ -346,6 +346,34 @@ describe('planMeter', () => {
     ])
   })
 
+  it('Story 1.86: a held search picked to return counts with what continues', () => {
+    const a = account({
+      plan: { code: 'starter', name: 'Starter', includedSlots: 5, textsIncluded: true },
+      slots: { entitled: 5, inUse: 6, free: 0, over: 1 },
+      heldSearches: [
+        {
+          searchId: 'h',
+          slots: 1,
+          heldReason: 'downgrade',
+          isActive: true,
+          fate: 'returns',
+          fateAt: NOV1,
+        },
+      ],
+      change: {
+        kind: 'downgrade_pending',
+        plan: { code: 'starter', name: 'Starter', includedSlots: 5 },
+        addonSlots: 0,
+        slots: 5,
+        effectiveAt: NOV1,
+        keepSearchIds: ['hulk', 'bat', 'h'],
+      },
+    })
+    const m = planMeter(a)
+    expect(m.inside).toEqual(['in', 'in', 'in', 'free', 'free'])
+    expect(m.legend[0].text).toBe('Continues · 3')
+  })
+
   it('over with nothing to choose: past the plan is over', () => {
     const a = account({ slots: { entitled: 5, inUse: 6, free: 0, over: 1 } })
     const m = planMeter(a)

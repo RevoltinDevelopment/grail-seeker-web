@@ -81,6 +81,11 @@ const config: Config = {
         rule: token('--rule'),
         'seg-other': token('--seg-other'),
         'info-icon': token('--info-icon'),
+        // Story 1.86 (S-12)
+        kept: {
+          DEFAULT: token('--kept-bg'),
+          line: token('--kept-line'),
+        },
 
         // shadcn's names, aliased onto the same variables, so components/ui/ takes the design.
         foreground: token('--ink'),

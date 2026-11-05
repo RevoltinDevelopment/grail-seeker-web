@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { APIError } from './api/client'
-import { readRefusal } from './slotRefusal'
+import { readPickRefusal, readRefusal } from './slotRefusal'
 
 describe('readRefusal (Story 1.85, need 21)', () => {
   it("keeps a slot refusal's reason and numbers, with the server's words", () => {
@@ -55,5 +55,30 @@ describe('readRefusal (Story 1.85, need 21)', () => {
   it('is null for anything else', () => {
     expect(readRefusal(new APIError(400, 'VALIDATION_ERROR', 'Bad'))).toBeNull()
     expect(readRefusal(new Error('x'))).toBeNull()
+  })
+})
+
+describe('readPickRefusal (Story 1.86)', () => {
+  it('reads the three pick refusals, with the numbers when given', () => {
+    expect(
+      readPickRefusal(
+        new APIError(409, 'PICK_DOES_NOT_FIT', 'x', undefined, { keptSlots: 5, slotsToFit: 4 })
+      )
+    ).toEqual({
+      kind: 'does_not_fit',
+      keptSlots: 5,
+      slotsToFit: 4,
+    })
+    expect(readPickRefusal(new APIError(400, 'PICK_INVALID', 'x', undefined, {}))).toEqual({
+      kind: 'invalid',
+      keptSlots: null,
+      slotsToFit: null,
+    })
+    expect(readPickRefusal(new APIError(409, 'NO_PICK_NEEDED', 'x'))?.kind).toBe('not_needed')
+  })
+
+  it('is null for anything else', () => {
+    expect(readPickRefusal(new APIError(500, 'DATABASE_ERROR', 'x'))).toBeNull()
+    expect(readPickRefusal(new Error('x'))).toBeNull()
   })
 })

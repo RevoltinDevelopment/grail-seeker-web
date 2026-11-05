@@ -10,7 +10,7 @@ import { useAccountSummary } from '@/hooks/useAccountSummary'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useSearches } from '@/hooks/useSearches'
 import { listBanners, NUDGE_DISMISS_KEY, type Banner } from '@/lib/attention'
-import { PAGE_HREF } from '@/lib/built-pages'
+import { BUILT_PAGES, PAGE_HREF } from '@/lib/built-pages'
 import {
   heldBackLine,
   planFacts,
@@ -108,6 +108,9 @@ const SEG: Record<MeterSeg, string> = {
 
 /** On the plan page an action that leads to the plan page itself is left out; "#..." is on Searches. */
 function actionOf(banner: Banner) {
+  // Story 1.86: a waiting downgrade's line offers "Change my choice", as drawn on the plan page
+  if (banner.state === 7 && BUILT_PAGES.pick)
+    return { label: 'Change my choice', href: PAGE_HREF.pick, filled: false }
   const a = banner.action
   if (!a || a.href === PAGE_HREF.plan) return null
   return { ...a, href: a.href.startsWith('#') ? `/searches${a.href}` : a.href }

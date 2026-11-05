@@ -194,7 +194,10 @@ export function planMeter(account: AccountSummary): PlanMeter {
         ? (change.pickedSearchIds ?? [])
         : []
   const chosen = keepList.length > 0
-  const kept = numbered.filter((s) => keepList.includes(s.searchId))
+  // Story 1.86 (carried from Story 1.85's review): a held search picked to return continues on the
+  // day too, so it counts with what is kept
+  const returning = account.heldSearches.filter((s) => s.fate === 'returns')
+  const kept = [...numbered.filter((s) => keepList.includes(s.searchId)), ...returning]
   const ordered = chosen
     ? [...kept, ...numbered.filter((s) => !keepList.includes(s.searchId))]
     : numbered

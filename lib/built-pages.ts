@@ -5,7 +5,7 @@
  */
 export const BUILT_PAGES = {
   plan: true, // S-10 (Story 1.85): /plan
-  pick: false, // S-12: /plan/choose
+  pick: true, // S-12 (Story 1.86): /plan/choose
 } as const
 
 export const PAGE_HREF = {

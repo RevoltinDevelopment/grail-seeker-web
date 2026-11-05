@@ -186,6 +186,28 @@ describe('PlanPage (Story 1.85, S-10)', () => {
     ).toBeInTheDocument()
   })
 
+  it('Story 1.86: a waiting downgrade offers Change my choice, to the pick screen', () => {
+    mock(
+      account({
+        slots: { entitled: 5, inUse: 4, free: 1, over: 0 },
+        change: {
+          kind: 'downgrade_pending',
+          plan: { code: 'starter', name: 'Starter', includedSlots: 5 },
+          addonSlots: 0,
+          slots: 5,
+          effectiveAt: '2026-11-01T04:00:00Z',
+          keepSearchIds: ['hulk'],
+        },
+      })
+    )
+    render(<PlanPage />)
+    const att = screen.getByRole('region', { name: 'Needs your attention' })
+    expect(within(att).getByRole('link', { name: 'Change my choice' })).toHaveAttribute(
+      'href',
+      '/plan/choose'
+    )
+  })
+
   it('Delete asks, then deletes', async () => {
     mock(account())
     render(<PlanPage />)

@@ -17,12 +17,17 @@ import { rangeLabel, slotsForRange, slotsWord } from '@/lib/slots'
 
 export interface NoticeAction {
   label: string
+  /** A link; or, with onClick, a button (Story 1.86: "Change my choice") */
   href: string
   filled: boolean
+  onClick?: () => void
 }
 
 export interface FormNoticeModel {
-  tone: 'info' | 'hold'
+  /** Story 1.86 adds 'attention' (the pick refused because the plan changed) */
+  tone: 'info' | 'hold' | 'attention'
+  /** Story 1.86: the tick, for a choice saved or nothing to choose */
+  icon?: 'check'
   /** 'alert' for something that just happened; 'region' for a standing state */
   role: 'alert' | 'region'
   heading: string

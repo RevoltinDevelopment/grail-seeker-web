@@ -1,5 +1,5 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -70,6 +70,10 @@
     --rule: 203 213 225; /* #cbd5e1 */
     --seg-other: 100 116 139; /* #64748b */
     --info-icon: 30 64 175; /* #1e40af */
+    /* Story 1.86 (S-12): a kept card on the pick screen */
+    --kept-bg: 239 246 255; /* #eff6ff */
+    --kept-line: 30 64 175; /* #1e40af */
+    --bar-shadow: 0 -6px 16px rgb(15 23 42 / 0.08);
 
     /* Corners: unchanged from before Story 1.79 (lg 10px, md 8px, sm 6px); the shadcn
        components read --radius-md directly. The design's own corners are the named
@@ -106,6 +110,9 @@
     --rule: 51 65 85; /* #334155 */
     --seg-other: 148 163 184; /* #94a3b8 */
     --info-icon: 147 197 253; /* #93c5fd */
+    --kept-bg: 23 37 84; /* #172554 */
+    --kept-line: 147 197 253; /* #93c5fd */
+    --bar-shadow: 0 -6px 16px rgb(0 0 0 / 0.45);
 
     color-scheme: dark;
   }
@@ -119,6 +126,11 @@
 
 @layer components {
   /* Story 1.83: a slot over the plan, hatched (the design's .seg.over) */
+  /* Story 1.86 (S-12): the pick screen's bar pinned to the bottom on a phone (--bar-shadow) */
+  .shadow-bar {
+    box-shadow: var(--bar-shadow);
+  }
+
   .seg-over {
     border-color: rgb(var(--over));
     background: repeating-linear-gradient(45deg, rgb(var(--over)) 0 2px, transparent 2px 5px);

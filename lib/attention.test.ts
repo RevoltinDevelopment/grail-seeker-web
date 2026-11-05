@@ -373,7 +373,7 @@ describe('chooseBanner', () => {
     })
   })
 
-  it("buttons for pages not built yet are not shown (the pick screen, S-12); the plan page's and the nudge's are", () => {
+  it('every page a banner leads to is built: the pick screen (Story 1.86), the plan page (Story 1.85), and the nudge', () => {
     const pick = {
       ...eight,
       change: {
@@ -385,7 +385,11 @@ describe('chooseBanner', () => {
         pickedSearchIds: null,
       },
     }
-    expect(chooseBanner(input({ account: pick }))!.action).toBeNull()
+    expect(chooseBanner(input({ account: pick }))!.action).toEqual({
+      label: 'Choose searches',
+      href: '/plan/choose',
+      filled: true,
+    })
     // Story 1.85: the plan page is built
     expect(chooseBanner(input({ account: eight }))!.action).toEqual({
       label: 'View plan',
