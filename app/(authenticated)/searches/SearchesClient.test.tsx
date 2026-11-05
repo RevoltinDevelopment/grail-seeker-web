@@ -1,287 +1,294 @@
 /**
- * Story 1.35: MyComicShop added as a third platform-status badge on each
- * search card, alongside the existing eBay and Heritage badges.
+ * The Searches page (Stories 1.82 and 1.83). The card, the slot strip, the banner's choice and
+ * Latest matches have their own tests; this is the page around them.
  */
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { AccountSummary } from '@/lib/api/account'
 import type { GrailSearch } from '@/types/search.types'
 
+const state = vi.hoisted(() => ({
+  searches: [] as unknown[],
+  error: null as unknown,
+  account: null as unknown,
+  accountLoading: false,
+  accountError: null as unknown,
+  toggle: vi.fn(),
+  invalidate: vi.fn(),
+  showToast: vi.fn(),
+}))
+
 vi.mock('@/hooks/useSearches', () => ({
-  useSearches: vi.fn(),
+  useSearches: () => ({
+    searches: state.searches,
+    isLoading: false,
+    error: state.error,
+    deleteSearch: { mutateAsync: vi.fn(), isPending: false },
+    updateSearchStatus: { mutateAsync: state.toggle, isPending: false, variables: undefined },
+  }),
 }))
-
+vi.mock('@/hooks/useAccountSummary', () => ({
+  useAccountSummary: () => ({
+    account: state.account,
+    isLoading: state.accountLoading,
+    error: state.accountError,
+  }),
+}))
 vi.mock('@/hooks/usePlatforms', () => ({
-  usePlatforms: vi.fn(),
+  usePlatforms: () => ({
+    groups: [{ label: 'Core', platforms: [] }],
+    defaultEnabledSlugs: ['ebay'],
+    displayNameFor: (s: string) => s,
+  }),
 }))
-
-// Story 1.82: the page now holds the toast listener and Latest matches (tested on its own)
-const toast = vi.hoisted(() => ({ showToast: vi.fn() }))
-vi.mock('@/contexts/ToastContext', () => ({ useToast: () => toast }))
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: state.invalidate }),
+}))
+vi.mock('@/contexts/ToastContext', () => ({ useToast: () => ({ showToast: state.showToast }) }))
 vi.mock('@/components/searches/LatestMatches', () => ({
   LatestMatches: () => <aside aria-label="Latest matches stand-in" />,
 }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
-import { useSearches } from '@/hooks/useSearches'
-// eslint-disable-next-line import/order -- must follow vi.mock() above
-import { usePlatforms } from '@/hooks/usePlatforms'
-import SearchesClient from './SearchesClient'
+import { APIError } from '@/lib/api/client'
+import SearchesClient, { refusedPauseWords } from './SearchesClient'
 
-const CORE_ONLY_GROUPS = [
-  {
-    label: 'Core',
-    platforms: [
-      { slug: 'ebay', displayName: 'eBay', defaultEnabled: true },
-      { slug: 'heritage', displayName: 'Heritage', defaultEnabled: true },
-      { slug: 'mycomicshop', displayName: 'MyComicShop', defaultEnabled: true },
-    ],
-  },
-]
-
-const WITH_INDIE_GROUPS = [
-  ...CORE_ONLY_GROUPS,
-  {
-    label: 'Independent Shops',
-    platforms: [
-      { slug: 'indie:bryscomics', displayName: "Bry's Comics", defaultEnabled: true },
-      { slug: 'indie:comicbookaddiction', displayName: 'Comic Book Addiction', defaultEnabled: false },
-    ],
-  },
-]
-
-function mockUsePlatforms(groups: typeof CORE_ONLY_GROUPS) {
-  vi.mocked(usePlatforms).mockReturnValue({
-    groups,
-    isLoading: false,
-    error: null,
-    displayNameFor: (slug: string) => slug,
-    defaultEnabledSlugs: [],
-  })
-}
-
-// Explicitly typed as GrailSearch (not just inferred) so tsc catches fixture
-// drift from the real shape -- found on adversarial review: an earlier
-// version of this fixture used a made-up `series.startYear`/`endYear` shape
-// instead of the real `series.yearRange` field formatSeriesShort() actually
-// reads, which silently rendered "3rd Series (undefined)" in the real DOM
-// with nothing catching it, since the `as unknown as` cast on the mocked
-// hook's return value (below) bypasses structural checking on this object.
-function makeSearch(platforms: string[], overrides: Partial<GrailSearch> = {}): GrailSearch {
+function search(id: string, over: Partial<GrailSearch> = {}): GrailSearch {
   return {
-    id: 'search-1',
-    userId: 'user-1',
+    id,
+    userId: 'u',
     series: {
-      id: 'series-1',
-      title: 'Airboy Comics',
-      volume: 3,
-      yearRange: '1945-1953',
+      id: 's',
+      title: 'X-Men',
+      volume: 1,
+      yearRange: '1963-1981',
       type: 'series',
-      publisher: 'Hillman',
+      publisher: 'Marvel',
     },
-    issueNumber: '2',
+    issueNumber: '94',
     issueId: null,
-    issueVolumeText: '3',
-    issuePublicationYear: 1946,
+    issueVolumeText: null,
+    issuePublicationYear: null,
     aliasGroupId: null,
     isActive: true,
     notificationsEnabled: true,
-    platforms,
-    maxPrice: null,
-    gradeMin: null,
-    gradeMax: null,
+    platforms: ['ebay'],
+    maxPrice: 3000,
+    gradeMin: 9.2,
+    gradeMax: 9.2,
     pageQuality: null,
-    gradingAuthority: null,
+    gradingAuthority: 'cbcs',
+    slotsUsed: 1,
     currentAlertCount: 0,
     archivedAlertCount: 0,
-    lastCheckedAt: '2026-08-29T12:00:00Z',
-    createdAt: '2026-08-29T00:00:00Z',
-    updatedAt: '2026-08-29T00:00:00Z',
-    ...overrides,
+    lastCheckedAt: null,
+    createdAt: '2026-10-01T00:00:00Z',
+    updatedAt: '2026-10-01T00:00:00Z',
+    ...over,
   }
 }
 
-function mockUseSearches(searches: GrailSearch[]) {
-  vi.mocked(useSearches).mockReturnValue({
-    searches,
-    isLoading: false,
-    error: null,
-    createSearch: { mutateAsync: vi.fn() },
-    updateSearch: { mutateAsync: vi.fn() },
-    deleteSearch: { mutateAsync: vi.fn() },
-    updateSearchStatus: { mutateAsync: vi.fn() },
-  } as unknown as ReturnType<typeof useSearches>)
+function account(over: Partial<AccountSummary> = {}): AccountSummary {
+  return {
+    plan: { code: 'starter', name: 'Starter', includedSlots: 5, textsIncluded: true },
+    addonSlots: 0,
+    status: 'active',
+    slots: { entitled: 5, inUse: 1, free: 4, over: 0 },
+    searches: [
+      {
+        searchId: 'a',
+        slots: 1,
+        firstSlot: 1,
+        lastSlot: 1,
+        isActive: true,
+        fate: 'continues',
+        fateAt: null,
+      },
+    ],
+    heldSearches: [],
+    change: null,
+    enforcement: 'observe',
+    ...over,
+  }
 }
 
-// Story 1.49: real registry response now required by every test in this
-// file, not just the new Independent Shops describe block -- default to a
-// Core-only registry so pre-existing tests need no per-test change; the new
-// describe block below overrides it explicitly where a second group matters.
 beforeEach(() => {
-  mockUsePlatforms(CORE_ONLY_GROUPS)
+  state.searches = [search('a')]
+  state.error = null
+  state.account = account()
+  state.accountLoading = false
+  state.accountError = null
+  state.toggle.mockReset()
+  state.invalidate.mockReset()
+  state.showToast.mockReset()
+  sessionStorage.clear()
 })
 
-describe('SearchesClient — MyComicShop badge (Story 1.35)', () => {
-  it('shows a checked, colored MyComicShop badge when the search includes it', () => {
-    mockUseSearches([makeSearch(['ebay', 'heritage', 'mycomicshop'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('MyComicShop ✓')).toBeInTheDocument()
-  })
-
-  it('renders the rest of the card correctly, not just the badges (guards against fixture drift)', () => {
-    mockUseSearches([makeSearch(['ebay', 'heritage', 'mycomicshop'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText(/Airboy Comics/)).toBeInTheDocument()
-    expect(screen.getByText('3rd Series (1945-1953)')).toBeInTheDocument()
-  })
-
-  it('shows an unchecked, grayed-out MyComicShop badge when the search does not include it (e.g. every search created before Story 1.34)', () => {
-    mockUseSearches([makeSearch(['ebay', 'heritage'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('MyComicShop')).toBeInTheDocument()
-    expect(screen.queryByText('MyComicShop ✓')).not.toBeInTheDocument()
-  })
-
-  it('eBay and Heritage badges still render correctly (regression)', () => {
-    mockUseSearches([makeSearch(['ebay'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('eBay ✓')).toBeInTheDocument()
-    expect(screen.getByText('Heritage')).toBeInTheDocument()
-    expect(screen.queryByText('Heritage ✓')).not.toBeInTheDocument()
-  })
-})
-
-describe('SearchesClient — "Last checked" footer, pre-first-check state', () => {
-  it('shows "Last checked" once a search has actually been checked', () => {
-    mockUseSearches([makeSearch(['ebay'], { lastCheckedAt: '2026-08-29T12:00:00Z' })])
-
-    render(<SearchesClient />)
-    expect(screen.getByText(/^Last checked:/)).toBeInTheDocument()
-  })
-
-  it('shows "First search runs" instead of an epoch date before the first check has happened', () => {
-    mockUseSearches([
-      makeSearch(['ebay'], { lastCheckedAt: null, nextScheduledRunAt: '2026-09-04T13:00:00.000Z' }),
-    ])
-
-    render(<SearchesClient />)
-    expect(screen.getByText(/^First search runs:/)).toBeInTheDocument()
-    expect(screen.queryByText(/^Last checked:/)).not.toBeInTheDocument()
-    // The original bug: new Date(null) renders as the Unix epoch.
-    expect(screen.queryByText(/1969/)).not.toBeInTheDocument()
-  })
-
-  it('falls back to a plain message if neither timestamp is available', () => {
-    mockUseSearches([makeSearch(['ebay'], { lastCheckedAt: null, nextScheduledRunAt: null })])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('Not yet checked')).toBeInTheDocument()
-  })
-})
-
-describe('SearchesClient — Independent Shops aggregate pill (Story 1.49)', () => {
-  it('renders no fourth pill at all when the registry has no non-Core group (today\'s real state)', () => {
-    mockUsePlatforms(CORE_ONLY_GROUPS)
-    mockUseSearches([makeSearch(['ebay'])])
-
-    render(<SearchesClient />)
-    expect(screen.queryByText(/Independent Shops/)).not.toBeInTheDocument()
-  })
-
-  it('shows a grey, unchecked pill when zero independent shops are active for this search', () => {
-    mockUsePlatforms(WITH_INDIE_GROUPS)
-    mockUseSearches([makeSearch(['ebay'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('Independent Shops')).toBeInTheDocument()
-    expect(screen.queryByText(/Independent Shops \(/)).not.toBeInTheDocument()
-  })
-
-  it('shows "Independent Shops (N) ✓" when every independent shop is active', () => {
-    mockUsePlatforms(WITH_INDIE_GROUPS)
-    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics', 'indie:comicbookaddiction'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('Independent Shops (2) ✓')).toBeInTheDocument()
-  })
-
-  it('shows "Independent Shops (N of M) ✓" when only some independent shops are active', () => {
-    mockUsePlatforms(WITH_INDIE_GROUPS)
-    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('Independent Shops (1 of 2) ✓')).toBeInTheDocument()
-  })
-
-  it('the three Core pills still render exactly as before, alongside the new pill (regression)', () => {
-    mockUsePlatforms(WITH_INDIE_GROUPS)
-    mockUseSearches([makeSearch(['ebay', 'indie:bryscomics'])])
-
-    render(<SearchesClient />)
-    expect(screen.getByText('eBay ✓')).toBeInTheDocument()
-    expect(screen.getByText('Heritage')).toBeInTheDocument()
-    expect(screen.getByText('MyComicShop')).toBeInTheDocument()
-  })
-})
-
-// Story 1.82 (U-04): the page around the cards
-describe('SearchesClient: the home page (Story 1.82)', () => {
-  it('says what the searches are doing under the title, and offers New search', () => {
-    vi.mocked(useSearches).mockReturnValue({
-      searches: [makeSearch(['ebay'], { isActive: true }), makeSearch(['ebay'], { id: 's2', isActive: false }), makeSearch(['ebay'], { id: 's3', isActive: true, held: true })],
-      isLoading: false,
-      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
-      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
-    } as never)
+describe('SearchesClient', () => {
+  it('the title line, a filled New search, the slot strip and the cards', () => {
+    state.searches = [
+      search('a'),
+      search('b', { isActive: false }),
+      search('c', { held: true, heldReason: 'downgrade' }),
+    ]
     render(<SearchesClient />)
     expect(screen.getByRole('heading', { level: 1, name: 'Searches' })).toBeInTheDocument()
     expect(screen.getByText('3 searches: 1 running, 1 paused, 1 on hold')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'New search' })).toHaveAttribute('href', '/searches/new')
+    expect(screen.getByRole('link', { name: 'New search' })).toHaveAttribute(
+      'href',
+      '/searches/new'
+    )
+    expect(screen.getByLabelText('Your slots')).toHaveTextContent('Starter plan')
+    expect(document.querySelectorAll('article[data-state]')).toHaveLength(3)
     expect(screen.getByLabelText('Latest matches stand-in')).toBeInTheDocument()
   })
 
-  it('welcomes an account with no searches', () => {
-    vi.mocked(useSearches).mockReturnValue({
-      searches: [],
-      isLoading: false,
-      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
-      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
-    } as never)
+  it('over the plan while the limit is enforced: banner 8, and New search is an outline button with its reason', () => {
+    state.account = account({
+      enforcement: 'enforce',
+      slots: { entitled: 5, inUse: 8, free: 0, over: 3 },
+      searches: [
+        {
+          searchId: 'a',
+          slots: 8,
+          firstSlot: 1,
+          lastSlot: 8,
+          isActive: true,
+          fate: 'continues',
+          fateAt: null,
+        },
+      ],
+    })
     render(<SearchesClient />)
-    expect(screen.queryByText('No searches yet')).toBeNull() // the card says it; the title line does not repeat it
-    expect(screen.getByRole('heading', { name: 'Start your first search' })).toBeInTheDocument()
-    expect(screen.getByText('Create your first grail search to start monitoring.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Create Search →' })).toHaveAttribute('href', '/searches/new')
+    expect(document.querySelector('[data-state="8"]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'New search' })).toBeDisabled()
+    expect(
+      screen.getByText('You can add a search once your searches fit your 5 slots.')
+    ).toBeInTheDocument()
   })
 
-  it('a failed load says so and never shows the welcome for an account with no searches', () => {
-    vi.mocked(useSearches).mockReturnValue({
-      searches: [],
-      isLoading: false,
-      error: new Error('down'),
-      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
-      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
-    } as never)
+  it('over the plan at observe: nothing is refused, so nothing says it is', () => {
+    state.account = account({ slots: { entitled: 5, inUse: 8, free: 0, over: 3 } })
+    render(<SearchesClient />)
+    expect(document.querySelector('[data-state="8"]')).toBeNull()
+    expect(screen.getByRole('link', { name: 'New search' })).toBeInTheDocument()
+  })
+
+  it('a lapsed account cannot add a search, whatever the switch says', () => {
+    state.account = account({
+      status: 'lapsed',
+      slots: { entitled: 0, inUse: 0, free: 0, over: 0 },
+    })
+    state.searches = [search('a', { held: true, heldReason: 'lapse' })]
+    render(<SearchesClient />)
+    expect(screen.getByRole('button', { name: 'New search' })).toBeDisabled()
+  })
+
+  it('no banner while the account is still loading, so a lower state never flashes first', () => {
+    state.account = null
+    state.accountLoading = true
+    state.searches = [search('a', { platforms: [] })]
+    render(<SearchesClient />)
+    expect(screen.queryByText('You may be missing matches')).toBeNull()
+  })
+
+  it('a failed account load says so', () => {
+    state.account = null
+    state.accountError = new Error('down')
+    render(<SearchesClient />)
+    expect(
+      screen.getByText('Your plan and slots could not be loaded. Refresh the page to try again.')
+    ).toBeInTheDocument()
+  })
+
+  it('the marketplace banner can be dismissed for the session', () => {
+    state.searches = [search('a', { platforms: [] })]
+    render(<SearchesClient />)
+    expect(screen.getByText('You may be missing matches')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByText('You may be missing matches')).toBeNull()
+    expect(sessionStorage.getItem('platform-nudge-dismissed')).toBe('true')
+  })
+
+  it('pause meeting a hold shows the refused line on that card, not an error', async () => {
+    state.toggle.mockRejectedValue(
+      new APIError(409, 'SEARCH_HELD', 'held', undefined, {
+        code: 'SEARCH_HELD',
+        heldReason: 'lapse',
+      })
+    )
+    render(<SearchesClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pause X-Men #94' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(refusedPauseWords('lapse'))
+    )
+    expect(state.showToast).not.toHaveBeenCalled()
+    // the list was out of date: it is read again, so the card shows the hold
+    expect(state.invalidate).toHaveBeenCalledWith({ queryKey: ['searches'] })
+    expect(state.invalidate).toHaveBeenCalledWith({ queryKey: ['account-summary'] })
+  })
+
+  it('the refused words follow the reason and the button pressed', () => {
+    expect(refusedPauseWords('lapse')).toBe(
+      'Not paused. This search went on hold before you pressed Pause, with every other search.'
+    )
+    expect(refusedPauseWords('downgrade')).toBe(
+      'Not paused. This search went on hold before you pressed Pause.'
+    )
+    expect(refusedPauseWords(undefined)).toBe(
+      'Not paused. This search went on hold before you pressed Pause.'
+    )
+    expect(refusedPauseWords('downgrade', 'Resume')).toBe(
+      'Not resumed. This search went on hold before you pressed Resume.'
+    )
+  })
+
+  it('another refusal is shown in the server\'s words, not "try again"', async () => {
+    state.toggle.mockRejectedValue(
+      new APIError(409, 'SLOT_LIMIT_EXCEEDED', 'Your plan has no free slot for this search.')
+    )
+    render(<SearchesClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pause X-Men #94' }))
+    await waitFor(() =>
+      expect(state.showToast).toHaveBeenCalledWith(
+        'Not saved',
+        'Your plan has no free slot for this search.',
+        'error',
+        6000
+      )
+    )
+  })
+
+  it("welcomes an account with no searches, in Mahan's words", () => {
+    state.searches = []
+    render(<SearchesClient />)
+    expect(screen.getByRole('heading', { name: 'Start your first search' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Create your first grail search to start monitoring.')
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Create Search →' })).toHaveAttribute(
+      'href',
+      '/searches/new'
+    )
+  })
+
+  it('a failed load says so and never shows the welcome', () => {
+    state.searches = []
+    state.error = new Error('down')
     render(<SearchesClient />)
     expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded')
     expect(screen.queryByText('Create Search →')).toBeNull()
   })
 
-  it('shows the new-match toast when a match is found while the page is open (moved from the Dashboard)', () => {
-    vi.mocked(useSearches).mockReturnValue({
-      searches: [],
-      isLoading: false,
-      deleteSearch: { mutateAsync: vi.fn(), isPending: false },
-      updateSearchStatus: { mutateAsync: vi.fn(), isPending: false },
-    } as never)
-    toast.showToast.mockReset()
+  it('shows the new-match toast when a match is found while the page is open', () => {
     render(<SearchesClient />)
     window.dispatchEvent(new CustomEvent('new-alert', { detail: {} }))
-    expect(toast.showToast).toHaveBeenCalledWith('New match found', expect.stringContaining('new match'), 'success', 8000)
+    expect(state.showToast).toHaveBeenCalledWith(
+      'New match found',
+      expect.stringContaining('new match'),
+      'success',
+      8000
+    )
   })
 })
-

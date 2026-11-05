@@ -48,6 +48,8 @@ export interface GrailSearch {
   gradingAuthority: string | null
   platforms: string[]
   isActive: boolean
+  // Story 1.72 (backend): the slots this search uses, one per standard grade in its range
+  slotsUsed?: number
   // Story 1.81 (backend): when the subscriber paused it; null while running, and for searches
   // paused before Migration 076.
   pausedAt?: string | null

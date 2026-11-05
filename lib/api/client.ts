@@ -30,7 +30,10 @@ class APIError extends Error {
     public status: number,
     public code: string,
     message: string,
-    public details?: unknown
+    public details?: unknown,
+    // Story 1.83: the server's whole error object, for fields beside code and message
+    // (SEARCH_HELD's heldReason, SLOT_LIMIT_EXCEEDED's numbers)
+    public body?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'APIError'
@@ -91,7 +94,8 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
       response.status,
       errorData.error?.code || 'API_ERROR',
       errorData.error?.message || 'An error occurred',
-      errorData.error?.details
+      errorData.error?.details,
+      errorData.error
     )
   }
 

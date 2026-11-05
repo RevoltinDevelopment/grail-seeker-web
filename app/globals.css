@@ -66,6 +66,10 @@
     --paused-bg: 238 242 246; /* #eef2f6 */
     --over: 180 83 9; /* #b45309 */
     --ok: 4 120 87; /* #047857 */
+    /* Story 1.83 (U-05): the card title's line, a paused slot, the information banner's icon */
+    --rule: 203 213 225; /* #cbd5e1 */
+    --seg-other: 100 116 139; /* #64748b */
+    --info-icon: 30 64 175; /* #1e40af */
 
     /* Corners: unchanged from before Story 1.79 (lg 10px, md 8px, sm 6px); the shadcn
        components read --radius-md directly. The design's own corners are the named
@@ -99,6 +103,9 @@
     --paused-bg: 11 17 32; /* #0b1120 */
     --over: 245 158 11; /* #f59e0b */
     --ok: 52 211 153; /* #34d399 */
+    --rule: 51 65 85; /* #334155 */
+    --seg-other: 148 163 184; /* #94a3b8 */
+    --info-icon: 147 197 253; /* #93c5fd */
 
     color-scheme: dark;
   }
@@ -111,6 +118,12 @@
 }
 
 @layer components {
+  /* Story 1.83: a slot over the plan, hatched (the design's .seg.over) */
+  .seg-over {
+    border-color: rgb(var(--over));
+    background: repeating-linear-gradient(45deg, rgb(var(--over)) 0 2px, transparent 2px 5px);
+  }
+
   /* Custom utility classes */
   /* The page frame (Story 1.82, Mahan 2026-11-04): the design's .wrap, the same as the header's,
      so every page's content lines up with the logo. Was max-w-7xl (1280px) with 16/24/32px sides. */

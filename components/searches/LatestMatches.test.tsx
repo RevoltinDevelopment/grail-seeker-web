@@ -4,20 +4,49 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LatestMatches } from './LatestMatches'
 
 // Story 1.82 (U-04): Latest matches, as drawn in searches-home.html.
-const state = vi.hoisted(() => ({ alerts: [] as unknown[], isLoading: false, error: null as unknown, reported: [] as string[][], useAlertsArgs: [] as unknown[] }))
+const state = vi.hoisted(() => ({
+  alerts: [] as unknown[],
+  isLoading: false,
+  error: null as unknown,
+  reported: [] as string[][],
+  useAlertsArgs: [] as unknown[],
+}))
 vi.mock('@/hooks/useAlerts', () => ({
   useAlerts: (...args: unknown[]) => {
     state.useAlertsArgs = args
     return { alerts: state.alerts, isLoading: state.isLoading, error: state.error }
   },
 }))
-vi.mock('@/hooks/usePlatforms', () => ({ usePlatforms: () => ({ displayNameFor: (slug: string) => ({ ebay: 'eBay', mycomicshop: 'MyComicShop' })[slug] ?? slug }) }))
-vi.mock('@/hooks/useUnseenAlerts', () => ({ useReportSeen: (ids: string[]) => state.reported.push(ids) }))
+vi.mock('@/hooks/usePlatforms', () => ({
+  usePlatforms: () => ({
+    displayNameFor: (slug: string) => ({ ebay: 'eBay', mycomicshop: 'MyComicShop' })[slug] ?? slug,
+  }),
+}))
+vi.mock('@/hooks/useUnseenAlerts', () => ({
+  useReportSeen: (ids: string[]) => state.reported.push(ids),
+}))
 
-const alert = (id: string, title: string, issue: string, grade: number | null, authority: string | null, price: number, platform: string) => ({
+const alert = (
+  id: string,
+  title: string,
+  issue: string,
+  grade: number | null,
+  authority: string | null,
+  price: number,
+  platform: string
+) => ({
   id,
   search: { series: { title, volume: 1 }, issueNumber: issue, issueVolumeText: null },
-  listing: { title: 'x', price, grade, gradingAuthority: authority, pageQuality: null, url: null, platform, ebayItemId: null },
+  listing: {
+    title: 'x',
+    price,
+    grade,
+    gradingAuthority: authority,
+    pageQuality: null,
+    url: null,
+    platform,
+    ebayItemId: null,
+  },
   createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
 })
 
@@ -50,7 +79,15 @@ describe('LatestMatches', () => {
   })
 
   it('an auction not yet started shows when it starts beside its placeholder price', () => {
-    state.alerts = [{ ...alert('m1', 'X-Men', '1', 9.0, 'CGC', 0, 'mycomicshop'), listing: { ...alert('m1', 'X-Men', '1', 9.0, 'CGC', 0, 'mycomicshop').listing, auctionStartTime: '2026-11-06T17:00:00Z' } }]
+    state.alerts = [
+      {
+        ...alert('m1', 'X-Men', '1', 9.0, 'CGC', 0, 'mycomicshop'),
+        listing: {
+          ...alert('m1', 'X-Men', '1', 9.0, 'CGC', 0, 'mycomicshop').listing,
+          auctionStartTime: '2026-11-06T17:00:00Z',
+        },
+      },
+    ]
     render(<LatestMatches />)
     expect(screen.getByText('CGC 9.0 · $0, auction starts Nov 6')).toBeInTheDocument()
   })
@@ -58,11 +95,15 @@ describe('LatestMatches', () => {
   it('a failed load says so, never "No matches yet"', () => {
     state.error = new Error('down')
     render(<LatestMatches />)
-    expect(screen.getByText("Your latest matches couldn't be loaded right now. Refresh the page to try again.")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Your latest matches couldn't be loaded right now. Refresh the page to try again."
+      )
+    ).toBeInTheDocument()
     expect(screen.queryByText(/No matches yet/)).toBeNull()
   })
 
-  it('with no matches: today\'s words, and nothing reported', () => {
+  it("with no matches: today's words, and nothing reported", () => {
     render(<LatestMatches />)
     expect(screen.getByText(/No matches yet/)).toBeInTheDocument()
     expect(state.reported.at(-1)).toEqual([])

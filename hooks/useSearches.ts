@@ -46,6 +46,7 @@ export function useSearches() {
 
             // Invalidate searches query to refetch
             queryClient.invalidateQueries({ queryKey: ['searches'] })
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] }) // Story 1.83: slots follow searches
           }
         )
         .subscribe()
@@ -66,6 +67,7 @@ export function useSearches() {
     mutationFn: (searchData: CreateSearchRequest) => searchesAPI.create(searchData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['searches'] })
+      queryClient.invalidateQueries({ queryKey: ['account-summary'] }) // Story 1.83: slots follow searches
     },
   })
 
@@ -75,6 +77,7 @@ export function useSearches() {
       searchesAPI.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['searches'] })
+      queryClient.invalidateQueries({ queryKey: ['account-summary'] }) // Story 1.83: slots follow searches
     },
   })
 
@@ -107,6 +110,7 @@ export function useSearches() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['searches'] })
+      queryClient.invalidateQueries({ queryKey: ['account-summary'] }) // Story 1.83: slots follow searches
     },
   })
 
@@ -116,6 +120,7 @@ export function useSearches() {
       searchesAPI.updateStatus(id, isActive),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['searches'] })
+      queryClient.invalidateQueries({ queryKey: ['account-summary'] }) // Story 1.83: slots follow searches
     },
   })
 

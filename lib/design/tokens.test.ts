@@ -32,6 +32,9 @@ const DESIGN: Record<string, [string, string]> = {
   'paused-bg': ['#eef2f6', '#0b1120'],
   over: ['#b45309', '#f59e0b'],
   ok: ['#047857', '#34d399'],
+  rule: ['#cbd5e1', '#334155'],
+  'seg-other': ['#64748b', '#94a3b8'],
+  'info-icon': ['#1e40af', '#93c5fd'],
 }
 
 type Rgb = [number, number, number]
@@ -86,6 +89,8 @@ const PAIRS: Array<[string, string, number]> = [
   ['hold-ink', 'hold-bg', 4.5],
   ['over', 'surface', 3],
   ['ok', 'surface', 3],
+  ['seg-other', 'surface', 3],
+  ['info-icon', 'surface', 3],
 ]
 
 describe('design tokens (Story 1.79)', () => {

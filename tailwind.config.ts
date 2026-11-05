@@ -77,6 +77,10 @@ const config: Config = {
         paused: token('--paused-bg'),
         over: token('--over'),
         ok: token('--ok'),
+        // Story 1.83 (U-05)
+        rule: token('--rule'),
+        'seg-other': token('--seg-other'),
+        'info-icon': token('--info-icon'),
 
         // shadcn's names, aliased onto the same variables, so components/ui/ takes the design.
         foreground: token('--ink'),
