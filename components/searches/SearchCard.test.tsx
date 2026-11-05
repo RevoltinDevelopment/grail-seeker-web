@@ -42,7 +42,10 @@ function search(over: Partial<GrailSearch> = {}): GrailSearch {
 }
 const SHOPS = {
   label: 'Independent shops',
-  slugs: ['indie:a', 'indie:b', 'indie:c', 'indie:d', 'indie:e'],
+  shops: ['a', 'b', 'c', 'd', 'e'].map((x) => ({
+    slug: `indie:${x}`,
+    name: `Shop ${x.toUpperCase()}`,
+  })),
 }
 const handlers = {
   onToggle: vi.fn(),
@@ -140,6 +143,21 @@ describe('card helpers', () => {
     expect(gradeText(9.8, 9.8)).toBe('9.8')
     expect(gradeText(9, 9.4)).toBe('9.0 to 9.4')
     expect(gradeText(null, null)).toBe('Any')
+  })
+
+  it('fewer than five shops: each shop the search covers, by name (Mahan, 2026-11-04)', () => {
+    const two = {
+      label: 'Independent shops',
+      shops: [
+        { slug: 'indie:comicbookaddiction', name: 'Comic Book Addiction' },
+        { slug: 'indie:other', name: 'Other Comics' },
+      ],
+    }
+    expect(chipsFor({ platforms: ['ebay', 'indie:comicbookaddiction'] }, two)).toEqual([
+      'eBay',
+      'Comic Book Addiction',
+    ])
+    expect(chipsFor({ platforms: ['ebay'] }, two)).toEqual(['eBay'])
   })
 
   it('chips: Heritage Auctions by its full name, every shop as "(5)"', () => {

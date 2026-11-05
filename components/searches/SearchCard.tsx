@@ -15,8 +15,16 @@ import type { GrailSearch } from '@/types/search.types'
 
 export interface IndependentShops {
   label: string
-  slugs: readonly string[]
+  /** The shops, in the registry's order: each one's slug and its name for a subscriber */
+  shops: readonly { slug: string; name: string }[]
 }
+
+/**
+ * Below this many shops, the card names each shop a search covers ("Comic Book Addiction"); from
+ * this many, one chip counts them ("Independent shops (3 of 5)"). Mahan, 2026-11-04: a name tells a
+ * subscriber more than a count, and launch will likely have fewer than five.
+ */
+export const NAME_SHOPS_BELOW = 5
 
 interface SearchCardProps {
   search: GrailSearch
@@ -77,12 +85,16 @@ export function chipsFor(
   shops: IndependentShops | null
 ): string[] {
   const chips = CORE_CHIPS.filter((c) => search.platforms.includes(c.slug)).map((c) => c.label)
-  if (shops && shops.slugs.length > 0) {
-    const active = shops.slugs.filter((s) => search.platforms.includes(s)).length
-    if (active > 0)
+  if (shops && shops.shops.length > 0) {
+    const covered = shops.shops.filter((s) => search.platforms.includes(s.slug))
+    if (shops.shops.length < NAME_SHOPS_BELOW) {
+      chips.push(...covered.map((s) => s.name))
+    } else if (covered.length > 0) {
+      const total = shops.shops.length
       chips.push(
-        `${shops.label} (${active === shops.slugs.length ? active : `${active} of ${shops.slugs.length}`})`
+        `${shops.label} (${covered.length === total ? total : `${covered.length} of ${total}`})`
       )
+    }
   }
   return chips
 }

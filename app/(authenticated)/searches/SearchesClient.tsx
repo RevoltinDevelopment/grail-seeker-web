@@ -40,7 +40,10 @@ export default function SearchesClient() {
   const { groups, defaultEnabledSlugs } = usePlatforms()
   const indieGroup = groups.find((g) => g.label !== 'Core')
   const independentShops = indieGroup
-    ? { label: 'Independent shops', slugs: indieGroup.platforms.map((p) => p.slug) }
+    ? {
+        label: 'Independent shops',
+        shops: indieGroup.platforms.map((p) => ({ slug: p.slug, name: p.displayName })),
+      }
     : null
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [refused, setRefused] = useState<Record<string, string>>({})
