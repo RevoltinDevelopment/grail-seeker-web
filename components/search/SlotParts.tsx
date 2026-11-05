@@ -62,14 +62,21 @@ export function SlotCount({
   id,
   hint,
   alert,
+  final = false,
 }: {
   id: string
   hint: string | null
   alert: SlotAlert | null
+  /** The final cost (both grades chosen): bold and black, not muted (Mahan, 2026-11-05) */
+  final?: boolean
 }) {
   return (
     <div id={id} aria-live="polite">
-      {hint && !alert && <p className="mt-2.5 text-sm text-muted-foreground">{hint}</p>}
+      {hint && !alert && (
+        <p className={`mt-2.5 text-sm ${final ? 'font-bold text-ink' : 'text-muted-foreground'}`}>
+          {hint}
+        </p>
+      )}
       {alert && (
         <div className="mt-3 flex flex-col gap-2 rounded-[10px] border border-attention-line bg-attention px-3.5 py-3 text-attention-ink">
           <div className="flex items-start gap-2">

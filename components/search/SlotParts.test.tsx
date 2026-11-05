@@ -10,6 +10,14 @@ describe('SlotCount (Story 1.85)', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
+  it('the final cost is bold and black; a cost in progress stays muted (Mahan, 2026-11-05)', () => {
+    const { rerender } = render(<SlotCount id="c" hint="9.8 to 10.0 = 3 slots" alert={null} />)
+    expect(screen.getByText('9.8 to 10.0 = 3 slots')).toHaveClass('text-muted-foreground')
+    rerender(<SlotCount id="c" hint="9.8 to 9.9 = 2 slots" alert={null} final />)
+    expect(screen.getByText('9.8 to 9.9 = 2 slots')).toHaveClass('font-bold', 'text-ink')
+    expect(screen.getByText('9.8 to 9.9 = 2 slots')).not.toHaveClass('text-muted-foreground')
+  })
+
   it('draws the alert: its words, one block per slot either side of the limit, and the legend', () => {
     const { container } = render(
       <SlotCount

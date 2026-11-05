@@ -193,6 +193,15 @@ describe('formSlots: the slots alert, at enforce', () => {
   })
 })
 
+describe('formSlots: the final cost (Mahan, 2026-11-05)', () => {
+  it('is final only once both Minimum and Maximum are chosen', () => {
+    expect(formSlots(input()).hintFinal).toBe(false)
+    expect(formSlots(input({ gradeMin: 9.8 })).hintFinal).toBe(false)
+    expect(formSlots(input({ gradeMax: 9.8 })).hintFinal).toBe(false)
+    expect(formSlots(input({ gradeMin: 9.8, gradeMax: 9.9 })).hintFinal).toBe(true)
+  })
+})
+
 describe('formSlots: code review', () => {
   it('every grade chosen on purpose is not told to choose a Minimum and Maximum', () => {
     const r = formSlots(input({ gradeMin: 0.5, gradeMax: 10 }))

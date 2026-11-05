@@ -470,7 +470,14 @@ export default function EditSearchPage() {
           describedBy="slot-count"
         >
           {slots.narrowTo && !grades.failed && <NarrowOnlyLine />}
-          {!grades.failed && <SlotCount id="slot-count" hint={slots.hint} alert={slots.alert} />}
+          {!grades.failed && (
+            <SlotCount
+              id="slot-count"
+              hint={slots.hint}
+              alert={slots.alert}
+              final={slots.hintFinal}
+            />
+          )}
         </GradeRangeSelector>
 
         <OtherCriteriaFields

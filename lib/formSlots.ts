@@ -66,6 +66,8 @@ export interface FormSlotsInput {
 export interface FormSlots {
   badge: number | null
   hint: string | null
+  /** Both Minimum and Maximum are chosen: the hint is the final cost, in bold (Mahan, 2026-11-05) */
+  hintFinal: boolean
   alert: SlotAlert | null
   /** Why Save cannot be pressed, for slots or a hold; the page adds its own reasons */
   why: string | undefined
@@ -217,5 +219,15 @@ export function formSlots(input: FormSlotsInput): FormSlots {
     }
   }
 
-  return { badge, hint, alert, why, notice, narrowTo, blocked, shortNow }
+  return {
+    badge,
+    hint,
+    hintFinal: hint !== null && bothChosen,
+    alert,
+    why,
+    notice,
+    narrowTo,
+    blocked,
+    shortNow,
+  }
 }

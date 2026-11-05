@@ -325,7 +325,14 @@ export default function CreateSearchPage() {
           error={errors.gradeRange}
           describedBy="slot-count"
         >
-          {!grades.failed && <SlotCount id="slot-count" hint={slots.hint} alert={slots.alert} />}
+          {!grades.failed && (
+            <SlotCount
+              id="slot-count"
+              hint={slots.hint}
+              alert={slots.alert}
+              final={slots.hintFinal}
+            />
+          )}
         </GradeRangeSelector>
 
         <OtherCriteriaFields
