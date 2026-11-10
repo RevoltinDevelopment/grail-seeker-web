@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { AttentionBanner } from '@/components/searches/AttentionBanner'
 import { LatestMatches } from '@/components/searches/LatestMatches'
@@ -15,6 +16,7 @@ import { useSearches } from '@/hooks/useSearches'
 import { APIError } from '@/lib/api/client'
 import { chooseBanner, NUDGE_DISMISS_KEY } from '@/lib/attention'
 import { searchesSummary } from '@/lib/utils/searches-summary'
+import { WELCOME_TITLE, welcomeWordsFor } from '@/lib/welcome'
 
 // The marketplace nudge's dismissal lasts the browser session, as it did on the Dashboard.
 
@@ -43,10 +45,23 @@ export default function SearchesClient() {
   const [nudgeDismissed, setNudgeDismissed] = useState(true) // hidden until read, so it never flashes
   const { showToast } = useToast()
   const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const welcomed = useRef(false)
 
   useEffect(() => {
     setNudgeDismissed(sessionStorage.getItem(NUDGE_DISMISS_KEY) === 'true')
   }, [])
+
+  // The welcome toast (Story 1.89): once, for the arrival the address names, then the address is
+  // cleaned so a reload does not repeat it.
+  useEffect(() => {
+    const words = welcomeWordsFor(searchParams.get('welcome'))
+    if (!words || welcomed.current) return
+    welcomed.current = true
+    showToast(WELCOME_TITLE, words, 'success', 12000)
+    router.replace('/searches')
+  }, [searchParams, showToast, router])
 
   // The new-match toast (Story 1.82): Latest matches' realtime subscription raises 'new-alert'.
   useEffect(() => {

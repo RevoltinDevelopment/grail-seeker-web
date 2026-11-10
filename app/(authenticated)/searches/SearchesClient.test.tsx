@@ -17,6 +17,14 @@ const state = vi.hoisted(() => ({
   toggle: vi.fn(),
   invalidate: vi.fn(),
   showToast: vi.fn(),
+  query: '',
+  params: new URLSearchParams(),
+  replace: vi.fn(),
+}))
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => state.params,
+  useRouter: () => ({ replace: state.replace, push: vi.fn(), refresh: vi.fn() }),
 }))
 
 vi.mock('@/hooks/useSearches', () => ({
@@ -122,6 +130,9 @@ beforeEach(() => {
   state.toggle.mockReset()
   state.invalidate.mockReset()
   state.showToast.mockReset()
+  state.query = ''
+  state.params = new URLSearchParams()
+  state.replace.mockReset()
   sessionStorage.clear()
 })
 
@@ -290,5 +301,30 @@ describe('SearchesClient', () => {
       'success',
       8000
     )
+  })
+})
+
+// Story 1.89 (U-09): the welcome toast, by the way the person arrived
+describe('the welcome toast', () => {
+  it('an invited arrival shows the approved words once, and the address is cleaned', () => {
+    state.params = new URLSearchParams('welcome=invited')
+    render(<SearchesClient />)
+    expect(state.showToast).toHaveBeenCalledTimes(1)
+    expect(state.showToast).toHaveBeenCalledWith(
+      'Welcome to Grail Seeker',
+      "Your plan is ready. Build your first search and we'll check it against each of our marketplaces every day, morning and night, starting at the next check.",
+      'success',
+      12000
+    )
+    expect(state.replace).toHaveBeenCalledWith('/searches')
+  })
+
+  it('no marker, or one not known, shows nothing', () => {
+    render(<SearchesClient />)
+    expect(state.showToast).not.toHaveBeenCalled()
+    state.params = new URLSearchParams('welcome=anything')
+    render(<SearchesClient />)
+    expect(state.showToast).not.toHaveBeenCalled()
+    expect(state.replace).not.toHaveBeenCalled()
   })
 })

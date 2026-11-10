@@ -8,7 +8,7 @@ import { AuthTabs } from '@/components/auth/AuthTabs'
 import { HeroPanel } from '@/components/auth/HeroPanel'
 import { LogoLockup } from '@/components/auth/LogoLockup'
 import { SignInForm } from '@/components/auth/SignInForm'
-import { SignUpFlow } from '@/components/auth/SignUpFlow'
+import { WaitlistJoin } from '@/components/auth/WaitlistJoin'
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -35,11 +35,8 @@ function LoginContent() {
         <LogoLockup className="mb-6" />
         <AuthTabs activeTab={activeTab} className="mb-6" />
 
-        {activeTab === 'signin' ? (
-          <SignInForm />
-        ) : (
-          <SignUpFlow />
-        )}
+        {/* Story 1.89 (U-09): until launch, the sign-up tab is the waitlist (Decision #99) */}
+        {activeTab === 'signin' ? <SignInForm /> : <WaitlistJoin />}
       </AuthPanel>
     </div>
   )

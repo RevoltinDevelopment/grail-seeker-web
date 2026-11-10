@@ -57,7 +57,7 @@ export function AuthTabs({ activeTab, className = '' }: AuthTabsProps) {
             : 'text-slate-600 hover:text-slate-900'
         }`}
       >
-        Sign Up
+        Join the waitlist
       </button>
     </div>
   )

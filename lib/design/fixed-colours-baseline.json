@@ -26,7 +26,6 @@
   "components/auth/LogoLockup.tsx": 1,
   "components/auth/PrivacyContent.tsx": 2,
   "components/auth/SignInForm.tsx": 17,
-  "components/auth/SignUpFlow.tsx": 67,
   "components/auth/TermsContent.tsx": 2,
   "components/auth/TestimonialBlock.tsx": 4,
   "components/layout/Footer.tsx": 31,

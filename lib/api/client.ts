@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/client'
 
 // Dynamically determine API URL based on current hostname
 // This allows mobile devices to connect to the backend server
-function getAPIBaseURL(): string {
+// Story 1.89: exported for the one call made with no session (the waitlist join).
+export function getAPIBaseURL(): string {
   // Server-side: use environment variable or default
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
