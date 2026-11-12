@@ -188,13 +188,15 @@ export function WelcomeFlow({ email, expired }: { email: string | null; expired:
               required
               minLength={8}
               placeholder="At least 8 characters"
-              className={FIELD}
+              className={`peer ${FIELD}`}
             />
             <button
               type="button"
               onClick={() => setShow((s) => !s)}
               aria-pressed={show}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-sm font-medium text-link hover:underline"
+              // Safari's "Suggest Password" holds the field and will not reveal it, so Show would do
+              // nothing: hidden while Safari holds it (Mahan, 2026-11-12). Typing a password brings it back.
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-sm font-medium text-link hover:underline peer-[:-webkit-autofill-strong-password]:hidden"
             >
               {show ? 'Hide' : 'Show'}
             </button>
