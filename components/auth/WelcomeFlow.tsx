@@ -195,8 +195,10 @@ export function WelcomeFlow({ email, expired }: { email: string | null; expired:
               onClick={() => setShow((s) => !s)}
               aria-pressed={show}
               // Safari's "Suggest Password" holds the field and will not reveal it, so Show would do
-              // nothing: hidden while Safari holds it (Mahan, 2026-11-12). Typing a password brings it back.
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-sm font-medium text-link hover:underline peer-[:-webkit-autofill-strong-password]:hidden"
+              // nothing: hidden while the browser has filled the field (Mahan, 2026-11-12). Safari keeps
+              // its strong-password state to itself, so the general autofill state is the signal; on a
+              // new-password field only a suggested password fills it. Typing a password brings Show back.
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-sm font-medium text-link hover:underline peer-[:-webkit-autofill]:hidden peer-[:autofill]:hidden"
             >
               {show ? 'Hide' : 'Show'}
             </button>
