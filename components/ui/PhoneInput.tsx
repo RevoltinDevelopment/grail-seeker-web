@@ -43,6 +43,8 @@ interface PhoneInputProps {
   onChange: (value: string) => void
   required?: boolean
   className?: string
+  /** The number field's id, for a <label htmlFor> outside (Story 1.89) */
+  id?: string
 }
 
 /**
@@ -90,7 +92,7 @@ function toE164(countryCode: string, nationalNumber: string): string {
   return `${countryCode}${digitsOnly}`
 }
 
-export function PhoneInput({ value, onChange, required, className }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, required, className, id }: PhoneInputProps) {
   const { countryCode: initialCountryCode, nationalNumber: initialNationalNumber } =
     parseE164(value)
 
@@ -142,6 +144,7 @@ export function PhoneInput({ value, onChange, required, className }: PhoneInputP
 
       {/* Phone Number Input */}
       <input
+        id={id}
         type="tel"
         value={nationalNumber}
         onChange={handleNationalNumberChange}

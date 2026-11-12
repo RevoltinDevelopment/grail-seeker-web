@@ -15,8 +15,9 @@ vi.mock('@/lib/supabase/client', () => ({
 }))
 vi.mock('@/lib/api/user', () => ({ updateUserPreferences: state.preferences }))
 vi.mock('@/components/ui/PhoneInput', () => ({
-  PhoneInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-    <input id="signup-phone" value={value} onChange={(e) => onChange(e.target.value)} />
+  // The real PhoneInput puts the id it is given on its number field; the label finds it only if PhoneStep passes it
+  PhoneInput: ({ id, value, onChange }: { id?: string; value: string; onChange: (v: string) => void }) => (
+    <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }))
 
@@ -56,7 +57,7 @@ describe('PhoneStep', () => {
     expect(screen.getByText(/TCPA Consent Required/)).toBeInTheDocument()
   })
 
-  it("adds the number with updateUser (which sends the code), then asks for the code; the provider's refusal is shown", async () => {
+  it('adds the number with updateUser (which sends the code), then asks for the code', async () => {
     await toCode()
     expect(state.updateUser).toHaveBeenCalledWith({ phone: '+14155551234' })
     expect(screen.getByText(/We sent a 6-digit code to/)).toHaveTextContent('+14155551234')

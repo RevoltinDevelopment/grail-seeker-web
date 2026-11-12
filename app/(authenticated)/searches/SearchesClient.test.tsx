@@ -316,7 +316,13 @@ describe('the welcome toast', () => {
       'success',
       12000
     )
-    expect(state.replace).toHaveBeenCalledWith('/searches')
+    expect(state.replace).toHaveBeenCalledWith('/searches', { scroll: false })
+  })
+
+  it('cleaning the address removes only the marker', () => {
+    state.params = new URLSearchParams('welcome=invited&tab=x')
+    render(<SearchesClient />)
+    expect(state.replace).toHaveBeenCalledWith('/searches?tab=x', { scroll: false })
   })
 
   it('no marker, or one not known, shows nothing', () => {

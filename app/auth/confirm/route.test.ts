@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
-import { GET } from './route'
+import { GET, HEAD } from './route'
 
 const ORIGIN = 'https://app.grailseeker.io'
 const get = (query: string) => GET(new Request(`${ORIGIN}/auth/confirm?${query}`))
@@ -24,6 +24,27 @@ describe('GET /auth/confirm', () => {
     expect(state.verifyOtp).toHaveBeenCalledWith({ type: 'invite', token_hash: 'abc123' })
     expect(res.status).toBe(307)
     expect(location(res)).toBe(`${ORIGIN}/welcome`)
+  })
+
+  it('an invitation always lands on /welcome, whatever next says: nobody skips the password', async () => {
+    expect(location(await get('token_hash=abc123&type=invite&next=/plan'))).toBe(`${ORIGIN}/welcome`)
+    expect(location(await get('token_hash=abc123&type=invite&next=/welcome?error=link'))).toBe(`${ORIGIN}/welcome`)
+  })
+
+  it('another type with no next goes to Searches', async () => {
+    expect(location(await get('token_hash=abc123&type=recovery'))).toBe(`${ORIGIN}/searches`)
+  })
+
+  it('a link checker or a prefetch does not spend the one-time token', async () => {
+    expect((await HEAD()).status).toBe(200)
+    const prefetch = await GET(new Request(`${ORIGIN}/auth/confirm?token_hash=abc123&type=invite`, { headers: { 'Sec-Purpose': 'prefetch' } }))
+    expect(prefetch.status).toBe(204)
+    expect(state.verifyOtp).not.toHaveBeenCalled()
+  })
+
+  it('a provider call that throws is a failed link, not an error page with the token in the address', async () => {
+    state.verifyOtp.mockRejectedValue(new Error('network'))
+    expect(location(await get('token_hash=abc123&type=invite'))).toBe(`${ORIGIN}/welcome?error=link`)
   })
 
   it('an invitation with no next still lands on /welcome', async () => {

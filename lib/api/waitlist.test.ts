@@ -49,6 +49,17 @@ describe('joinWaitlist', () => {
     await expect(joinWaitlist('ann@example.com')).rejects.toMatchObject({ status: 502, code: 'API_ERROR' })
   })
 
+  it('a body of JSON null is no answer, not a crash', async () => {
+    answer(500, null)
+    await expect(joinWaitlist('ann@example.com')).rejects.toMatchObject({ status: 500, code: 'API_ERROR' })
+  })
+
+  it('the request gives up after a while rather than waiting forever', async () => {
+    answer(200, { status: 'joined' })
+    await joinWaitlist('ann@example.com')
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
+  })
+
   it('an answer that is neither status is refused rather than trusted', async () => {
     answer(200, { status: 'maybe' })
     await expect(joinWaitlist('ann@example.com')).rejects.toMatchObject({ code: 'API_ERROR' })

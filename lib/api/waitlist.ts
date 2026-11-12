@@ -16,11 +16,14 @@ export async function joinWaitlist(email: string): Promise<WaitlistJoinResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
+    // A server that accepts the connection and never answers must not leave 'Joining…' forever.
+    signal: AbortSignal.timeout(15_000),
   })
 
   let body: { status?: string; error?: { code?: string; message?: string } } = {}
   try {
-    body = await response.json()
+    const parsed: unknown = await response.json()
+    if (parsed && typeof parsed === 'object') body = parsed as typeof body
   } catch {
     // no JSON: handled below by status
   }

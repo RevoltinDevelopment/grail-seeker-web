@@ -153,7 +153,7 @@ export function PhoneStep({
             <label htmlFor="signup-phone" className="text-sm font-medium text-ink">
               Phone Number
             </label>
-            <PhoneInput value={phoneNumber} onChange={setPhoneNumber} required />
+            <PhoneInput id="signup-phone" value={phoneNumber} onChange={setPhoneNumber} required />
           </div>
 
           <label className="flex items-start gap-2">
@@ -237,6 +237,7 @@ export function PhoneStep({
       </div>
       <button
         type="button"
+        disabled={loading}
         onClick={() => {
           setStep('phone')
           setCode('')

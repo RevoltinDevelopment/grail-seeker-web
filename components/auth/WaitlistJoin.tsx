@@ -22,13 +22,16 @@ export const WAITLIST_WORDS = {
   failed: 'We could not save your place just now. Please try again.',
 } as const
 
-/** What a refused join says: the server's own words for what it explains, else a retry. */
-export function joinRefusalWords(error: unknown): string {
+/**
+ * What a refused join says: the server's own words for what it explains; offline only when the
+ * browser says it is offline (a down server is a TypeError too, and is not the visitor's fault).
+ */
+export function joinRefusalWords(error: unknown, online = typeof navigator === 'undefined' || navigator.onLine): string {
   if (error instanceof APIError) {
     if (error.code === 'INVALID_EMAIL' || error.code === 'RATE_LIMITED') return error.message
     return WAITLIST_WORDS.failed
   }
-  if (error instanceof TypeError) return WAITLIST_WORDS.offline
+  if (error instanceof TypeError && !online) return WAITLIST_WORDS.offline
   return WAITLIST_WORDS.failed
 }
 
@@ -36,17 +39,20 @@ export function WaitlistJoin({ className = '' }: { className?: string }) {
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [badAddress, setBadAddress] = useState(false)
   const [done, setDone] = useState<{ result: WaitlistJoinResult; email: string } | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setBadAddress(false)
     setSending(true)
     try {
       const result = await joinWaitlist(email.trim())
       setDone({ result, email: email.trim() })
     } catch (err) {
       setError(joinRefusalWords(err))
+      setBadAddress(err instanceof APIError && err.code === 'INVALID_EMAIL')
     } finally {
       setSending(false)
     }
@@ -55,7 +61,8 @@ export function WaitlistJoin({ className = '' }: { className?: string }) {
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       <div className="flex flex-col gap-2">
-        <h1 className="text-[22px] font-bold leading-tight text-ink">{WAITLIST_WORDS.heading}</h1>
+        {/* h2: the page's main heading is the logo (LogoLockup's h1) */}
+        <h2 className="text-[22px] font-bold leading-tight text-ink">{WAITLIST_WORDS.heading}</h2>
         <p className="text-[15px] text-ink">{WAITLIST_WORDS.paragraph}</p>
       </div>
 
@@ -96,7 +103,7 @@ export function WaitlistJoin({ className = '' }: { className?: string }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              aria-invalid={error ? true : undefined}
+              aria-invalid={badAddress ? true : undefined}
               aria-describedby={error ? 'waitlist-error' : undefined}
               className="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
             />

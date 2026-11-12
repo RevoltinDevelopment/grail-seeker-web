@@ -60,7 +60,10 @@ export default function SearchesClient() {
     if (!words || welcomed.current) return
     welcomed.current = true
     showToast(WELCOME_TITLE, words, 'success', 12000)
-    router.replace('/searches')
+    // Only the marker goes; anything else in the address stays (code review).
+    const rest = new URLSearchParams(searchParams.toString())
+    rest.delete('welcome')
+    router.replace(rest.size ? `/searches?${rest}` : '/searches', { scroll: false })
   }, [searchParams, showToast, router])
 
   // The new-match toast (Story 1.82): Latest matches' realtime subscription raises 'new-alert'.

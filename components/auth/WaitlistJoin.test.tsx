@@ -22,7 +22,7 @@ async function join(email: string) {
 describe('WaitlistJoin', () => {
   it('shows the heading, the paragraph, one email field, Join the waitlist and the fine print', () => {
     render(<WaitlistJoin />)
-    expect(screen.getByRole('heading', { name: WAITLIST_WORDS.heading })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: WAITLIST_WORDS.heading })).toBeInTheDocument()
     expect(screen.getByText(WAITLIST_WORDS.paragraph)).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email')
     expect(screen.getByRole('button', { name: 'Join the waitlist' })).toBeDisabled()
@@ -51,12 +51,21 @@ describe('WaitlistJoin', () => {
     ['the server', new APIError(500, 'DATABASE_ERROR', 'We could not save your place just now. Please try again.'), WAITLIST_WORDS.failed],
     ['an unexplained failure', new APIError(502, 'API_ERROR', 'HTTP 502'), WAITLIST_WORDS.failed],
     ['offline', new TypeError('Failed to fetch'), WAITLIST_WORDS.offline],
-  ])('%s: the line under the field, and the form stays', async (_what, error, words) => {
+  ])('%s: the line under the field, and the form stays', async (what, error, words) => {
     state.join.mockRejectedValue(error)
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(what !== 'offline')
     await join('ann@example.com')
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(words))
     expect(screen.getByRole('form', { name: 'Join the waitlist' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
+    // Only a bad address marks the field itself as wrong
+    if (what === 'a bad address') expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
+    else expect(screen.getByLabelText('Email')).not.toHaveAttribute('aria-invalid')
+    onLine.mockRestore()
+  })
+
+  it('a server that cannot be reached while the browser is online is not called offline', () => {
+    expect(joinRefusalWords(new TypeError('Failed to fetch'), true)).toBe(WAITLIST_WORDS.failed)
+    expect(joinRefusalWords(new TypeError('Failed to fetch'), false)).toBe(WAITLIST_WORDS.offline)
   })
 
   it('says nothing about accounts, whatever the answer', async () => {
@@ -74,7 +83,6 @@ describe('WaitlistJoin', () => {
   it('joinRefusalWords: the server is quoted only for what it explains', () => {
     expect(joinRefusalWords(new APIError(400, 'INVALID_EMAIL', 'Enter an email address.'))).toBe('Enter an email address.')
     expect(joinRefusalWords(new APIError(500, 'DATABASE_ERROR', 'x'))).toBe(WAITLIST_WORDS.failed)
-    expect(joinRefusalWords(new TypeError('Failed to fetch'))).toBe(WAITLIST_WORDS.offline)
     expect(joinRefusalWords(new Error('?'))).toBe(WAITLIST_WORDS.failed)
   })
 })
