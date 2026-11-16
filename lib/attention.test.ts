@@ -462,6 +462,54 @@ describe('listBanners (Story 1.85): every banner that applies, in order', () => 
   })
 })
 
+describe('10. texts are being bundled (Story 1.94): the plan page only, lowest', () => {
+  const bundled = { lastAt: '2026-11-23T14:05:00Z' }
+
+  it('is listed with the agreed words and See alerts, and never chosen for Searches', () => {
+    const i = input({ account: account({ textsBundled: bundled }) })
+    expect(listBanners(i)).toEqual([
+      {
+        state: 10,
+        tone: 'info',
+        heading: 'Your texts are being bundled',
+        paragraphs: [
+          "You're near your text allowance, so we're putting several finds in one text. Your allowance refills every day, and every find is on your Alerts page.",
+        ],
+        action: { label: 'See alerts', href: '/alerts', filled: false },
+        due: null,
+        dismissible: false,
+      },
+    ])
+    expect(chooseBanner(i)).toBeNull()
+  })
+
+  it('comes after every other notice, the marketplace nudge included', () => {
+    const i = input({
+      account: {
+        ...eight,
+        textsBundled: bundled,
+        change: {
+          kind: 'pick_needed',
+          reason: 'reduce',
+          dueAt: OCT27,
+          overdue: false,
+          slotsToFit: 5,
+          pickedSearchIds: null,
+        },
+      },
+      searches: [{ id: 'a', isActive: true, platforms: ['ebay'], held: false }],
+    })
+    expect(listBanners(i).map((b) => b.state)).toEqual([5, 9, 10])
+    expect(chooseBanner(i)?.state).toBe(5)
+  })
+
+  it('is not shown when the field is null or absent', () => {
+    expect(listBanners(input({ account: account({ textsBundled: null }) }))).toEqual([])
+    expect(listBanners(input())).toEqual([])
+    expect(listBanners(input({ account: null }))).toEqual([])
+  })
+})
+
 describe('daysLeft', () => {
   it('whole days, never below 0', () => {
     expect(daysLeft(OCT27, NOW)).toBe('7 days left')

@@ -55,6 +55,11 @@ export interface AccountSummary {
   change: AccountChange | null
   enforcement: 'off' | 'observe' | 'enforce' | string
   nextRoundAt?: string
+  /**
+   * Story 1.94 (backend Story 1.93, decision 12): present while pacing is bundling or holding back
+   * this account's texts; null otherwise. The server decides what "current" means.
+   */
+  textsBundled?: { lastAt: string } | null
 }
 
 /** Story 1.86: what a pick would do (POST /api/account/pick/preview); it changes nothing */

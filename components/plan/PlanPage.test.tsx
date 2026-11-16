@@ -162,6 +162,31 @@ describe('PlanPage (Story 1.85, S-10)', () => {
     )
   })
 
+  it('Story 1.94: texts being bundled is listed last, with See alerts', () => {
+    mock(account({ textsBundled: { lastAt: '2026-11-23T14:05:00Z' } }), {
+      searches: [{ ...HULK, platforms: [] }, ASM],
+    })
+    render(<PlanPage />)
+    const att = screen.getByRole('region', { name: 'Needs your attention' })
+    const items = within(att).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[0]).toHaveTextContent('You may be missing matches')
+    expect(items[1]).toHaveTextContent(
+      "Your texts are being bundledYou're near your text allowance, so we're putting several finds in one text. Your allowance refills every day, and every find is on your Alerts page."
+    )
+    expect(within(items[1]).getByRole('link', { name: 'See alerts' })).toHaveAttribute(
+      'href',
+      '/alerts'
+    )
+  })
+
+  it('Story 1.94: no bundling notice when textsBundled is null', () => {
+    mock(account({ textsBundled: null }))
+    render(<PlanPage />)
+    expect(screen.queryByRole('heading', { name: 'Needs your attention' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Your texts are being bundled')).not.toBeInTheDocument()
+  })
+
   it('numbers the slots, each search with Edit and Delete, and the free slots with New search', () => {
     mock(account())
     render(<PlanPage />)

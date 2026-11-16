@@ -29,7 +29,8 @@ export interface BannerAction {
 }
 
 export interface Banner {
-  state: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+  /** 10 is the plan page's own (Story 1.94): listBanners lists it, chooseBanner never offers it */
+  state: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
   tone: BannerTone
   heading: string
   paragraphs: string[]
@@ -286,11 +287,34 @@ function* bannersOf(input: BannerInput): Generator<Banner> {
 }
 
 /**
+ * Notices for the plan page alone, below every banner (never on Searches).
+ *
+ * 10. Story 1.94: texts are being bundled (Mahan, 2026-11-16: on the plan page only, lowest, and
+ * only while bundling is current). The server decides "current" (backend Story 1.93, decision 12).
+ */
+function* planOnlyOf(input: BannerInput): Generator<Banner> {
+  if (input.account?.textsBundled) {
+    yield {
+      state: 10,
+      tone: 'info',
+      heading: 'Your texts are being bundled',
+      paragraphs: [
+        "You're near your text allowance, so we're putting several finds in one text. Your allowance refills every day, and every find is on your Alerts page.",
+      ],
+      action: { label: 'See alerts', href: '/alerts', filled: false },
+      due: null,
+      dismissible: false,
+    }
+  }
+}
+
+/**
  * Story 1.85: every banner that applies, in the banner's order. The plan page's "Needs your
- * attention" lists them all (plan-page.js); the Searches page shows the first.
+ * attention" lists them all (plan-page.js), then its own notices (Story 1.94); the Searches page
+ * shows the first banner.
  */
 export function listBanners(input: BannerInput): Banner[] {
-  return [...bannersOf(input)]
+  return [...bannersOf(input), ...planOnlyOf(input)]
 }
 
 export function chooseBanner(input: BannerInput): Banner | null {
