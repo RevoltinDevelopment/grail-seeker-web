@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { makeAlert } from '@/lib/alertRows.fixture'
 
@@ -213,6 +213,21 @@ describe('Dismiss and Undo', () => {
     expect(state.restore).toHaveBeenCalledWith('d1')
     await waitFor(() => expect(rows()).toHaveLength(1))
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('brings the bar into view and puts focus on Undo, on a phone too (Mahan, 2026-11-16)', async () => {
+    const scrolled = vi.fn()
+    const original = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scrolled
+    onTestFinished(() => {
+      Element.prototype.scrollIntoView = original
+    })
+    state.alerts = [one()]
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^Dismiss/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).toHaveFocus())
+    expect(scrolled).toHaveBeenCalledTimes(1)
+    expect(scrolled.mock.contexts[0]).toBe(screen.getByRole('status'))
   })
 
   it('a failed Dismiss puts the row back and says so', async () => {

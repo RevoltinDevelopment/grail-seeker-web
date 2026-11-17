@@ -109,6 +109,7 @@ export default function AlertsClient() {
   const pendingArchive = useRef(new Map<string, Promise<boolean>>())
   const lastDismissAt = useRef(0)
   const undoRef = useRef<HTMLButtonElement>(null)
+  const noticeRef = useRef<HTMLDivElement>(null)
 
   const prefs = useUiPreferences()
   const sort: AlertsSortMode = context ? 'date' : prefs.alertsSort
@@ -231,8 +232,14 @@ export default function AlertsClient() {
     lastDismissAt.current = now
     setGone((g) => new Set(g).add(alert.id))
     setNotice({ kind: 'dismissed', alert })
-    // The button that was pressed has gone with its row: keyboard focus goes to Undo (review)
-    requestAnimationFrame(() => undoRef.current?.focus())
+    // The button that was pressed has gone with its row: the page brings the bar into view and
+    // keyboard focus goes to Undo (review). Scrolled explicitly: a phone's browser does not scroll
+    // to a button focused from code, so on a phone the bar stayed out of sight (Mahan, 2026-11-16).
+    requestAnimationFrame(() => {
+      const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      noticeRef.current?.scrollIntoView?.({ block: 'nearest', behavior: still ? 'auto' : 'smooth' })
+      undoRef.current?.focus({ preventScroll: true })
+    })
     const archived = alertsAPI
       .archive(alert.id)
       .then(() => true)
@@ -355,7 +362,7 @@ export default function AlertsClient() {
         onToggleBooks={onToggleBooks}
       />
 
-      <div role="status" aria-live="polite" className="empty:hidden">
+      <div ref={noticeRef} role="status" aria-live="polite" className="scroll-mt-4 empty:hidden">
         {notice && (
           <div className="flex items-center gap-2.5 rounded-card bg-ink px-4 py-3 text-[15px] font-semibold text-background">
             {notice.kind === 'dismissed' ? (
