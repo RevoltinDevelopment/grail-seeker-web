@@ -44,7 +44,7 @@ export function LatestMatches({ className = '' }: { className?: string }) {
   )
   const { displayNameFor } = usePlatforms()
   const shown = alerts.slice(0, SHOWN)
-  useReportSeen(shown.map((a) => a.id))
+  useReportSeen(isLoading || error ? null : shown.map((a) => a.id)) // null: still loading (Story 1.97)
 
   return (
     <aside

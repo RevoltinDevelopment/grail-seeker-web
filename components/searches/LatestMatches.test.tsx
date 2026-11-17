@@ -8,7 +8,7 @@ const state = vi.hoisted(() => ({
   alerts: [] as unknown[],
   isLoading: false,
   error: null as unknown,
-  reported: [] as string[][],
+  reported: [] as (string[] | null)[],
   useAlertsArgs: [] as unknown[],
 }))
 vi.mock('@/hooks/useAlerts', () => ({
@@ -23,7 +23,7 @@ vi.mock('@/hooks/usePlatforms', () => ({
   }),
 }))
 vi.mock('@/hooks/useUnseenAlerts', () => ({
-  useReportSeen: (ids: string[]) => state.reported.push(ids),
+  useReportSeen: (ids: string[] | null) => state.reported.push(ids),
 }))
 
 const alert = (
@@ -101,6 +101,12 @@ describe('LatestMatches', () => {
       )
     ).toBeInTheDocument()
     expect(screen.queryByText(/No matches yet/)).toBeNull()
+  })
+
+  it('while loading or after a failed read, reports null: the opening starts when the list arrives (Story 1.97)', () => {
+    state.isLoading = true
+    render(<LatestMatches />)
+    expect(state.reported.at(-1)).toBeNull()
   })
 
   it("with no matches: today's words, and nothing reported", () => {

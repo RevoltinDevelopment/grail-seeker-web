@@ -14,7 +14,7 @@ const state = vi.hoisted(() => ({
   isLoading: false,
   error: null as unknown,
   fetchedAfterMount: true,
-  reported: [] as string[][],
+  reported: [] as (string[] | null)[],
   params: new URLSearchParams(),
   sort: 'date' as 'date' | 'book',
   collapsed: [] as string[],
@@ -52,7 +52,7 @@ vi.mock('@/hooks/usePlatforms', () => ({
   }),
 }))
 vi.mock('@/hooks/useUnseenAlerts', () => ({
-  useReportSeen: (ids: string[]) => state.reported.push([...ids]),
+  useReportSeen: (ids: string[] | null) => state.reported.push(ids ? [...ids] : null),
 }))
 vi.mock('@/hooks/useAccountSummary', () => ({
   useAccountSummary: () => ({ account: { plan: { textsIncluded: state.textsIncluded } } }),
@@ -181,7 +181,7 @@ describe('"New" for the visit (Decision #103)', () => {
     state.fetchedAfterMount = false
     const page = renderPage()
     expect(screen.queryByText('New')).toBeNull()
-    expect(state.reported.every((ids) => ids.length === 0)).toBe(true)
+    expect(state.reported.every((ids) => ids === null)).toBe(true) // still loading (Story 1.97)
     state.alerts = [makeAlert({ id: 'cached', seenAt: '2026-11-15T10:00:00Z' })]
     state.fetchedAfterMount = true
     page.rerender()

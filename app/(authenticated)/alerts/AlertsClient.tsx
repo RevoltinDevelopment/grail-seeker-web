@@ -180,7 +180,7 @@ export default function AlertsClient() {
   // Story 1.82's rules kept: only what is on screen is reported, a collapsed book's alerts stay new
   const { isLoaded: prefsLoaded, isGroupCollapsed } = prefs
   const onScreen = useMemo(() => {
-    if (!ready || !prefsLoaded) return []
+    if (!ready || !prefsLoaded) return null // still loading: the opening starts when the list arrives (Story 1.97)
     if (sort === 'book') return books.filter((b) => !isGroupCollapsed(b.id)).flatMap((b) => b.alerts.map((a) => a.id))
     return pageRows.map((a) => a.id)
   }, [ready, prefsLoaded, isGroupCollapsed, sort, books, pageRows])
