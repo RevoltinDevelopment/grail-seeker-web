@@ -6,8 +6,8 @@ import type { AlertsSortMode } from '@/lib/api/user'
 /**
  * Story 1.96 (U-11): Alerts' filter and sort bar (alerts-list.html). Every marketplace named; the
  * match filter; Clear filters when either is set; By date and By book, with the circle that closes
- * or opens every book (down: all open; right: all closed; between: some of each). The archive keeps
- * its own AlertFilters until U-12.
+ * or opens every book (down: all open; right: all closed; between: some of each). The archive uses
+ * it too (Story 1.98, U-12).
  */
 export type BooksState = 'open' | 'closed' | 'mixed'
 

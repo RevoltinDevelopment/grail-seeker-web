@@ -32,7 +32,8 @@ export interface Alert {
   // how far over it the price was); null for a match within the price
   nearMiss?: { overBy: number; maxPrice: number } | null
   // Story 1.95 (need 70): the newer alert that replaced this one, and where it is now
-  supersededBy?: { id: string; listingStatus: string } | null
+  // Story 1.98 (U-12): also its price and the search it is on (absent from an older server)
+  supersededBy?: { id: string; listingStatus: string; price?: number | null; searchId?: string } | null
   // Story 1.96 (Decision #103): when the app first showed it; null while not yet seen
   seenAt?: string | null
   notificationSent: boolean

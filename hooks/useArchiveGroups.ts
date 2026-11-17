@@ -3,15 +3,18 @@ import { alertsAPI, type AlertFilters } from '@/lib/api/alerts'
 
 type ArchiveGroupsParams = Pick<AlertFilters, 'platform' | 'matchType'>
 
-export function useArchiveGroups(params?: ArchiveGroupsParams) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['archive-groups', params],
+export function useArchiveGroups(params?: ArchiveGroupsParams, options?: { enabled?: boolean }) {
+  const { data, isLoading, error, refetch } = useQuery({
+    // Under 'alerts', so a dismissal or a new round refreshes the books and their counts too (review)
+    queryKey: ['alerts', 'archive-groups', params],
     queryFn: () => alertsAPI.getArchiveGroups(params),
+    enabled: options?.enabled ?? true,
   })
 
   return {
     groups: data?.groups || [],
     isLoading,
     error,
+    refetch,
   }
 }

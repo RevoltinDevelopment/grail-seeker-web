@@ -5,7 +5,7 @@ import { platformsAPI } from '@/lib/api/platforms'
 /**
  * Story 1.49: the single shared source every platform-aware surface in this
  * app reads from -- PlatformSelector, SearchesClient's Monitoring row,
- * AlertCard, PlatformNudgeBanner, the search create/edit pages, and Reports.
+ * PlatformNudgeBanner, the search create/edit pages, and Reports.
  * Registry is low-cardinality, low-change-frequency (architecture.md, API &
  * Communication Patterns) -- same staleTime rationale as useReports().
  */
