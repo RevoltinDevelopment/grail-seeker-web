@@ -1,13 +1,9 @@
 /**
- * Story 1.49: PLATFORM_LABELS/ACTIVE_PLATFORMS (previously the single
- * source of truth for PlatformSelector.tsx/PlatformNudgeBanner.tsx) removed
- * -- both, plus AlertCard.tsx and the search create/edit pages, now read
- * from the live marketplace_platform_registry via usePlatforms() instead.
- * This file exists solely for AlertPlatformFilter below, a closed-union
- * type real independent of the registry (AlertFilters.tsx, AlertsClient.tsx,
- * ArchiveClient.tsx, lib/api/alerts.ts import only this type, never the
- * removed runtime constants -- confirmed via repo-wide grep before removal).
- * Extending the alerts-filter dropdown to Independent Shops is real,
- * deliberately out-of-scope future work (see Story 1.49's own Out of Scope).
+ * Story 1.49 removed PLATFORM_LABELS/ACTIVE_PLATFORMS; every platform-aware surface reads the live
+ * marketplace_platform_registry through usePlatforms(). This file holds only the alerts filter's type.
+ *
+ * Story 1.96 (U-11, need 67): the server's `platform` filter takes any marketplace in the platforms
+ * list (Story 1.95), a shop included, so the filter is 'all' or a registry slug ('ebay', 'heritage',
+ * 'mycomicshop', 'indie:comicbookaddiction'), no longer a closed list of three.
  */
-export type AlertPlatformFilter = 'all' | 'ebay' | 'heritage' | 'mycomicshop'
+export type AlertPlatformFilter = 'all' | (string & {})

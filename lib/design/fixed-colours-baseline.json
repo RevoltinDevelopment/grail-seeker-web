@@ -2,7 +2,6 @@
   "app/(auth)/forgot-password/page.tsx": 35,
   "app/(auth)/login/page.tsx": 5,
   "app/(auth)/reset-password/page.tsx": 53,
-  "app/(authenticated)/alerts/AlertsClient.tsx": 22,
   "app/(authenticated)/alerts/archive/ArchiveClient.tsx": 28,
   "app/(authenticated)/error.tsx": 22,
   "app/(authenticated)/layout.tsx": 1,

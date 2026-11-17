@@ -80,6 +80,8 @@ export function useUiPreferences() {
 
   return {
     alertsSort: prefs.alertsSort ?? 'date',
+    // Story 1.96: the circle closes or opens only the books on screen, keeping the others' state
+    collapsedGroups: prefs.alertsCollapsedGroups ?? [],
     isGroupCollapsed,
     setAlertsSort,
     toggleGroupCollapsed,

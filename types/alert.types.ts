@@ -8,6 +8,8 @@ export interface Alert {
     }
     issueNumber: string
     issueVolumeText: string | null
+    // Story 1.95 (need 58): the search's maximum as it is now; null when it has none
+    maxPrice?: number | null
   }
   listing: {
     title: string
@@ -26,6 +28,13 @@ export interface Alert {
     auctionStartTime?: string | null
   }
   isDirectMatch: boolean
+  // Story 1.95: a near miss, from the amounts stored when the alert was made (the maximum then and
+  // how far over it the price was); null for a match within the price
+  nearMiss?: { overBy: number; maxPrice: number } | null
+  // Story 1.95 (need 70): the newer alert that replaced this one, and where it is now
+  supersededBy?: { id: string; listingStatus: string } | null
+  // Story 1.96 (Decision #103): when the app first showed it; null while not yet seen
+  seenAt?: string | null
   notificationSent: boolean
   notificationSentAt: string | null
   createdAt: string
@@ -37,6 +46,8 @@ export interface Alert {
 
 export interface AlertListResponse {
   alerts: Alert[]
+  // Story 1.95 (need 61): how far over the maximum a near miss may be (0.15)
+  nearMissMargin?: number
   pagination: {
     limit: number
     offset: number

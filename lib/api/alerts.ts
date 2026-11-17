@@ -65,6 +65,12 @@ export const alertsAPI = {
     return apiClient.post<{ success: boolean; message: string }>(`/api/alerts/${alertId}/archive`)
   },
 
+  // Story 1.96 (U-11): Undo of a Dismiss (Story 1.95, need 59). 409 NOT_RESTORABLE, NEWER_ALERT,
+  // or a deleted or held search's alert
+  restore: (alertId: string) => {
+    return apiClient.post<{ success: boolean }>(`/api/alerts/${alertId}/restore`)
+  },
+
   // Archive By Book mode: group list (searchId/title/count), including
   // soft-deleted searches — see GET /api/alerts/archive-groups
   getArchiveGroups: (

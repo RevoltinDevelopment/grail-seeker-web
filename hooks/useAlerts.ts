@@ -4,13 +4,18 @@ import { createClient } from '@/lib/supabase/client'
 import { alertsAPI, type AlertFilters } from '@/lib/api/alerts'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
-export function useAlerts(params?: AlertFilters, options?: { enableToasts?: boolean }) {
+export function useAlerts(
+  params?: AlertFilters,
+  options?: { enableToasts?: boolean; refetchOnMount?: boolean | 'always' }
+) {
   const queryClient = useQueryClient()
   const supabase = createClient()
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetchedAfterMount } = useQuery({
     queryKey: ['alerts', params],
     queryFn: () => alertsAPI.list(params),
+    // Story 1.96: Alerts reads afresh on every opening (its "New" labels and seen reports need it)
+    ...(options?.refetchOnMount !== undefined ? { refetchOnMount: options.refetchOnMount } : {}),
   })
 
   // Subscribe to real-time updates for new alerts
@@ -72,5 +77,8 @@ export function useAlerts(params?: AlertFilters, options?: { enableToasts?: bool
     pagination: data?.pagination,
     isLoading,
     error,
+    // Story 1.96: Alerts offers Try again, and labels "New" only from data read on this visit
+    refetch,
+    isFetchedAfterMount,
   }
 }
