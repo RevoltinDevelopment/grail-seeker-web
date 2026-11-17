@@ -126,7 +126,9 @@ export const PAGE_QUALITY_OPTIONS = [
   'Brown',
 ]
 
-export const GRADING_AUTHORITY_OPTIONS = ['Any', 'CGC', 'CBCS', 'PGX']
+// Story 1.101 (Mahan, 2026-11-17): PSA added. EGS counts as graded on eBay but has no choice of its own
+// (short-lived; an "Any" search covers it).
+export const GRADING_AUTHORITY_OPTIONS = ['Any', 'CGC', 'CBCS', 'PSA', 'PGX']
 
 /** Page Quality, Graded by and Maximum Price, as drawn. */
 export function OtherCriteriaFields({
