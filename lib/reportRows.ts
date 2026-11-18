@@ -196,30 +196,25 @@ export interface FoundRow {
   key: string
   text: string
   go: string
-  href: string
-  /** The listing itself, opened in a new tab */
-  external: boolean
+  /** The listing itself, opened in a new tab; null when there is nothing to open (Story 1.103) */
+  href: string | null
 }
 
 /**
- * A copy under a week's "Books found": "Werewolf by Night #32 · CGC 9.6", with "View on eBay" while
- * the listing is active, "In Alerts" for an active copy with no link, "In the archive" otherwise.
+ * A copy under a week's "Books found": "Werewolf by Night #32 · CGC 9.6", then where it is now
+ * ("View on eBay", "Sold Nov 12"), linking straight to its listing (Story 1.103, Mahan).
  */
-export function foundRow(copy: Copy, displayNameFor: (slug: string) => string): FoundRow {
+export function foundRow(copy: Copy, displayNameFor: (slug: string) => string, now: Date = new Date()): FoundRow {
   const text = [bookName(copy.book), copyGrade(copy.grade)].filter(Boolean).join(' · ')
-  const active = copy.now.listingStatus === 'active'
-  if (active && copy.listingUrl) {
-    return { key: copy.alertId, text, go: `View on ${marketplaceName(copy.marketplace, displayNameFor)}`, href: copy.listingUrl, external: true }
-  }
-  if (active) return { key: copy.alertId, text, go: 'In Alerts', href: '/alerts', external: false }
-  return { key: copy.alertId, text, go: 'In the archive', href: '/alerts/archive', external: false }
+  const at = copyNow(copy, displayNameFor, now)
+  return { key: copy.alertId, text, go: at.text, href: at.href }
 }
 
 /** Copies under a week's "Books found", newest find first. */
-export function foundRows(copies: readonly Copy[] | undefined, displayNameFor: (slug: string) => string): FoundRow[] {
+export function foundRows(copies: readonly Copy[] | undefined, displayNameFor: (slug: string) => string, now: Date = new Date()): FoundRow[] {
   return [...(copies ?? [])]
     .sort((x, y) => Date.parse(y.foundAt) - Date.parse(x.foundAt))
-    .map((c) => foundRow(c, displayNameFor))
+    .map((c) => foundRow(c, displayNameFor, now))
 }
 
 /** "Your searches and alerts". Every row shown, zeros included; "Searches deleted" in a week only when above 0. */
@@ -318,9 +313,22 @@ export function copyWhereLine(copy: Copy, displayNameFor: (slug: string) => stri
   return line
 }
 
-/** Where a copy is now, and the page it links to: "In Alerts", or why it is in the archive. */
-export function copyNow(copy: Copy, now: Date = new Date()): { text: string; href: string } {
-  if (copy.now.listingStatus === 'active') return { text: 'In Alerts', href: '/alerts' }
+/**
+ * Where a copy is now, linking straight to its listing (Story 1.103, Mahan: as the archive does):
+ * an active copy "View on eBay", any other its status ("Sold Oct 24"). No link when the seller
+ * removed the listing (nothing to view) or there is no link.
+ */
+export function copyNow(
+  copy: Copy,
+  displayNameFor: (slug: string) => string,
+  now: Date = new Date()
+): { text: string; href: string | null } {
+  // Only a web address is ever a link (review); a removed listing has nothing to view
+  const web = copy.listingUrl && /^https?:\/\//i.test(copy.listingUrl) ? copy.listingUrl : null
+  const href = web && copy.now.archiveReason !== 'listing_removed' ? web : null
+  if (copy.now.listingStatus === 'active') {
+    return { text: href ? `View on ${marketplaceName(copy.marketplace, displayNameFor)}` : 'Active', href }
+  }
   const on = archiveDate(copy.now.archivedAt, now)
   const words: Record<string, string> = {
     listing_sold: 'Sold',
@@ -331,7 +339,7 @@ export function copyNow(copy: Copy, now: Date = new Date()): { text: string; hre
     search_deleted: 'Search deleted',
   }
   const word = words[copy.now.archiveReason ?? ''] ?? 'Archived'
-  return { text: on ? `${word} ${on}` : word, href: '/alerts/archive' }
+  return { text: on ? `${word} ${on}` : word, href }
 }
 
 /** "9 copies" beside a book. */

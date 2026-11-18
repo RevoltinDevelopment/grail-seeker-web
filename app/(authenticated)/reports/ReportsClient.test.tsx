@@ -49,7 +49,7 @@ function makeReport(over: Partial<ReportsResponse> = {}): ReportsResponse {
       booksSearched: [book('X-Men', '94'), { ...book('Daredevil', '158'), searchDeleted: true }],
       searchesRunByMarketplace: { eBay: 84, Heritage: 84, MyComicShop: 84, 'indie:cba': 42 },
       alertsIssued: 2,
-      copiesFound: [copy(), copy({ alertId: 'c2', book: book('X-Men', '94'), foundAt: '2026-11-16T14:00:00Z', now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: null } })],
+      copiesFound: [copy(), copy({ alertId: 'c2', listingUrl: 'https://track.example/2', book: book('X-Men', '94'), foundAt: '2026-11-16T14:00:00Z', now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: null } })],
       activeSearches: 6,
       searchesCreated: 1,
       searchesDeleted: 0,
@@ -95,7 +95,8 @@ describe('ReportsClient', () => {
     const view = within(week).getByRole('link', { name: /Werewolf by Night #32 · CGC 9\.6\s*View on eBay/ })
     expect(view).toHaveAttribute('href', 'https://track.example/1')
     expect(view).toHaveAttribute('target', '_blank')
-    expect(within(week).getByRole('link', { name: /X-Men #94 · CGC 9\.6\s*In the archive/ })).toHaveAttribute('href', '/alerts/archive')
+    // A sold copy opens its listing too, and says it sold (Story 1.103)
+    expect(within(week).getByRole('link', { name: /X-Men #94 · CGC 9\.6\s*Sold/ })).toHaveAttribute('href', 'https://track.example/2')
     expect(within(week).getByText('Heritage Auctions')).toBeInTheDocument()
     expect(within(week).getByText('Comic Book Addiction')).toBeInTheDocument()
     expect(within(week).getByText('Books searched · 2')).toBeInTheDocument()

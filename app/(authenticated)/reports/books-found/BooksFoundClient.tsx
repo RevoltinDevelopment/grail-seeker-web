@@ -3,11 +3,9 @@
 /**
  * Story 1.100 (U-14): Books found, as drawn in reports-books-found.html (approved by Mahan
  * 2026-10-28). Every copy found since the account was made (Decision #110), grouped by book, each
- * linking to Alerts or the archive. Every copy on one page, no paging, as drawn (the largest account
- * has about 1,200). Words: lib/reportRows.ts.
+ * opening its listing in a new tab (Story 1.103). Every copy on one page, no paging, as drawn (the
+ * largest account has about 1,200). Words: lib/reportRows.ts.
  */
-import Link from 'next/link'
-
 import { BackToReports, EmptyState, FootNote, PageTitle } from '@/components/reports/ReportParts'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useBooksFound } from '@/hooks/useReports'
@@ -68,23 +66,36 @@ export default function BooksFoundClient() {
                   {b.copies.map((c) => {
                     const { grade, price } = copyGradeAndPrice(c)
                     const where = copyWhereLine(c, displayNameFor, now)
-                    const at = copyNow(c, now)
+                    const at = copyNow(c, displayNameFor, now)
+                    const row = 'grid min-h-touch grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 px-5 py-2.5 text-ink no-underline'
+                    const body = (
+                      <>
+                        <span className="text-[15px] font-semibold">
+                          {grade}
+                          {grade && price && ' · '}
+                          {price && <b className="tabular-nums">{price}</b>}
+                        </span>
+                        <span className="col-start-1 text-[13px] text-muted-foreground">{where}</span>
+                        <span
+                          className={`col-start-2 row-span-2 row-start-1 text-right text-sm font-semibold ${
+                            at.href ? 'text-link underline underline-offset-[3px]' : 'text-muted-foreground'
+                          }`}
+                        >
+                          {at.text}
+                        </span>
+                      </>
+                    )
+                    // Straight to the listing, in a new tab (Story 1.103, Mahan); unlinked when there is nothing to open
                     return (
                       <li key={c.alertId} className="border-t border-line first:border-t-0">
-                        <Link
-                          href={at.href}
-                          className="grid min-h-touch grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 px-5 py-2.5 text-ink no-underline hover:bg-chip"
-                        >
-                          <span className="text-[15px] font-semibold">
-                            {grade}
-                            {grade && price && ' · '}
-                            {price && <b className="tabular-nums">{price}</b>}
-                          </span>
-                          <span className="col-start-1 text-[13px] text-muted-foreground">{where}</span>
-                          <span className="col-start-2 row-span-2 row-start-1 text-right text-sm font-semibold text-link underline underline-offset-[3px]">
-                            {at.text}
-                          </span>
-                        </Link>
+                        {at.href ? (
+                          <a href={at.href} target="_blank" rel="noopener noreferrer" className={`${row} hover:bg-chip`}>
+                            {body}
+                            <span className="sr-only"> (opens in a new tab)</span>
+                          </a>
+                        ) : (
+                          <div className={row}>{body}</div>
+                        )}
                       </li>
                     )
                   })}

@@ -49,6 +49,7 @@ const report = (over: Partial<BooksFoundResponse> = {}): BooksFoundResponse => (
         copy(),
         copy({
           alertId: 'c2',
+          listingUrl: 'https://track.example/2',
           marketplace: 'eBay',
           grade: { gradingAuthority: 'CGC', grade: 9.4, pageQuality: null },
           price: 4850,
@@ -84,17 +85,36 @@ describe('BooksFoundClient', () => {
     const asm = screen.getByRole('group', { name: 'The Amazing Spider-Man #129' })
     expect(within(asm).getByText('2 copies')).toBeInTheDocument()
     const first = within(asm).getByRole('link', { name: /CGC 9\.2 · White pages · \$3,950/ })
-    expect(first).toHaveAttribute('href', '/alerts')
+    // Straight to the listing, in a new tab (Story 1.103)
+    expect(first).toHaveAttribute('href', 'https://track.example/1')
+    expect(first).toHaveAttribute('target', '_blank')
     expect(within(first).getByText('MyComicShop · found Oct 27')).toBeInTheDocument()
-    expect(within(first).getByText('In Alerts')).toBeInTheDocument()
+    expect(within(first).getByText('View on MyComicShop')).toBeInTheDocument()
     const sold = within(asm).getByRole('link', { name: /CGC 9\.4 · \$4,850/ })
-    expect(sold).toHaveAttribute('href', '/alerts/archive')
+    expect(sold).toHaveAttribute('href', 'https://track.example/2')
     expect(within(sold).getByText('eBay · found Oct 20 · near miss')).toBeInTheDocument()
     expect(within(sold).getByText('Sold Oct 24')).toBeInTheDocument()
     const dd = screen.getByRole('group', { name: 'Daredevil #158' })
     expect(within(dd).getByText('1 copy')).toBeInTheDocument()
     expect(within(dd).getByText('Search deleted Sep 20')).toBeInTheDocument()
     expect(screen.getByText(/A copy whose price changed counts once\./)).toBeInTheDocument()
+  })
+
+  it('a listing the seller removed is shown with no link (Story 1.103)', () => {
+    state.report = report({
+      copiesFound: 1,
+      books: [
+        {
+          ...book('X-Men', '1'),
+          searchDeleted: false,
+          copies: [copy({ now: { listingStatus: 'archived_expired', archiveReason: 'listing_removed', archivedAt: '2026-10-28T14:00:00Z' } })],
+        },
+      ],
+    })
+    render(<BooksFoundClient />)
+    expect(screen.getByText('Removed Oct 28')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /CGC 9\.2/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Alerts|archive/i })).toBeNull()
   })
 
   it('a MyComicShop auction shows no price', () => {

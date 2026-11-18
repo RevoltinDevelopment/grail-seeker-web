@@ -73,20 +73,24 @@ export function FoundList({ rows }: { rows: FoundRow[] }) {
   const cls =
     'flex min-h-touch min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-lg border border-line-strong px-3 py-2 text-[15px] font-semibold text-ink no-underline hover:bg-chip'
   const go = <T extends string>(text: T) => <span className="flex-none whitespace-nowrap text-sm font-semibold text-link">{text}</span>
+  const plain =
+    'flex min-h-touch min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-lg border border-line px-3 py-2 text-[15px] font-semibold text-ink'
   return (
     <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {rows.map((r) => (
         <li key={r.key}>
-          {r.external ? (
+          {r.href ? (
             <a href={r.href} target="_blank" rel="noopener noreferrer" className={cls}>
               <span className="min-w-0">{r.text}</span>
               {go(r.go)}
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           ) : (
-            <Link href={r.href} className={cls}>
+            // Nothing to open (a listing the seller removed): the same row, unlinked (Story 1.103)
+            <div className={plain}>
               <span className="min-w-0">{r.text}</span>
-              {go(r.go)}
-            </Link>
+              <span className="flex-none whitespace-nowrap text-sm font-semibold text-muted-foreground">{r.go}</span>
+            </div>
           )}
         </li>
       ))}

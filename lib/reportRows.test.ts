@@ -141,13 +141,20 @@ describe('rows', () => {
     expect(marketplaceName('Heritage', names)).toBe('Heritage Auctions')
   })
 
-  it('a copy found: view the listing while active, Alerts with no link, the archive otherwise', () => {
-    expect(foundRow(copy(), names)).toMatchObject({ text: 'Werewolf by Night #32 · CGC 9.6', go: 'View on eBay', href: 'https://track.example/1', external: true })
-    expect(foundRow(copy({ listingUrl: null }), names)).toMatchObject({ go: 'In Alerts', href: '/alerts', external: false })
-    expect(foundRow(copy({ now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: null } }), names)).toMatchObject({
-      go: 'In the archive',
-      href: '/alerts/archive',
+  it('a copy found links straight to its listing, whatever its state (Story 1.103)', () => {
+    expect(foundRow(copy(), names, NOW)).toEqual({ key: 'a1', text: 'Werewolf by Night #32 · CGC 9.6', go: 'View on eBay', href: 'https://track.example/1' })
+    expect(foundRow(copy({ now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: '2026-11-12T14:00:00Z' } }), names, NOW)).toMatchObject({
+      go: 'Sold Nov 12',
+      href: 'https://track.example/1',
     })
+    // Nothing to open: removed by the seller, or no link
+    expect(foundRow(copy({ now: { listingStatus: 'archived_expired', archiveReason: 'listing_removed', archivedAt: '2026-11-13T14:00:00Z' } }), names, NOW)).toMatchObject({
+      go: 'Removed Nov 13',
+      href: null,
+    })
+    expect(foundRow(copy({ listingUrl: null }), names, NOW)).toMatchObject({ go: 'Active', href: null })
+    expect(foundRow(copy({ listingUrl: 'javascript:alert(1)' }), names, NOW).href).toBeNull() // only web addresses (review)
+    expect(foundRow(copy({ listingUrl: '' }), names, NOW).href).toBeNull()
     expect(foundRow(copy({ marketplace: 'heritage' }), names).go).toBe('View on Heritage Auctions')
     expect(foundRow(copy({ grade: { gradingAuthority: null, grade: 9, pageQuality: null } }), names).text).toBe('Werewolf by Night #32 · Raw 9.0')
   })
@@ -235,9 +242,11 @@ describe('Books found', () => {
 
   it('where each copy is now, for every reason the server records', () => {
     const at = (archiveReason: string | null, archivedAt: string | null = '2026-10-24T14:00:00Z') =>
-      copyNow(copy({ now: { listingStatus: 'archived_expired', archiveReason, archivedAt } }), NOW)
-    expect(copyNow(copy(), NOW)).toEqual({ text: 'In Alerts', href: '/alerts' })
-    expect(at('listing_sold')).toEqual({ text: 'Sold Oct 24', href: '/alerts/archive' })
+      copyNow(copy({ now: { listingStatus: 'archived_expired', archiveReason, archivedAt } }), names, NOW)
+    expect(copyNow(copy(), names, NOW)).toEqual({ text: 'View on eBay', href: 'https://track.example/1' })
+    expect(at('listing_sold')).toEqual({ text: 'Sold Oct 24', href: 'https://track.example/1' })
+    expect(at('search_deleted').href).toBe('https://track.example/1')
+    expect(at('listing_removed').href).toBeNull()
     expect(at('listing_ended').text).toBe('Ended Oct 24')
     expect(at('listing_removed').text).toBe('Removed Oct 24')
     expect(at('user_dismissed').text).toBe('Dismissed Oct 24')
