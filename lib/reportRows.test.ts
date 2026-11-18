@@ -20,7 +20,6 @@ import {
   searchesRunRows,
   seeAllText,
   sinceRange,
-  tallyGrades,
   tallyRows,
   thisWeekHeadline,
   weekHasReport,
@@ -183,16 +182,6 @@ describe('rows', () => {
 })
 
 describe('the tally', () => {
-  const g = (gradingAuthority: string | null, grade: number | null) => ({ gradingAuthority, grade })
-
-  it('groups grades by company, most copies first, raw last, ascending with repeats', () => {
-    expect(tallyGrades([g('CGC', 9.2), g('cbcs', 9.0), g('CGC', 9.0), g(null, 9.0), g('CGC', 9.0), g(null, 8.0)])).toBe(
-      'CGC 9.0, 9.0, 9.2 · CBCS 9.0 · Raw 8.0, 9.0'
-    )
-    expect(tallyGrades([g('PGX', 9.0), g('CBCS', 9.2)])).toBe('CBCS 9.2 · PGX 9.0') // a tie: by name
-    expect(tallyGrades([g('CGC', null), g('CGC', 10)])).toBe('CGC 10.0') // no grade: counted, not listed
-  })
-
   it('the first eight books, then the rest counted', () => {
     const tb = (i: number, copies: number): TallyBook => ({ ...book(`Book ${i}`, '1'), searchDeleted: false, copies, grades: [] })
     const eight = Array.from({ length: 8 }, (_, i) => tb(i, 2))
@@ -204,6 +193,7 @@ describe('the tally', () => {
     expect(more).toBe('And 5 more copies of 3 other books.')
     expect(tallyRows([...eight, tb(8, 1)]).more).toBe('And 1 more copy of 1 other book.')
     expect(tallyRows([tb(0, 1)]).rows[0].nLabel).toBe('1 copy found')
+    expect(tallyRows([tb(0, 121)]).rows[0]).not.toHaveProperty('gr') // no grades (Mahan, 2026-11-18)
   })
 
   it('the link to Books found', () => {

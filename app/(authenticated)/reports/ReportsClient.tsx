@@ -109,13 +109,9 @@ function SinceYouJoined({ report, displayNameFor }: { report: ReportsResponse; d
         <Section title={`Books found · ${copies.toLocaleString('en-US')}`}>
           <ul className="m-0 flex list-none flex-col p-0">
             {tally.rows.map((b) => (
-              <li key={b.key} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 border-t border-line py-2 first:border-t-0 first:pt-0.5">
-                <span className="text-[15px] font-semibold text-ink">{b.t}</span>
-                <span className="text-right text-[15px] font-bold tabular-nums text-ink">
-                  <span aria-hidden="true">{b.n}</span>
-                  <span className="sr-only">{b.nLabel}</span>
-                </span>
-                {b.gr && <span className="col-span-2 text-sm text-muted-foreground">{b.gr}</span>}
+              <li key={b.key} className="flex items-baseline justify-between gap-3 border-t border-line py-2 first:border-t-0 first:pt-0.5">
+                <span className="min-w-0 text-[15px] font-semibold text-ink">{b.t}</span>
+                <span className="flex-none text-right text-[15px] tabular-nums text-muted-foreground">{b.nLabel}</span>
               </li>
             ))}
           </ul>

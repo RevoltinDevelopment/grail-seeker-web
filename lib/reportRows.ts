@@ -246,36 +246,19 @@ export function lifecycleRows(
 
 export const TALLY_SHOWN = 8
 
-/**
- * The grades in the tally: grouped by company, companies with the most copies first (then by name),
- * raw copies last ("Raw 8.0, 9.0"); grades ascending within a group, repeats kept; groups joined
- * by " · ". A copy with no grade is counted but not listed.
- */
-export function tallyGrades(grades: TallyBook['grades']): string {
-  const groups = new Map<string, number[]>()
-  for (const g of grades) {
-    if (g.grade == null || g.grade === 0) continue
-    const company = g.gradingAuthority ? g.gradingAuthority.toUpperCase() : ''
-    groups.set(company, [...(groups.get(company) ?? []), Number(g.grade)])
-  }
-  return [...groups.entries()]
-    .sort(([a, x], [b, y]) => {
-      if (a === '' || b === '') return a === '' ? 1 : -1
-      return y.length - x.length || a.localeCompare(b)
-    })
-    .map(([company, gs]) => `${company || 'Raw'} ${[...gs].sort((p, q) => p - q).map(formatGrade).join(', ')}`)
-    .join(' · ')
-}
-
 export interface TallyRow {
   key: string
   t: string
   n: string
+  /** "121 copies found" */
   nLabel: string
-  gr: string
 }
 
-/** The first eight books of the tally, and "And 5 more copies of 3 other books." when there are more. */
+/**
+ * The first eight books of the tally, each with how many copies were found, and "And 5 more copies
+ * of 3 other books." when there are more. No grades: one book can have a hundred copies, and Books
+ * found gives each one (Mahan, 2026-11-18).
+ */
 export function tallyRows(tally: readonly TallyBook[] | undefined): { rows: TallyRow[]; more: string | null } {
   const all = tally ?? []
   const rows = all.slice(0, TALLY_SHOWN).map((b, i) => ({
@@ -283,7 +266,6 @@ export function tallyRows(tally: readonly TallyBook[] | undefined): { rows: Tall
     t: bookName(b),
     n: b.copies.toLocaleString('en-US'),
     nLabel: plural(b.copies, 'copy found', 'copies found'),
-    gr: tallyGrades(b.grades),
   }))
   const rest = all.slice(TALLY_SHOWN)
   if (rest.length === 0) return { rows, more: null }
