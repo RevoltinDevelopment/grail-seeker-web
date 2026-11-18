@@ -38,11 +38,23 @@ export function bookTitle(alert: Alert): string {
   return `${alert.search.series.title} ${formatIssueNumber(alert.search.issueNumber, alert.search.issueVolumeText)}`
 }
 
-/** The slab: "CGC 9.2 · White pages"; "" when the listing names no grade. */
-export function gradeLine(alert: Alert): string {
-  const { grade, gradingAuthority, pageQuality } = alert.listing
+/**
+ * The slab from plain fields: "CGC 9.2 · White pages"; "" when there is no grade. Shared by Alerts,
+ * the archive and Reports (Story 1.100), so a grade reads the same everywhere.
+ */
+export function slabText(fields: {
+  grade: number | string | null | undefined
+  gradingAuthority?: string | null
+  pageQuality?: string | null
+}): string {
+  const { grade, gradingAuthority, pageQuality } = fields
   const slab = grade ? [gradingAuthority?.toUpperCase(), formatGrade(grade)].filter(Boolean).join(' ') : ''
   return [slab, pageQuality ? sentenceCase(pageQuality) : ''].filter(Boolean).join(' · ')
+}
+
+/** The slab: "CGC 9.2 · White pages"; "" when the listing names no grade. */
+export function gradeLine(alert: Alert): string {
+  return slabText(alert.listing)
 }
 
 /** "Sat, Nov 7, 7 PM" (minutes only when not on the hour), in the subscriber's own time. */

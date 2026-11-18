@@ -6,6 +6,10 @@ import { defineConfig } from 'vitest/config'
 // component tests need a DOM); the @/* alias mirrors tsconfig.json's own
 // paths mapping exactly so import paths don't diverge between the app and
 // its tests.
+// Dates in tests read in one time zone wherever they run (Story 1.100, review): the pages show a
+// timestamp in the subscriber's own time, so a fixture's day must not move with the machine
+process.env.TZ = 'America/New_York'
+
 export default defineConfig({
   plugins: [react()],
   test: {

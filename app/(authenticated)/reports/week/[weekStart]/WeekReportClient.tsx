@@ -1,222 +1,128 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import Link from 'next/link'
-import { usePlatforms } from '@/hooks/usePlatforms'
-import { useWeekReport } from '@/hooks/useReports'
+/**
+ * Story 1.100 (U-14): one past week, as drawn in reports-week.html (approved by Mahan 2026-10-28).
+ * A week outside the account's reports (a malformed date, not a Monday, this week or later, before
+ * the account was made) says so without asking the server, and so does the server's 400. A failed
+ * read offers Try again, never the error's text. Words: lib/reportRows.ts.
+ */
+
 import {
-  sortMarketplaceEntries,
-  totalSearchesRun,
-  hasAnyMarketplaceActivity,
-  resolveMarketplaceNames,
-} from '@/lib/constants/marketplaceDisplayOrder'
-import { formatIssueNumber } from '@/lib/utils/series-formatter'
-import type { BookFound } from '@/types/report.types'
+  BackToReports,
+  BooksList,
+  EmptyState,
+  FoundList,
+  HeadlineBox,
+  KeyValueRows,
+  PageTitle,
+  Panel,
+  Section,
+  Tag,
+} from '@/components/reports/ReportParts'
+import { usePlatforms } from '@/hooks/usePlatforms'
+import { useReports, useWeekReport } from '@/hooks/useReports'
+import { totalSearchesRun } from '@/lib/constants/marketplaceDisplayOrder'
+import {
+  booksSearchedRows,
+  foundRows,
+  lifecycleRows,
+  pastWeekHeadline,
+  searchesRunRows,
+  weekHasReport,
+  weekLabel,
+  weekRange,
+} from '@/lib/reportRows'
 
 interface Props {
   weekStart: string
 }
 
-function formatWeekRange(weekStart: string): string {
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekStart + 'T00:00:00Z')
-  end.setUTCDate(end.getUTCDate() + 6)
-  const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
-  return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })} – ${end.toLocaleDateString('en-US', opts)}`
-}
-
-function StatRow({ label, value }: { label: string; value: number }) {
-  if (value === 0) return null
-  return (
-    <div className="flex items-center justify-between py-2 text-sm">
-      <span className="text-slate-600">{label}</span>
-      <span className="font-semibold text-collector-navy">{value}</span>
-    </div>
-  )
-}
-
-function BooksFoundSection({ items }: { items: BookFound[] }) {
-  const [expanded, setExpanded] = useState(false)
-  if (items.length === 0) return null
-
-  const sorted = [...items].sort((a, b) => a.title.localeCompare(b.title))
-
-  return (
-    <div className="py-3">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Books Found</p>
-      <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
-        {!expanded && (
-          <button onClick={() => setExpanded(true)} className="text-xs text-collector-blue hover:underline">
-            show all
-          </button>
-        )}
-      </div>
-      {expanded && (
-        <>
-          <div className="mt-2 space-y-2">
-            {sorted.map((b) => {
-              const isActive = b.listingStatus === 'active'
-              const href = isActive ? (b.listingUrl ?? '/alerts') : '/alerts/archive'
-              return isActive ? (
-                <a
-                  key={b.alertId}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
-                >
-                  <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-collector-blue">↗</span>
-                </a>
-              ) : (
-                <Link
-                  key={b.alertId}
-                  href={href}
-                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
-                >
-                  <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-muted-foreground">archive →</span>
-                </Link>
-              )
-            })}
-          </div>
-          <button onClick={() => setExpanded(false)} className="mt-2 text-xs text-collector-blue hover:underline">
-            hide all
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
-
 export default function WeekReportClient({ weekStart }: Props) {
-  const { report, isLoading } = useWeekReport(weekStart)
-  // Both hooks below run before any early return (Rules of Hooks) --
-  // resolvedCounts uses optional chaining since `report` may still be
-  // undefined at this point.
+  // Read through the overview's query (5 minutes stale, usually cached), so a week before the account
+  // was made says so once it arrives, on a link opened directly too (review)
+  const { report: overview } = useReports()
+  const joinedAt = overview?.joinedAt ?? null
+  const possible = weekHasReport(weekStart, joinedAt)
+  const { report, isLoading, error, refetch } = useWeekReport(weekStart, { enabled: possible })
   const { displayNameFor } = usePlatforms()
-  const resolvedCounts = useMemo(
-    () => resolveMarketplaceNames(report?.searchesRunByMarketplace, displayNameFor),
-    [report?.searchesRunByMarketplace, displayNameFor]
-  )
 
-  if (isLoading) {
-    return (
-      <div className="container-custom pb-12 pt-5">
-        <div className="py-12 text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue" />
-          <p className="mt-4 text-slate-600">Loading report...</p>
-        </div>
-      </div>
+  const status = (error as { status?: number } | null)?.status
+  const missing = !possible || status === 400
+
+  let body: React.ReactNode
+  if (missing) {
+    body = (
+      <EmptyState
+        icon="calendar"
+        heading="There is no report for that week"
+        body="Reports start from the week you joined, and the current week is on the Reports page until it ends."
+        back
+      />
+    )
+  } else if (isLoading) {
+    body = (
+      <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
+        Loading this report…
+      </p>
+    )
+  } else if (!report) {
+    body = (
+      <EmptyState
+        icon="calendar"
+        heading="We couldn’t load this report"
+        body="Your searches are still running. Try again in a moment."
+        onRetry={() => refetch()}
+        back
+      />
+    )
+  } else {
+    const runs = totalSearchesRun(report.searchesRunByMarketplace)
+    const copies = report.copiesFound ?? []
+    const run = searchesRunRows(report.searchesRunByMarketplace, displayNameFor)
+    const books = booksSearchedRows(report.booksSearched)
+    const life = lifecycleRows(report, 'week')
+    const anyLife = report.searchesCreated + report.searchesDeleted + report.alertsArchived + report.alertsDismissed > 0
+    body = (
+      <>
+        <PageTitle
+          title={weekLabel(weekStart)}
+          sub={
+            <>
+              {weekRange(weekStart, false)} <Tag>Complete</Tag>
+            </>
+          }
+        />
+        <Panel label="The week">
+          <HeadlineBox headline={pastWeekHeadline({ copies: copies.length, searchesRun: runs, alerts: report.alertsIssued })} />
+          {copies.length > 0 && (
+            <Section title={`Books found · ${copies.length}`}>
+              <FoundList rows={foundRows(copies, displayNameFor)} />
+            </Section>
+          )}
+          {run.length > 0 && (
+            <Section title="Searches run">
+              <KeyValueRows rows={run} />
+            </Section>
+          )}
+          {books.length > 0 && (
+            <Section title={`Books searched · ${books.length}`}>
+              <BooksList rows={books} />
+            </Section>
+          )}
+          {(runs > 0 || anyLife) && (
+            <Section title="Your searches and alerts">
+              <KeyValueRows rows={life} />
+            </Section>
+          )}
+        </Panel>
+      </>
     )
   }
-
-  if (!report) {
-    return (
-      <div className="container-custom pb-12 pt-5">
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <div className="mb-4 text-5xl">📭</div>
-          <h3 className="mb-2 text-xl font-semibold">No report found</h3>
-          <p className="mb-6 text-slate-600">No data available for this week.</p>
-          <Link href="/reports" className="text-sm font-medium text-collector-blue hover:underline">
-            ← Back to Reports
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const totalSearches = totalSearchesRun(report.searchesRunByMarketplace)
-  const hasFinds = report.alertsIssued > 0
 
   return (
-    <div className="container-custom pb-12 pt-5">
-      {/* Back link */}
-      <div className="mb-6">
-        <Link href="/reports" className="text-sm font-medium text-collector-blue hover:underline">
-          ← Back to Reports
-        </Link>
-      </div>
-
-      {/* Page header */}
-      <div className="mb-8">
-        <h2 className="mb-1 text-3xl font-bold">Week of {formatWeekRange(weekStart)}</h2>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-          Complete
-        </span>
-      </div>
-
-      {/* Card */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Headline */}
-        <div className="mb-5 rounded-md bg-slate-50 p-4">
-          {hasFinds ? (
-            <p className="font-semibold text-collector-navy">
-              We found{' '}
-              <span className="text-collector-blue">
-                {report.alertsIssued} {report.alertsIssued === 1 ? 'book' : 'books'}
-              </span>{' '}
-              matching your searches this week.
-            </p>
-          ) : totalSearches > 0 ? (
-            <p className="font-semibold text-collector-navy">
-              We ran{' '}
-              <span className="text-collector-blue">{totalSearches} {totalSearches === 1 ? 'search' : 'searches'}</span>{' '}
-              this week on your behalf.{' '}
-              <span className="text-slate-500">No matches that week.</span>
-            </p>
-          ) : (
-            <p className="text-slate-600">No monitoring activity recorded for this week.</p>
-          )}
-        </div>
-
-        <div className="divide-y divide-slate-100">
-          {/* Books searched — sorted alphabetically */}
-          {report.booksSearched.length > 0 && (
-            <div className="py-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Books Searched
-              </p>
-              {[...report.booksSearched]
-                .sort((a, b) =>
-                  a.seriesTitle.localeCompare(b.seriesTitle) ||
-                  a.issueNumber.localeCompare(b.issueNumber)
-                )
-                .map((b, i) => (
-                  <p key={i} className="text-sm text-slate-700">
-                    {b.seriesTitle} {formatIssueNumber(b.issueNumber, b.issueVolumeText)}
-                  </p>
-                ))}
-            </div>
-          )}
-
-          {/* Execution counts — one StatRow per marketplace, canonical order */}
-          {hasAnyMarketplaceActivity(report.searchesRunByMarketplace) && (
-            <div className="py-3">
-              {sortMarketplaceEntries(resolvedCounts).map(([name, count]) => (
-                <StatRow key={name} label={`${name} searches run`} value={count} />
-              ))}
-            </div>
-          )}
-
-          {/* Books found — togglable, sorted alphabetically, with contextual links */}
-          <BooksFoundSection items={report.booksFound} />
-
-          {/* Lifecycle stats */}
-          {(report.searchesCreated > 0 ||
-            report.searchesDeleted > 0 ||
-            report.alertsArchived > 0 ||
-            report.alertsDismissed > 0) && (
-            <div className="py-3">
-              <StatRow label="Searches created" value={report.searchesCreated} />
-              <StatRow label="Searches deleted" value={report.searchesDeleted} />
-              <StatRow label="Alerts archived" value={report.alertsArchived} />
-              <StatRow label="Alerts dismissed" value={report.alertsDismissed} />
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-[824px] flex-col gap-5 px-4 pb-12 pt-5 tablet:px-8">
+      <BackToReports />
+      {body}
     </div>
   )
 }

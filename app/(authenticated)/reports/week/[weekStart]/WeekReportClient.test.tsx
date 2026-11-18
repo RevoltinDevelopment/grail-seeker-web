@@ -1,158 +1,155 @@
 /**
- * Story 1.44: WeekReportClient renders searchesRunByMarketplace dynamically
- * (one StatRow per marketplace, canonical order) instead of hardcoded
- * eBay/Heritage rows, matching ReportsClient's own Story 1.44 fix.
+ * Story 1.100 (U-14): one past week, as drawn in reports-week.html.
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { WeekReport } from '@/types/report.types'
 
+const state = vi.hoisted(() => ({
+  report: undefined as unknown,
+  isLoading: false,
+  error: null as unknown,
+  refetch: vi.fn(),
+  calls: [] as { weekStart: string; enabled?: boolean }[],
+  overview: undefined as unknown,
+}))
 vi.mock('@/hooks/useReports', () => ({
-  useWeekReport: vi.fn(),
+  useReports: () => ({ report: state.overview }),
+  useWeekReport: (weekStart: string, opts: { enabled?: boolean } = {}) => {
+    state.calls.push({ weekStart, enabled: opts.enabled })
+    return { report: state.report, isLoading: state.isLoading, error: state.error, refetch: state.refetch }
+  },
 }))
-
-vi.mock('@/hooks/usePlatforms', () => ({
-  usePlatforms: vi.fn(),
-}))
+vi.mock('@/hooks/usePlatforms', () => ({ usePlatforms: () => ({ displayNameFor: (s: string) => s }) }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
-import { useWeekReport } from '@/hooks/useReports'
-// eslint-disable-next-line import/order -- must follow vi.mock() above
-import { usePlatforms } from '@/hooks/usePlatforms'
 import WeekReportClient from './WeekReportClient'
 
-// Story 1.49: default mock has no registry entries -- displayNameFor's
-// fallback-to-raw-key behavior is what every pre-existing (Story 1.44) test
-// exercises unchanged.
+const book = (seriesTitle: string, issueNumber: string) => ({ seriesTitle, issueNumber, issueVolumeText: null })
+const week = (over: Partial<WeekReport> = {}): WeekReport => ({
+  weekStart: '2026-11-09',
+  booksSearched: [book('X-Men', '94'), { ...book('Iron Fist', '14'), searchDeleted: true }],
+  searchesRunByMarketplace: { eBay: 84, Heritage: 84 },
+  alertsIssued: 1,
+  copiesFound: [
+    {
+      alertId: 'c1',
+      book: book('The Amazing Spider-Man', '129'),
+      marketplace: 'eBay',
+      listingUrl: null,
+      grade: { gradingAuthority: 'CGC', grade: 9.4, pageQuality: null },
+      price: 4850,
+      priceIsPlaceholder: false,
+      nearMiss: false,
+      foundAt: '2026-11-10T14:00:00Z',
+      priceChange: null,
+      now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: '2026-11-12T14:00:00Z' },
+      alerts: 1,
+    },
+  ],
+  searchesCreated: 1,
+  searchesDeleted: 1,
+  alertsArchived: 1,
+  alertsDismissed: 0,
+  ...over,
+})
+
+let client: QueryClient
+const renderWeek = (weekStart: string) =>
+  render(
+    <QueryClientProvider client={client}>
+      <WeekReportClient weekStart={weekStart} />
+    </QueryClientProvider>
+  )
+
 beforeEach(() => {
-  vi.mocked(usePlatforms).mockReturnValue({
-    groups: [],
-    isLoading: false,
-    error: null,
-    displayNameFor: (slug: string) => slug,
-    defaultEnabledSlugs: [],
-  })
+  client = new QueryClient()
+  state.report = week()
+  state.isLoading = false
+  state.error = null
+  state.calls = []
+  state.overview = undefined
+  state.refetch.mockReset()
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-11-18T17:00:00Z'))
 })
+afterEach(() => vi.useRealTimers())
 
-function makeWeekReport(overrides: Partial<WeekReport> = {}): WeekReport {
-  return {
-    weekStart: '2026-08-31',
-    booksSearched: [],
-    searchesRunByMarketplace: {},
-    alertsIssued: 0,
-    booksFound: [],
-    searchesCreated: 0,
-    searchesDeleted: 0,
-    alertsArchived: 0,
-    alertsDismissed: 0,
-    ...overrides,
-  }
-}
-
-function mockUseWeekReport(report: WeekReport | undefined) {
-  vi.mocked(useWeekReport).mockReturnValue({
-    report,
-    isLoading: false,
-  } as unknown as ReturnType<typeof useWeekReport>)
-}
-
-describe('WeekReportClient — per-marketplace search counts (Story 1.44)', () => {
-  it('renders one StatRow per marketplace, in canonical order', () => {
-    mockUseWeekReport(
-      makeWeekReport({ searchesRunByMarketplace: { MyComicShop: 5, eBay: 12, Heritage: 3 } })
-    )
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-
-    const rows = screen.getAllByText(/searches run$/)
-    expect(rows.map((el) => el.textContent)).toEqual([
-      'eBay searches run',
-      'Heritage searches run',
-      'MyComicShop searches run',
-    ])
+describe('WeekReportClient', () => {
+  it('a week with finds, as drawn: the title, the real days, the copies and the counts', () => {
+    renderWeek('2026-11-09')
+    expect(screen.getByRole('heading', { name: 'Week of November 9, 2026' })).toBeInTheDocument()
+    expect(screen.getByText(/Monday, Nov 9 to Sunday, Nov 15/)).toBeInTheDocument()
+    expect(screen.getByText('Complete')).toBeInTheDocument()
+    expect(screen.getByText(/We found 1 book for you that week\./)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /The Amazing Spider-Man #129 · CGC 9\.4\s*In the archive/ })).toHaveAttribute('href', '/alerts/archive')
+    expect(screen.getByText('Heritage Auctions')).toBeInTheDocument()
+    expect(screen.getByText('(search deleted)')).toBeInTheDocument()
+    expect(screen.getByText('Searches deleted')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '← Back to Reports' })).toHaveAttribute('href', '/reports')
   })
 
-  it('renders an unrecognized marketplace after all known ones, alphabetically, never dropping it', () => {
-    mockUseWeekReport(
-      makeWeekReport({
-        searchesRunByMarketplace: { ComicLink: 7, eBay: 12, Heritage: 3, MyComicShop: 5 },
-      })
-    )
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-
-    const rows = screen.getAllByText(/searches run$/)
-    expect(rows.map((el) => el.textContent)).toEqual([
-      'eBay searches run',
-      'Heritage searches run',
-      'MyComicShop searches run',
-      'ComicLink searches run',
-    ])
+  it('a week when nothing matched, and one when no searches ran', () => {
+    state.report = week({ copiesFound: [], alertsIssued: 0 })
+    const { unmount } = renderWeek('2026-11-09')
+    expect(screen.getByText(/We ran 168 searches for you that week\./)).toBeInTheDocument()
+    expect(screen.getByText('Nothing matched.')).toBeInTheDocument()
+    unmount()
+    state.report = week({ copiesFound: [], alertsIssued: 0, searchesRunByMarketplace: {}, searchesCreated: 0, searchesDeleted: 0, alertsArchived: 0 })
+    renderWeek('2026-11-09')
+    expect(screen.getByText(/No searches ran that week\./)).toBeInTheDocument()
+    expect(screen.queryByText('Your searches and alerts')).toBeNull()
   })
 
-  it('does not render a StatRow for a marketplace with a zero count', () => {
-    mockUseWeekReport(
-      makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 0 } })
-    )
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-
-    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
-    expect(screen.queryByText('Heritage searches run')).not.toBeInTheDocument()
+  it.each([
+    ['not a date', 'garbage'],
+    ['not a Monday', '2026-11-10'],
+    ['the current week', '2026-11-16'],
+    ['a future week', '2026-11-30'],
+  ])('%s: no report for that week, without asking the server', (_label, weekStart) => {
+    renderWeek(weekStart)
+    expect(screen.getByRole('heading', { name: 'There is no report for that week' })).toBeInTheDocument()
+    expect(state.calls.length).toBeGreaterThan(0)
+    expect(state.calls.every((c) => c.enabled === false)).toBe(true)
+    expect(screen.getByRole('link', { name: 'Back to Reports' })).toHaveAttribute('href', '/reports')
   })
 
-  it('sums across all marketplaces for the "We ran N searches" headline, not just eBay', () => {
-    mockUseWeekReport(
-      makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 } })
-    )
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-
-    expect(screen.getByText('20 searches')).toBeInTheDocument()
-    expect(screen.getByText(/this week on your behalf\./)).toBeInTheDocument()
-    expect(screen.queryByText(/on eBay/)).not.toBeInTheDocument()
+  it('a week before the account was made, once the overview is known (a link opened directly too)', () => {
+    state.overview = { joinedAt: '2026-08-12T15:00:00Z' }
+    renderWeek('2026-08-03')
+    expect(screen.getByRole('heading', { name: 'There is no report for that week' })).toBeInTheDocument()
   })
 
-  it('shows the no-activity copy when every marketplace is zero/absent', () => {
-    mockUseWeekReport(makeWeekReport({ searchesRunByMarketplace: {} }))
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-    expect(screen.getByText('No monitoring activity recorded for this week.')).toBeInTheDocument()
-  })
-})
-
-describe('WeekReportClient — Independent Shops slug resolution (Story 1.49)', () => {
-  it('resolves a raw registry slug to its real display name, never showing it verbatim', () => {
-    vi.mocked(usePlatforms).mockReturnValue({
-      groups: [],
-      isLoading: false,
-      error: null,
-      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
-      defaultEnabledSlugs: [],
-    })
-    mockUseWeekReport(makeWeekReport({ searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 } }))
-
-    render(<WeekReportClient weekStart="2026-08-31" />)
-    expect(screen.getByText("Bry's Comics searches run")).toBeInTheDocument()
-    expect(screen.queryByText('indie:bryscomics searches run')).not.toBeInTheDocument()
+  it('alerts on copies found in an earlier week: not "Nothing matched" (review)', () => {
+    state.report = week({ copiesFound: [], alertsIssued: 1 })
+    renderWeek('2026-11-09')
+    expect(screen.getByText(/We ran 168 searches for you that week\./)).toBeInTheDocument()
+    expect(screen.queryByText('Nothing matched.')).toBeNull()
   })
 
-  it('leaves the three known capitalized names untouched, unresolved', () => {
-    vi.mocked(usePlatforms).mockReturnValue({
-      groups: [],
-      isLoading: false,
-      error: null,
-      displayNameFor: () => 'SHOULD NOT BE CALLED FOR KNOWN NAMES',
-      defaultEnabledSlugs: [],
-    })
-    mockUseWeekReport(
-      makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 } })
-    )
+  it('a refresh that fails keeps the week on screen (review)', () => {
+    state.error = Object.assign(new Error('socket hang up'), { status: 500 })
+    renderWeek('2026-11-09')
+    expect(screen.getByRole('heading', { name: 'Week of November 9, 2026' })).toBeInTheDocument()
+  })
 
-    render(<WeekReportClient weekStart="2026-08-31" />)
-    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
-    expect(screen.getByText('Heritage searches run')).toBeInTheDocument()
-    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
+  it("the server's 400 is no report for that week", () => {
+    state.report = undefined
+    state.error = Object.assign(new Error('INVALID_WEEK'), { status: 400 })
+    renderWeek('2026-11-09')
+    expect(screen.getByRole('heading', { name: 'There is no report for that week' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
+  it('any other failure offers Try again, never the error text', () => {
+    state.report = undefined
+    state.error = Object.assign(new Error('socket hang up'), { status: 500 })
+    renderWeek('2026-11-09')
+    expect(screen.getByRole('heading', { name: 'We couldn’t load this report' })).toBeInTheDocument()
+    expect(screen.queryByText(/socket hang up/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(state.refetch).toHaveBeenCalled()
   })
 })

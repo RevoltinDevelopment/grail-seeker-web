@@ -1,417 +1,213 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+/**
+ * Story 1.100 (U-14): Reports, as drawn in reports-overview.html (approved by Mahan 2026-10-28).
+ * This week, an accounting since the account was made, and past weeks as a list that never scrolls
+ * sideways. The weekly email is hidden until it is real. Words: lib/reportRows.ts.
+ */
 import Link from 'next/link'
+
+import {
+  BooksList,
+  EmptyState,
+  FootNote,
+  FoundList,
+  HeadlineBox,
+  KeyValueRows,
+  PageTitle,
+  Panel,
+  Section,
+  Tag,
+} from '@/components/reports/ReportParts'
 import { usePlatforms } from '@/hooks/usePlatforms'
 import { useReports } from '@/hooks/useReports'
+import { totalSearchesRun } from '@/lib/constants/marketplaceDisplayOrder'
 import {
-  sortMarketplaceEntries,
-  totalSearchesRun,
-  hasAnyMarketplaceActivity,
-  resolveMarketplaceNames,
-} from '@/lib/constants/marketplaceDisplayOrder'
-import { formatIssueNumber } from '@/lib/utils/series-formatter'
-import type { WeekReport, PastWeekSummary, BookFound, BookSearched } from '@/types/report.types'
+  allTimeHeadline,
+  booksSearchedRows,
+  foundRows,
+  keptFromLine,
+  lifecycleRows,
+  pastWeekSummary,
+  searchesRunRows,
+  seeAllText,
+  sinceRange,
+  tallyRows,
+  thisWeekHeadline,
+  weekLabel,
+  weekRange,
+} from '@/lib/reportRows'
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+import type { ReportsResponse } from '@/types/report.types'
 
-function formatWeekRange(weekStart: string): string {
-  const start = new Date(weekStart + 'T00:00:00Z')
-  const end = new Date(weekStart + 'T00:00:00Z')
-  end.setUTCDate(end.getUTCDate() + 6)
-
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', timeZone: 'UTC' }
-  const endOpts: Intl.DateTimeFormatOptions = {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }
-  return `${start.toLocaleDateString('en-US', opts)} – ${end.toLocaleDateString('en-US', endOpts)}`
+/** Something happened to searches or alerts, even before any search ran (review). */
+function anyLife(r: { searchesCreated: number; searchesDeleted: number; alertsArchived: number; alertsDismissed: number }): boolean {
+  return r.searchesCreated + r.searchesDeleted + r.alertsArchived + r.alertsDismissed > 0
 }
 
-function formatWeekLabel(weekStart: string): string {
-  const d = new Date(weekStart + 'T00:00:00Z')
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-}
-
-function totalSearches(report: Pick<WeekReport, 'searchesRunByMarketplace'>): number {
-  return totalSearchesRun(report.searchesRunByMarketplace)
-}
-
-// ─── stat row — only renders when value > 0 ──────────────────────────────────
-
-function StatRow({ label, value }: { label: string; value: number }) {
-  if (value === 0) return null
+function ThisWeek({ report, displayNameFor }: { report: ReportsResponse; displayNameFor: (s: string) => string }) {
+  const week = report.currentWeek
+  const runs = totalSearchesRun(week.searchesRunByMarketplace)
+  const copies = week.copiesFound ?? []
+  const joined = report.joinedAt ? new Date(report.joinedAt) : null
+  const firstWeek =
+    joined && Number.isFinite(joined.getTime()) && week.weekStart
+      ? joined.toISOString().slice(0, 10) >= week.weekStart
+      : report.pastWeeks.length === 0
+  const run = searchesRunRows(week.searchesRunByMarketplace, displayNameFor)
+  const books = booksSearchedRows(week.booksSearched)
   return (
-    <div className="flex items-center justify-between py-2 text-sm">
-      <span className="text-slate-600">{label}</span>
-      <span className="font-semibold text-collector-navy">{value}</span>
-    </div>
-  )
-}
-
-// ─── books searched list ──────────────────────────────────────────────────────
-
-function BooksList({ items }: { items: BookSearched[] }) {
-  if (items.length === 0) return null
-  const sorted = [...items].sort((a, b) =>
-    a.seriesTitle.localeCompare(b.seriesTitle) || a.issueNumber.localeCompare(b.issueNumber)
-  )
-  return (
-    <div className="mt-1 space-y-0.5">
-      {sorted.map((b, i) => (
-        <p key={i} className="text-sm text-slate-700">
-          {b.seriesTitle} {formatIssueNumber(b.issueNumber, b.issueVolumeText)}
-        </p>
-      ))}
-    </div>
-  )
-}
-
-// ─── books found section (togglable) ─────────────────────────────────────────
-// withLinks=true: current-week card — active alerts link to listing, archived to /alerts/archive
-// withLinks=false: all-time card — plain text only (most will be archived, links add no value)
-
-function BooksFoundSection({ items, withLinks }: { items: BookFound[]; withLinks: boolean }) {
-  const [expanded, setExpanded] = useState(false)
-  if (items.length === 0) return null
-
-  const sorted = [...items].sort((a, b) => a.title.localeCompare(b.title))
-
-  return (
-    <div className="py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Books Found</p>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-sm font-semibold text-collector-navy">{items.length}</span>
-        {!expanded && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="text-xs text-collector-blue hover:underline"
-          >
-            show all
-          </button>
-        )}
+    <Panel label="This week">
+      <div>
+        <h2 className="text-card-title font-bold leading-[1.3] text-ink">
+          This week <Tag>In progress</Tag>
+        </h2>
+        {week.weekStart && <p className="mt-0.5 text-sm text-muted-foreground">{weekRange(week.weekStart)}</p>}
       </div>
-
-      {expanded && (
-        <>
-          <div className="mt-2 space-y-2">
-            {sorted.map((b) => {
-              if (!withLinks) {
-                return (
-                  <div
-                    key={b.alertId}
-                    className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-collector-navy"
-                  >
-                    {b.title}
-                  </div>
-                )
-              }
-              const isActive = b.listingStatus === 'active'
-              const href = isActive ? (b.listingUrl ?? '/alerts') : '/alerts/archive'
-              return isActive ? (
-                <a
-                  key={b.alertId}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
-                >
-                  <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-collector-blue">↗</span>
-                </a>
-              ) : (
-                <Link
-                  key={b.alertId}
-                  href={href}
-                  className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm transition-colors hover:border-collector-blue hover:bg-blue-50"
-                >
-                  <span className="font-medium text-collector-navy">{b.title}</span>
-                  <span className="ml-2 shrink-0 text-muted-foreground">archive →</span>
-                </Link>
-              )
-            })}
-          </div>
-          <button
-            onClick={() => setExpanded(false)}
-            className="mt-2 text-xs text-collector-blue hover:underline"
-          >
-            hide all
-          </button>
-        </>
+      <HeadlineBox headline={thisWeekHeadline({ copies: copies.length, searchesRun: runs, firstWeek, alerts: week.alertsIssued })} />
+      {copies.length > 0 && (
+        <Section title={`Books found · ${copies.length}`}>
+          <FoundList rows={foundRows(copies, displayNameFor)} />
+        </Section>
       )}
-    </div>
+      {run.length > 0 && (
+        <Section title="Searches run">
+          <KeyValueRows rows={run} />
+        </Section>
+      )}
+      {books.length > 0 && (
+        <Section title={`Books searched · ${books.length}`}>
+          <BooksList rows={books} />
+        </Section>
+      )}
+      {(runs > 0 || anyLife(week)) && (
+        <Section title="Your searches and alerts">
+          <KeyValueRows rows={lifecycleRows(week, 'week')} />
+        </Section>
+      )}
+    </Panel>
   )
 }
 
-// ─── week card ────────────────────────────────────────────────────────────────
-
-function WeekCard({
-  report,
-  isCurrentWeek = false,
-  withLinks = false,
-}: {
-  report: WeekReport
-  isCurrentWeek?: boolean
-  withLinks?: boolean
-}) {
-  const { displayNameFor } = usePlatforms()
-  const resolvedCounts = useMemo(
-    () => resolveMarketplaceNames(report.searchesRunByMarketplace, displayNameFor),
-    [report.searchesRunByMarketplace, displayNameFor]
-  )
-  const searches = totalSearches(report)
-  const hasFinds = report.alertsIssued > 0
-  const hasAnyActivity = searches > 0
-
+function SinceYouJoined({ report, displayNameFor }: { report: ReportsResponse; displayNameFor: (s: string) => string }) {
+  const all = report.allTime
+  const runs = totalSearchesRun(all.searchesRunByMarketplace)
+  const copies = all.copiesFound ?? 0
+  const tally = tallyRows(all.booksFoundTally)
+  const range = sinceRange(report.joinedAt)
+  const books = booksSearchedRows(all.booksSearched)
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      {/* Header */}
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-collector-navy">
-              {isCurrentWeek ? 'This Week' : 'All Time'}
-            </h3>
-            {isCurrentWeek && (
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-collector-blue">
-                In Progress
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 text-sm text-slate-500">
-            {isCurrentWeek
-              ? formatWeekRange(report.weekStart ?? '')
-              : `Since you joined`}
-          </p>
-        </div>
+    <Panel label="Since you joined">
+      <div>
+        <h2 className="text-card-title font-bold leading-[1.3] text-ink">
+          Since you joined <Tag>All time</Tag>
+        </h2>
+        {range && <p className="mt-0.5 text-sm text-muted-foreground">{range}</p>}
       </div>
-
-      {/* Headline — adapts to finds vs no-finds */}
-      <div className="mb-5 rounded-md bg-slate-50 p-4">
-        {hasFinds ? (
-          <p className="font-semibold text-collector-navy">
-            We found{' '}
-            <span className="text-collector-blue">
-              {report.alertsIssued} {report.alertsIssued === 1 ? 'book' : 'books'}
-            </span>{' '}
-            matching your searches{isCurrentWeek ? ' this week' : ' since you joined'}.
-          </p>
-        ) : hasAnyActivity ? (
-          <p className="font-semibold text-collector-navy">
-            We ran{' '}
-            <span className="text-collector-blue">{searches} {searches === 1 ? 'search' : 'searches'}</span>
-            {isCurrentWeek ? ' this week' : ' since you joined'} on your behalf.{' '}
-            <span className="text-slate-500">Still hunting.</span>
-          </p>
-        ) : (
-          <p className="text-slate-600">
-            Your first report is on its way — we check for new listings at 9 AM and 7 PM EST every day.
-          </p>
-        )}
-      </div>
-
-      <div className="divide-y divide-slate-100">
-        {/* Books searched */}
-        {report.booksSearched.length > 0 && (
-          <div className="py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Books Searched
-            </p>
-            <BooksList items={report.booksSearched} />
-          </div>
-        )}
-
-        {/* Search execution counts — one StatRow per marketplace, canonical order */}
-        {hasAnyMarketplaceActivity(report.searchesRunByMarketplace) && (
-          <div className="py-3">
-            {sortMarketplaceEntries(resolvedCounts).map(([name, count]) => (
-              <StatRow key={name} label={`${name} searches run`} value={count} />
+      <HeadlineBox headline={allTimeHeadline({ copies, searchesRun: runs })} />
+      {copies > 0 && (
+        <Section title={`Books found · ${copies.toLocaleString('en-US')}`}>
+          <ul className="m-0 flex list-none flex-col p-0">
+            {tally.rows.map((b) => (
+              <li key={b.key} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 border-t border-line py-2 first:border-t-0 first:pt-0.5">
+                <span className="text-[15px] font-semibold text-ink">{b.t}</span>
+                <span className="text-right text-[15px] font-bold tabular-nums text-ink">
+                  <span aria-hidden="true">{b.n}</span>
+                  <span className="sr-only">{b.nLabel}</span>
+                </span>
+                {b.gr && <span className="col-span-2 text-sm text-muted-foreground">{b.gr}</span>}
+              </li>
             ))}
-          </div>
-        )}
-
-        {/* Alerts & finds */}
-        <BooksFoundSection items={report.booksFound} withLinks={withLinks} />
-
-        {/* Active searches — current week only */}
-        {isCurrentWeek && report.activeSearches !== undefined && report.activeSearches > 0 && (
-          <div className="py-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Active searches</span>
-              <span className="font-semibold text-collector-navy">{report.activeSearches}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Search & alert lifecycle — only show non-zero rows */}
-        {(report.searchesCreated > 0 ||
-          report.searchesDeleted > 0 ||
-          report.alertsArchived > 0 ||
-          report.alertsDismissed > 0) && (
-          <div className="py-3">
-            <StatRow label="Searches created" value={report.searchesCreated} />
-            <StatRow label="Searches deleted" value={report.searchesDeleted} />
-            <StatRow label="Alerts archived" value={report.alertsArchived} />
-            <StatRow label="Alerts dismissed" value={report.alertsDismissed} />
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── past weeks list ──────────────────────────────────────────────────────────
-
-function PastWeeksList({ weeks }: { weeks: PastWeekSummary[] }) {
-  if (weeks.length === 0) return null
-
-  return (
-    <div>
-      <h3 className="mb-3 text-lg font-bold text-collector-navy">Past Reports</h3>
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Week
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Searches Run
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Alerts
-              </th>
-              <th className="w-8 px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {weeks.map((week) => (
-              <tr
-                key={week.weekStart}
-                className={`transition-colors hover:bg-slate-50 ${
-                  week.alertsIssued > 0 ? '' : 'opacity-60'
-                }`}
-              >
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/reports/week/${week.weekStart}`}
-                    className="font-medium text-collector-navy hover:text-collector-blue hover:underline"
-                  >
-                    Week of {formatWeekLabel(week.weekStart)}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-right text-slate-600">
-                  {week.totalSearchesRun}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {week.alertsIssued > 0 ? (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                      {week.alertsIssued}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right text-muted-foreground">
-                  <Link href={`/reports/week/${week.weekStart}`}>→</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-// ─── email toggle placeholder ─────────────────────────────────────────────────
-
-function EmailTogglePlaceholder() {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className="text-xl">📬</span>
-        <div>
-          <p className="text-sm font-semibold text-collector-navy">
-            Get this report in your inbox every Sunday evening
+          </ul>
+          {tally.more && <p className="text-sm text-muted-foreground">{tally.more}</p>}
+          <p className="flex flex-wrap gap-x-5">
+            <Link
+              href="/reports/books-found"
+              className="inline-flex min-h-touch items-center text-[15px] font-semibold text-link underline underline-offset-[3px]"
+            >
+              {seeAllText(copies)}
+            </Link>
           </p>
-          <p className="text-xs text-slate-500">Weekly email digest</p>
-        </div>
-      </div>
-      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-        Coming soon
-      </span>
-    </div>
+        </Section>
+      )}
+      {runs > 0 && (
+        <Section title="Searches run">
+          <KeyValueRows rows={searchesRunRows(all.searchesRunByMarketplace, displayNameFor)} />
+        </Section>
+      )}
+      {books.length > 0 && (
+        <Section title={`Books searched · ${books.length}`}>
+          <BooksList rows={books} />
+        </Section>
+      )}
+      {(runs > 0 || anyLife(all)) && (
+        <Section title="Your searches and alerts">
+          <KeyValueRows rows={lifecycleRows(all, 'allTime')} />
+        </Section>
+      )}
+    </Panel>
   )
 }
-
-// ─── main component ───────────────────────────────────────────────────────────
 
 export default function ReportsClient() {
-  const { report, isLoading, error } = useReports()
-
-  if (isLoading) {
-    return (
-      <div className="container-custom pb-12 pt-5">
-        <div className="py-12 text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue" />
-          <p className="mt-4 text-slate-600">Loading your report...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!report) {
-    return (
-      <div className="container-custom pb-12 pt-5">
-        <div className="rounded-lg border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <div className="mb-4 text-5xl">📊</div>
-          <h3 className="mb-2 text-xl font-semibold">Report unavailable</h3>
-          <p className="text-slate-600">Unable to load your report. Please try again later.</p>
-          {error && (
-            <p className="mt-3 rounded bg-red-50 px-3 py-2 text-left text-xs font-mono text-red-700">
-              {String(error)}
-            </p>
-          )}
-        </div>
-      </div>
-    )
-  }
+  const { report, isLoading, refetch } = useReports()
+  const { displayNameFor } = usePlatforms()
+  const keptFrom = report ? keptFromLine(report.trackingSince, report.joinedAt) : null
 
   return (
-    <div className="container-custom pb-12 pt-5">
-      {/* Page header */}
-      <div className="mb-8">
-        <h2 className="mb-2 text-3xl font-bold">Reports</h2>
-        <p className="text-slate-600">Everything we're doing for you, week by week</p>
-      </div>
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-4 pb-12 pt-5 tablet:px-8">
+      <PageTitle title="Reports" sub="What your searches did for you, week by week" />
 
-      {/* Email toggle placeholder */}
-      <div className="mb-8">
-        <EmailTogglePlaceholder />
-      </div>
+      {isLoading ? (
+        <p role="status" aria-busy="true" className="text-sm text-muted-foreground">
+          Loading your report…
+        </p>
+      ) : !report ? (
+        <EmptyState heading="We couldn't load your report" body="Your searches are still running. Try again in a moment." onRetry={() => refetch()} />
+      ) : (
+        <>
+          <div className="grid items-start gap-5 desktop:grid-cols-2">
+            <ThisWeek report={report} displayNameFor={displayNameFor} />
+            <SinceYouJoined report={report} displayNameFor={displayNameFor} />
+          </div>
 
-      {/* Current week + All time side by side on md+ */}
-      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <WeekCard report={report.currentWeek} isCurrentWeek={true} withLinks={true} />
-        <WeekCard report={report.allTime} withLinks={false} />
-      </div>
-
-      {/* Past weeks */}
-      <PastWeeksList weeks={report.pastWeeks} />
-
-      {/* Tracking since note */}
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        Search counts tracked since{' '}
-        {new Date(report.trackingSince + 'T00:00:00Z').toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-          timeZone: 'UTC',
-        })}
-      </p>
+          {report.pastWeeks.length > 0 && (
+            <section aria-labelledby="past-h" className="flex flex-col gap-3">
+              <h2 id="past-h" className="text-card-title font-bold text-ink">
+                Past weeks
+              </h2>
+              <ul className="m-0 list-none overflow-hidden rounded-card border border-line bg-surface p-0 shadow-sm">
+                {report.pastWeeks.map((w) => (
+                  <li key={w.weekStart} className="border-t border-line first:border-t-0">
+                    <Link
+                      href={`/reports/week/${w.weekStart}`}
+                      className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 px-4 py-3 text-ink no-underline hover:bg-chip"
+                    >
+                      <span className="text-base font-semibold">{weekLabel(w.weekStart)}</span>
+                      <span className="col-start-1 text-sm text-muted-foreground">{pastWeekSummary(w)}</span>
+                      <svg
+                        className="col-start-2 row-span-2 row-start-1 text-muted-foreground"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {keptFrom && <FootNote>{keptFrom}</FootNote>}
+        </>
+      )}
     </div>
   )
 }

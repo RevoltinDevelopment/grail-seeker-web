@@ -1,318 +1,185 @@
 /**
- * Story 1.44: ReportsClient renders searchesRunByMarketplace dynamically
- * (one StatRow per marketplace, canonical order) instead of hardcoded
- * eBay/Heritage rows, so MyComicShop's contribution is no longer silently
- * dropped from the "This Week"/"All Time" cards or the Past Reports table.
+ * Story 1.100 (U-14): Reports, as drawn in reports-overview.html. The words themselves are tested
+ * in lib/reportRows.test.ts; these check each state of the page.
  */
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { render, screen, within } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { WeekReport, PastWeekSummary, ReportsResponse } from '@/types/report.types'
+import type { Copy, ReportsResponse } from '@/types/report.types'
 
+const state = vi.hoisted(() => ({
+  report: undefined as unknown,
+  isLoading: false,
+  error: null as unknown,
+  refetch: vi.fn(),
+}))
 vi.mock('@/hooks/useReports', () => ({
-  useReports: vi.fn(),
+  useReports: () => ({ report: state.report, isLoading: state.isLoading, error: state.error, refetch: state.refetch }),
 }))
-
 vi.mock('@/hooks/usePlatforms', () => ({
-  usePlatforms: vi.fn(),
+  usePlatforms: () => ({ displayNameFor: (s: string) => ({ 'indie:cba': 'Comic Book Addiction' })[s] ?? s }),
 }))
 
 // eslint-disable-next-line import/order -- must follow vi.mock() above
-import { useReports } from '@/hooks/useReports'
-// eslint-disable-next-line import/order -- must follow vi.mock() above
-import { usePlatforms } from '@/hooks/usePlatforms'
 import ReportsClient from './ReportsClient'
 
-// Story 1.49: default mock has no registry entries, so displayNameFor's
-// fallback-to-raw-key behavior is what every pre-existing (Story 1.44) test
-// exercises unchanged -- only the new describe block below overrides it.
+const book = (seriesTitle: string, issueNumber: string) => ({ seriesTitle, issueNumber, issueVolumeText: null })
+const copy = (over: Partial<Copy> = {}): Copy => ({
+  alertId: 'c1',
+  book: book('Werewolf by Night', '32'),
+  marketplace: 'eBay',
+  listingUrl: 'https://track.example/1',
+  grade: { gradingAuthority: 'CGC', grade: 9.6, pageQuality: null },
+  price: 5400,
+  priceIsPlaceholder: false,
+  nearMiss: false,
+  foundAt: '2026-11-17T14:05:00Z',
+  priceChange: null,
+  now: { listingStatus: 'active', archiveReason: null, archivedAt: null },
+  alerts: 1,
+  ...over,
+})
+
+function makeReport(over: Partial<ReportsResponse> = {}): ReportsResponse {
+  return {
+    trackingSince: '2026-07-01',
+    joinedAt: '2026-08-12T15:00:00Z',
+    currentWeek: {
+      weekStart: '2026-11-16',
+      booksSearched: [book('X-Men', '94'), { ...book('Daredevil', '158'), searchDeleted: true }],
+      searchesRunByMarketplace: { eBay: 84, Heritage: 84, MyComicShop: 84, 'indie:cba': 42 },
+      alertsIssued: 2,
+      copiesFound: [copy(), copy({ alertId: 'c2', book: book('X-Men', '94'), foundAt: '2026-11-16T14:00:00Z', now: { listingStatus: 'archived_expired', archiveReason: 'listing_sold', archivedAt: null } })],
+      activeSearches: 6,
+      searchesCreated: 1,
+      searchesDeleted: 0,
+      alertsArchived: 1,
+      alertsDismissed: 0,
+    },
+    allTime: {
+      booksSearched: [book('X-Men', '94')],
+      searchesRunByMarketplace: { eBay: 862, Heritage: 862 },
+      alertsIssued: 20,
+      copiesFound: 9,
+      booksFoundTally: [
+        { ...book('The Amazing Spider-Man', '129'), searchDeleted: false, copies: 4, grades: [{ gradingAuthority: 'CGC', grade: 9.4 }, { gradingAuthority: 'CGC', grade: 9.0 }] },
+        { ...book('Iron Fist', '14'), searchDeleted: false, copies: 1, grades: [{ gradingAuthority: null, grade: 8 }] },
+      ],
+      searchesCreated: 8,
+      searchesDeleted: 2,
+      alertsArchived: 6,
+      alertsDismissed: 1,
+    },
+    pastWeeks: [
+      { weekStart: '2026-11-09', totalSearchesRun: 294, alertsIssued: 2 },
+      { weekStart: '2026-11-02', totalSearchesRun: 280, alertsIssued: 0 },
+    ],
+    ...over,
+  }
+}
+
 beforeEach(() => {
-  vi.mocked(usePlatforms).mockReturnValue({
-    groups: [],
-    isLoading: false,
-    error: null,
-    displayNameFor: (slug: string) => slug,
-    defaultEnabledSlugs: [],
-  })
+  state.report = makeReport()
+  state.isLoading = false
+  state.error = null
+  state.refetch.mockReset()
 })
 
-// Explicitly typed against the real WeekReport/PastWeekSummary/ReportsResponse
-// interfaces (not an untyped object literal) so tsc catches fixture drift --
-// same discipline as SearchesClient.test.tsx's own makeSearch().
-function makeWeekReport(overrides: Partial<WeekReport> = {}): WeekReport {
-  return {
-    weekStart: '2026-09-07',
-    booksSearched: [],
-    searchesRunByMarketplace: {},
-    alertsIssued: 0,
-    booksFound: [],
-    searchesCreated: 0,
-    searchesDeleted: 0,
-    alertsArchived: 0,
-    alertsDismissed: 0,
-    ...overrides,
-  }
-}
-
-function makePastWeek(overrides: Partial<PastWeekSummary> = {}): PastWeekSummary {
-  return {
-    weekStart: '2026-08-31',
-    totalSearchesRun: 0,
-    alertsIssued: 0,
-    ...overrides,
-  }
-}
-
-// allTime's real shape (Omit<WeekReport, 'activeSearches'>) never carries
-// weekStart -- there's no single "week" for an all-time aggregate (code
-// review LOW-5). Deliberately built without it, not by omitting a field from
-// makeWeekReport(), so this fixture matches the real backend payload exactly.
-function makeAllTimeReport(overrides: Partial<ReportsResponse['allTime']> = {}): ReportsResponse['allTime'] {
-  return {
-    booksSearched: [],
-    searchesRunByMarketplace: {},
-    alertsIssued: 0,
-    booksFound: [],
-    searchesCreated: 0,
-    searchesDeleted: 0,
-    alertsArchived: 0,
-    alertsDismissed: 0,
-    ...overrides,
-  }
-}
-
-function makeReportsResponse(overrides: Partial<ReportsResponse> = {}): ReportsResponse {
-  return {
-    trackingSince: '2026-05-30',
-    currentWeek: makeWeekReport(),
-    allTime: makeAllTimeReport(),
-    pastWeeks: [],
-    ...overrides,
-  }
-}
-
-function mockUseReports(report: ReportsResponse) {
-  vi.mocked(useReports).mockReturnValue({
-    report,
-    isLoading: false,
-    error: null,
-  } as unknown as ReturnType<typeof useReports>)
-}
-
-describe('ReportsClient — per-marketplace search counts (Story 1.44)', () => {
-  it('renders one StatRow per marketplace, in canonical order, for the current week card', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { MyComicShop: 5, eBay: 12, Heritage: 3 },
-        }),
-      })
-    )
-
+describe('ReportsClient', () => {
+  it('this week, as drawn: the range, the headline, each copy with where it is, the marketplaces and the counts', () => {
     render(<ReportsClient />)
-
-    const rows = screen.getAllByText(/searches run$/)
-    expect(rows.map((el) => el.textContent)).toEqual([
-      'eBay searches run',
-      'Heritage searches run',
-      'MyComicShop searches run',
-    ])
-    expect(screen.getByText('12')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.getByText('5')).toBeInTheDocument()
+    const week = screen.getByRole('region', { name: 'This week' })
+    expect(within(week).getByText('Monday, Nov 16 to Sunday, Nov 22, 2026')).toBeInTheDocument()
+    expect(within(week).getByText(/We found 2 books for you this week\./)).toBeInTheDocument()
+    expect(within(week).getByText('Books found · 2')).toBeInTheDocument()
+    const view = within(week).getByRole('link', { name: /Werewolf by Night #32 · CGC 9\.6\s*View on eBay/ })
+    expect(view).toHaveAttribute('href', 'https://track.example/1')
+    expect(view).toHaveAttribute('target', '_blank')
+    expect(within(week).getByRole('link', { name: /X-Men #94 · CGC 9\.6\s*In the archive/ })).toHaveAttribute('href', '/alerts/archive')
+    expect(within(week).getByText('Heritage Auctions')).toBeInTheDocument()
+    expect(within(week).getByText('Comic Book Addiction')).toBeInTheDocument()
+    expect(within(week).getByText('Books searched · 2')).toBeInTheDocument()
+    expect(within(week).getByText('(search deleted)')).toBeInTheDocument()
+    expect(within(week).getByText('Searches running')).toBeInTheDocument()
+    expect(within(week).getByText('Alerts you dismissed')).toBeInTheDocument()
+    expect(within(week).queryByText('Searches deleted')).toBeNull()
   })
 
-  it('renders an unrecognized marketplace after all known ones, alphabetically, never dropping it', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { ComicLink: 7, eBay: 12, Heritage: 3, MyComicShop: 5 },
-        }),
-      })
-    )
-
+  it('since you joined: copies, the tally with grades, and the link to Books found', () => {
     render(<ReportsClient />)
-
-    expect(screen.getByText('ComicLink searches run')).toBeInTheDocument()
-    const rows = screen.getAllByText(/searches run$/)
-    expect(rows.map((el) => el.textContent)).toEqual([
-      'eBay searches run',
-      'Heritage searches run',
-      'MyComicShop searches run',
-      'ComicLink searches run',
-    ])
+    const all = screen.getByRole('region', { name: 'Since you joined' })
+    expect(within(all).getByText('From Aug 12, 2026')).toBeInTheDocument()
+    expect(within(all).getByText(/We found 9 books for you since you joined\./)).toBeInTheDocument()
+    expect(within(all).getByText('4 copies found')).toBeInTheDocument()
+    expect(within(all).getByText('CGC 9.0, 9.4')).toBeInTheDocument()
+    expect(within(all).getByText('Raw 8.0')).toBeInTheDocument()
+    expect(within(all).getByRole('link', { name: 'See all 9 books found, with prices and where each is now' })).toHaveAttribute('href', '/reports/books-found')
+    expect(within(all).getByText('Searches deleted')).toBeInTheDocument()
   })
 
-  it('does not render a StatRow for a marketplace with a zero count', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { eBay: 12, Heritage: 0, MyComicShop: 0 },
-        }),
-      })
-    )
-
+  it('past weeks are links in a list, never a table; the foot names the date counts are kept from', () => {
     render(<ReportsClient />)
-
-    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
-    expect(screen.queryByText('Heritage searches run')).not.toBeInTheDocument()
-    expect(screen.queryByText('MyComicShop searches run')).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).toBeNull()
+    const past = screen.getByRole('region', { name: 'Past weeks' })
+    expect(within(past).getByRole('link', { name: /Week of November 9, 2026\s*294 searches · 2 alerts/ })).toHaveAttribute('href', '/reports/week/2026-11-09')
+    expect(within(past).getByText('280 searches · no alerts')).toBeInTheDocument()
+    expect(screen.getByText('Search counts are kept from August 12, 2026.')).toBeInTheDocument()
+    expect(screen.queryByText(/Coming soon|by email/i)).toBeNull()
   })
 
-  it('renders no empty execution-counts wrapper when every marketplace count is zero (code review LOW-2 — StatRow\'s own zero-guard hides the rows, but without the wrapper-level gate an empty, stray div would still render)', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 0, Heritage: 0 } }),
-      })
-    )
-
-    render(<ReportsClient />)
-    const currentWeekCard = screen.getByText('This Week').closest('.rounded-lg')
-    expect(currentWeekCard?.querySelectorAll('.py-3')).toHaveLength(0)
-  })
-
-  it('sums across all marketplaces for the "We ran N searches" headline, not just eBay', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 },
-        }),
-      })
-    )
-
-    render(<ReportsClient />)
-    expect(screen.getByText(/We ran/)).toBeInTheDocument()
-    expect(screen.getByText('20 searches')).toBeInTheDocument()
-    expect(screen.getByText(/this week on your behalf\./)).toBeInTheDocument()
-    expect(screen.queryByText(/on eBay/)).not.toBeInTheDocument()
-  })
-
-  it('renders the headline with exactly one space around "this week", not two (code review LOW-1 — regression guard for the double-space bug found and fixed during dev-story; default text matchers normalize whitespace and would miss this)', () => {
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 20 } }),
-      })
-    )
-
-    render(<ReportsClient />)
-    const headline = screen.getByText(
-      (_, el) => el?.tagName === 'P' && el.textContent === 'We ran 20 searches this week on your behalf. Still hunting.'
-    )
-    expect(headline).toBeInTheDocument()
-  })
-
-  it('shows the corrected zero-activity copy without naming eBay specifically', () => {
-    mockUseReports(makeReportsResponse({ currentWeek: makeWeekReport() }))
-
-    render(<ReportsClient />)
-    // Both cards (This Week + All Time) show the no-activity copy when empty.
-    expect(
-      screen.getAllByText(/we check for new listings at 9 AM and 7 PM EST every day\./)
-    ).toHaveLength(2)
-  })
-
-  it('renders the All Time card correctly with real-world activity when its fixture has no weekStart at all (code review LOW-5 fix)', () => {
-    mockUseReports(
-      makeReportsResponse({
-        allTime: makeAllTimeReport({ searchesRunByMarketplace: { eBay: 40, MyComicShop: 5 }, alertsIssued: 3 }),
-      })
-    )
-
-    render(<ReportsClient />)
-    expect(screen.getByText('All Time')).toBeInTheDocument()
-    expect(screen.getByText('Since you joined')).toBeInTheDocument()
-    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
-    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
-  })
-
-  it('past-weeks table shows a "Searches Run" column using the combined total, not an eBay-only figure', () => {
-    mockUseReports(
-      makeReportsResponse({
-        pastWeeks: [makePastWeek({ weekStart: '2026-08-31', totalSearchesRun: 20, alertsIssued: 2 })],
-      })
-    )
-
-    render(<ReportsClient />)
-    expect(screen.getByText('Searches Run')).toBeInTheDocument()
-    expect(screen.queryByText('eBay Searches')).not.toBeInTheDocument()
-
-    // Scoped to the row's own cells (in column order), not just "20" appearing
-    // anywhere on the page -- a Searches Run/Alerts column swap would still
-    // pass an unscoped assertion (found on code review, LOW-3).
-    const row = screen.getByText(/Week of/).closest('tr')
-    const cells = within(row as HTMLElement).getAllByRole('cell')
-    expect(cells[1]).toHaveTextContent('20')
-    expect(cells[2]).toHaveTextContent('2')
-  })
-
-  it('shows the corrected "Search counts tracked since" footer without naming eBay specifically', () => {
-    mockUseReports(makeReportsResponse({ trackingSince: '2026-05-30' }))
-
-    render(<ReportsClient />)
-    expect(screen.getByText(/Search counts tracked since/)).toBeInTheDocument()
-    expect(screen.queryByText(/eBay search counts tracked/)).not.toBeInTheDocument()
-  })
-})
-
-describe('ReportsClient — Independent Shops slug resolution (Story 1.49)', () => {
-  it('resolves a raw registry slug to its real display name, never showing it verbatim', () => {
-    vi.mocked(usePlatforms).mockReturnValue({
-      groups: [],
-      isLoading: false,
-      error: null,
-      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
-      defaultEnabledSlugs: [],
+  it('the first week: nothing run yet, and no past weeks', () => {
+    state.report = makeReport({
+      joinedAt: '2026-11-17T10:00:00Z',
+      currentWeek: { ...makeReport().currentWeek, searchesRunByMarketplace: {}, copiesFound: [], booksSearched: [book('X-Men', '94')], searchesCreated: 0, alertsArchived: 0 },
+      allTime: { ...makeReport().allTime, searchesRunByMarketplace: {}, copiesFound: 0, booksFoundTally: [], searchesCreated: 0, searchesDeleted: 0, alertsArchived: 0, alertsDismissed: 0 },
+      pastWeeks: [],
     })
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 },
-        }),
-      })
-    )
-
     render(<ReportsClient />)
-    expect(screen.getByText("Bry's Comics searches run")).toBeInTheDocument()
-    expect(screen.queryByText('indie:bryscomics searches run')).not.toBeInTheDocument()
+    expect(screen.getByText(/Your first report fills in as your searches run\./)).toBeInTheDocument()
+    expect(screen.getByText(/Nothing has run yet\./)).toBeInTheDocument()
+    expect(screen.queryByText('Your searches and alerts')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Past weeks' })).toBeNull()
   })
 
-  it('leaves the three known capitalized names untouched, unresolved (they are already correct)', () => {
-    vi.mocked(usePlatforms).mockReturnValue({
-      groups: [],
-      isLoading: false,
-      error: null,
-      displayNameFor: () => 'SHOULD NOT BE CALLED FOR KNOWN NAMES',
-      defaultEnabledSlugs: [],
-    })
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({ searchesRunByMarketplace: { eBay: 12, Heritage: 3, MyComicShop: 5 } }),
-      })
-    )
-
+  it('a quiet Monday for an older account: this week fills in as searches run', () => {
+    state.report = makeReport({ currentWeek: { ...makeReport().currentWeek, searchesRunByMarketplace: {}, copiesFound: [] } })
     render(<ReportsClient />)
-    expect(screen.getByText('eBay searches run')).toBeInTheDocument()
-    expect(screen.getByText('Heritage searches run')).toBeInTheDocument()
-    expect(screen.getByText('MyComicShop searches run')).toBeInTheDocument()
+    expect(screen.getByText(/This week’s report fills in as your searches run\./)).toBeInTheDocument()
   })
 
-  it('still sums resolved and unresolved counts correctly into the headline total', () => {
-    vi.mocked(usePlatforms).mockReturnValue({
-      groups: [],
-      isLoading: false,
-      error: null,
-      displayNameFor: (slug: string) => (slug === 'indie:bryscomics' ? "Bry's Comics" : slug),
-      defaultEnabledSlugs: [],
-    })
-    mockUseReports(
-      makeReportsResponse({
-        currentWeek: makeWeekReport({
-          searchesRunByMarketplace: { eBay: 12, 'indie:bryscomics': 4 },
-        }),
-      })
-    )
-
+  it('a failed read says so with Try again, never the error text', () => {
+    state.report = undefined
+    state.error = new Error('TypeError: fetch failed at line 42')
     render(<ReportsClient />)
-    expect(screen.getByText('16 searches')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: "We couldn't load your report" })).toBeInTheDocument()
+    expect(screen.queryByText(/fetch failed/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(state.refetch).toHaveBeenCalled()
+  })
+
+  it('a refresh that fails keeps the report on screen (review)', () => {
+    state.error = new Error('offline')
+    render(<ReportsClient />)
+    expect(screen.getByRole('region', { name: 'This week' })).toBeInTheDocument()
+    expect(screen.queryByText("We couldn't load your report")).toBeNull()
+  })
+
+  it('searches created before any search ran still show (review)', () => {
+    state.report = makeReport({
+      joinedAt: '2026-11-17T10:00:00Z',
+      currentWeek: { ...makeReport().currentWeek, searchesRunByMarketplace: {}, copiesFound: [], searchesCreated: 3, alertsArchived: 0 },
+      pastWeeks: [],
+    })
+    render(<ReportsClient />)
+    const week = screen.getByRole('region', { name: 'This week' })
+    expect(within(week).getByText('Searches created')).toBeInTheDocument()
+  })
+
+  it('loading: the title, and a quiet line in place of the cards', () => {
+    state.report = undefined
+    state.isLoading = true
+    render(<ReportsClient />)
+    expect(screen.getByRole('heading', { name: 'Reports' })).toBeInTheDocument()
+    expect(screen.getByText('Loading your report…')).toHaveAttribute('aria-busy', 'true')
   })
 })
