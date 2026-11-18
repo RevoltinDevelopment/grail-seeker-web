@@ -183,7 +183,7 @@ describe('rows', () => {
 
 describe('the tally', () => {
   it('the first eight books, then the rest counted', () => {
-    const tb = (i: number, copies: number): TallyBook => ({ ...book(`Book ${i}`, '1'), searchDeleted: false, copies, grades: [] })
+    const tb = (i: number, copies: number): TallyBook => ({ ...book(`Book ${i}`, '1'), searchDeleted: false, copies })
     const eight = Array.from({ length: 8 }, (_, i) => tb(i, 2))
     expect(tallyRows(eight).more).toBeNull()
     const long = [...eight, tb(8, 3), tb(9, 1), tb(10, 1)]

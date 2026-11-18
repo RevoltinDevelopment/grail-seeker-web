@@ -62,8 +62,8 @@ function makeReport(over: Partial<ReportsResponse> = {}): ReportsResponse {
       alertsIssued: 20,
       copiesFound: 9,
       booksFoundTally: [
-        { ...book('The Amazing Spider-Man', '129'), searchDeleted: false, copies: 4, grades: [{ gradingAuthority: 'CGC', grade: 9.4 }, { gradingAuthority: 'CGC', grade: 9.0 }] },
-        { ...book('Iron Fist', '14'), searchDeleted: false, copies: 1, grades: [{ gradingAuthority: null, grade: 8 }] },
+        { ...book('The Amazing Spider-Man', '129'), searchDeleted: false, copies: 4 },
+        { ...book('Iron Fist', '14'), searchDeleted: false, copies: 1 },
       ],
       searchesCreated: 8,
       searchesDeleted: 2,
@@ -105,7 +105,7 @@ describe('ReportsClient', () => {
     expect(within(week).queryByText('Searches deleted')).toBeNull()
   })
 
-  it('since you joined: copies, the tally with grades, and the link to Books found', () => {
+  it('since you joined: copies, the tally with counts, and the link to Books found', () => {
     render(<ReportsClient />)
     const all = screen.getByRole('region', { name: 'Since you joined' })
     expect(within(all).getByText('From Aug 12, 2026')).toBeInTheDocument()

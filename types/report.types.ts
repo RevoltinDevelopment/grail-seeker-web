@@ -39,8 +39,6 @@ export interface Copy {
 export interface TallyBook extends Book {
   searchDeleted: boolean
   copies: number
-  /** In the order found */
-  grades: { gradingAuthority: string | null; grade: number | null }[]
 }
 
 export interface WeekReport {
