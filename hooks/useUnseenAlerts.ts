@@ -32,10 +32,14 @@ const SEEN_BATCH = 200
 export const PRESENCE_WINDOW_MS = 10_000
 
 /**
- * The signs of a person (Story 1.97): a click or tap, a scroll by hand, a key, the window gaining
- * focus. Not the `scroll` event: the page also moves by itself (scroll anchoring when rows arrive
- * above, scrollIntoView, the browser restoring position), and an unattended page must not count
- * that. Becoming visible is a sign too, handled with the visibility listener.
+ * The signs of a person (Story 1.97): a click or tap, a scroll by hand, a key. Not the `scroll`
+ * event: the page also moves by itself (scroll anchoring when rows arrive above, scrollIntoView,
+ * the browser restoring position), and an unattended page must not count that.
+ *
+ * Story 1.102 (Decision #103, second amendment, Mahan 2026-11-17): coming back is not taking
+ * action. The window gaining focus, or the page becoming visible again, is not a sign: a badge
+ * that greets the person on their return stays until they act on the page. The one exception is
+ * a page opened in a background tab, which is opened when first seen (the visibility listener).
  */
 const DOCUMENT_SIGNS = ['pointerdown', 'wheel', 'touchmove', 'keydown'] as const
 
@@ -47,7 +51,7 @@ const DOCUMENT_SIGNS = ['pointerdown', 'wheel', 'touchmove', 'keydown'] as const
  * refreshed.
  *
  * Story 1.97 (amended Decision #103): ids are reported only while the person is there, meaning the
- * page became visible or was interacted with in the last PRESENCE_WINDOW_MS. Ids that reach the
+ * page opened or was interacted with in the last PRESENCE_WINDOW_MS. Ids that reach the
  * page otherwise (a realtime refetch into a window left open) wait, still "new"; the next sign
  * reports every id on screen then. Pass null while the page's list is still loading: the window
  * that covers the opening starts when the list arrives.
@@ -62,6 +66,9 @@ export function useReportSeen(alertIds: readonly string[] | null): void {
   // that opens hidden starts the window when it is first seen. Each sign restarts it.
   const presentUntil = useRef(0)
   const opened = useRef(false)
+  // Whether the opened page has been visible yet (Story 1.102). A page opened in a background tab
+  // is opened when first seen; once seen, coming back to it is not a sign.
+  const seenOnce = useRef(false)
   // Ids held back, or a report that failed, wait for the next sign
   const waiting = useRef(false)
   // Bumped by each sign, so held-back ids (and a failed report) are reported then
@@ -74,17 +81,36 @@ export function useReportSeen(alertIds: readonly string[] | null): void {
       // many signs a second, and each would otherwise re-render the whole list
       if (lapsed || waiting.current) setSignTick((t) => t + 1)
     }
+    // Attention leaving ends the window (Story 1.102, review): a return a few seconds after the last
+    // click must not count as that click, nor must rows arriving while the person is in another app
+    const onAway = () => {
+      presentUntil.current = 0
+    }
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') onSign()
+      if (document.visibilityState !== 'visible') return onAway()
+      if (!opened.current || seenOnce.current) return
+      seenOnce.current = true
+      onSign()
+    }
+    // Back to Alerts restored from the browser's back-forward cache is opening it again, as a
+    // reload would be (Story 1.102, review)
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted || !opened.current) return
+      seenOnce.current = document.visibilityState === 'visible'
+      if (seenOnce.current) onSign()
     }
     const opts = { capture: true, passive: true } as const
     DOCUMENT_SIGNS.forEach((type) => document.addEventListener(type, onSign, opts))
-    window.addEventListener('focus', onSign)
     document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('blur', onAway)
+    window.addEventListener('pagehide', onAway)
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       DOCUMENT_SIGNS.forEach((type) => document.removeEventListener(type, onSign, opts))
-      window.removeEventListener('focus', onSign)
       document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('blur', onAway)
+      window.removeEventListener('pagehide', onAway)
+      window.removeEventListener('pageshow', onPageShow)
     }
   }, [])
 
@@ -92,11 +118,16 @@ export function useReportSeen(alertIds: readonly string[] | null): void {
     if (!loaded) return
     if (!opened.current) {
       opened.current = true
-      if (document.visibilityState === 'visible') presentUntil.current = Math.max(presentUntil.current, Date.now() + PRESENCE_WINDOW_MS)
+      if (document.visibilityState === 'visible') {
+        seenOnce.current = true
+        presentUntil.current = Math.max(presentUntil.current, Date.now() + PRESENCE_WINDOW_MS)
+      }
     }
-    if (!key) return
-    const fresh = key.split(',').filter((id) => !reported.current.has(id))
-    if (fresh.length === 0) return
+    const fresh = key ? key.split(',').filter((id) => !reported.current.has(id)) : []
+    if (fresh.length === 0) {
+      waiting.current = false // nothing held any more: signs stop re-rendering (review)
+      return
+    }
     if (document.visibilityState !== 'visible' || Date.now() >= presentUntil.current) {
       waiting.current = true // nobody there: wait for a sign
       return

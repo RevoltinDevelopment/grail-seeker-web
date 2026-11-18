@@ -4,7 +4,6 @@ import Link from 'next/link'
 
 import { useAlerts } from '@/hooks/useAlerts'
 import { usePlatforms } from '@/hooks/usePlatforms'
-import { useReportSeen } from '@/hooks/useUnseenAlerts'
 import { matchTime } from '@/lib/utils/match-time'
 import { formatGrade, formatIssueNumber } from '@/lib/utils/series-formatter'
 
@@ -12,9 +11,11 @@ import type { Alert } from '@/types/alert.types'
 
 /**
  * Story 1.82 (U-04): Latest matches, which replaces the Dashboard's recent alerts
- * (searches-home.html). The three latest active alerts, "All alerts", and the alerts it showed
- * reported as seen (Decision #103). It also carries the realtime subscription with toasts on,
- * so a match found while Searches is open says so.
+ * (searches-home.html). The three latest active alerts and "All alerts". It also carries the
+ * realtime subscription with toasts on, so a match found while Searches is open says so.
+ *
+ * Story 1.102 (Decision #103, second amendment, Mahan 2026-11-17): it reports nothing seen. The
+ * header's badge is there to draw the subscriber to Alerts, so only Alerts clears it.
  */
 const SHOWN = 3
 
@@ -44,7 +45,6 @@ export function LatestMatches({ className = '' }: { className?: string }) {
   )
   const { displayNameFor } = usePlatforms()
   const shown = alerts.slice(0, SHOWN)
-  useReportSeen(isLoading || error ? null : shown.map((a) => a.id)) // null: still loading (Story 1.97)
 
   return (
     <aside

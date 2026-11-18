@@ -62,7 +62,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('LatestMatches', () => {
-  it('shows the three latest active alerts, as drawn, and reports them as seen', () => {
+  it('shows the three latest active alerts, as drawn, and reports none of them as seen (Story 1.102)', () => {
     state.alerts = [
       alert('a1', 'Werewolf by Night', '32', 9.6, 'cgc', 5400, 'ebay'),
       alert('a2', 'The Amazing Spider-Man', '129', 9.0, 'CGC', 3100, 'mycomicshop'),
@@ -75,7 +75,7 @@ describe('LatestMatches', () => {
     expect(screen.getAllByText('eBay · 2 hours ago')).toHaveLength(2)
     expect(screen.getByText('$250')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'All alerts' })).toHaveAttribute('href', '/alerts')
-    expect(state.reported.at(-1)).toEqual(['a1', 'a2', 'a3'])
+    expect(state.reported).toEqual([]) // only Alerts clears the badge
   })
 
   it('an auction not yet started shows when it starts beside its placeholder price', () => {
@@ -103,15 +103,9 @@ describe('LatestMatches', () => {
     expect(screen.queryByText(/No matches yet/)).toBeNull()
   })
 
-  it('while loading or after a failed read, reports null: the opening starts when the list arrives (Story 1.97)', () => {
-    state.isLoading = true
-    render(<LatestMatches />)
-    expect(state.reported.at(-1)).toBeNull()
-  })
-
   it("with no matches: today's words, and nothing reported", () => {
     render(<LatestMatches />)
     expect(screen.getByText(/No matches yet/)).toBeInTheDocument()
-    expect(state.reported.at(-1)).toEqual([])
+    expect(state.reported).toEqual([])
   })
 })

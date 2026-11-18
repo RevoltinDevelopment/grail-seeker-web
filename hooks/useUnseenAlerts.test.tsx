@@ -57,12 +57,12 @@ describe('useReportSeen', () => {
     visibility.mockRestore()
   })
 
-  it('a failed report is tried again when the page is next visible, with the same alerts on screen', async () => {
+  it('a failed report is tried again at the next sign, with the same alerts on screen', async () => {
     api.markSeen.mockRejectedValueOnce(new Error('offline'))
     renderHook(() => useReportSeen([id(1)]), { wrapper })
     await waitFor(() => expect(api.markSeen).toHaveBeenCalledTimes(1))
     await new Promise((r) => setTimeout(r, 0))
-    document.dispatchEvent(new Event('visibilitychange'))
+    document.dispatchEvent(new Event('pointerdown'))
     await waitFor(() => expect(api.markSeen).toHaveBeenCalledTimes(2))
     expect(api.markSeen).toHaveBeenLastCalledWith([id(1)])
   })
@@ -99,13 +99,12 @@ describe('useReportSeen', () => {
       now.mockRestore()
     })
 
-    it('a scroll by hand, a key, the window gaining focus or the page coming into view each count', async () => {
+    it('a click, a scroll by hand or a key each count', async () => {
       for (const sign of [
+        () => document.dispatchEvent(new Event('pointerdown')),
         () => document.dispatchEvent(new Event('wheel')),
         () => document.dispatchEvent(new Event('touchmove')),
         () => document.dispatchEvent(new Event('keydown')),
-        () => window.dispatchEvent(new Event('focus')),
-        () => document.dispatchEvent(new Event('visibilitychange')),
       ]) {
         api.markSeen.mockClear()
         const { rerender, unmount } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [] as string[] } })
@@ -118,6 +117,128 @@ describe('useReportSeen', () => {
         now.mockRestore()
         unmount()
       }
+    })
+
+    // Story 1.102 (Decision #103, second amendment): coming back is not taking action
+    it('coming back to the window or the tab is not a sign; the next click is', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [id(1)] } })
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      const now = later()
+      visibility.mockReturnValue('hidden') // the person switches away
+      document.dispatchEvent(new Event('visibilitychange'))
+      rerender({ ids: [id(1), id(2)] }) // a round's alert arrives while they are gone
+      await settle()
+      visibility.mockReturnValue('visible') // and they come back
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1) // the badge stays
+      document.dispatchEvent(new Event('pointerdown'))
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledTimes(2))
+      expect(api.markSeen).toHaveBeenLastCalledWith([id(2)])
+      now.mockRestore()
+      visibility.mockRestore()
+    })
+
+    it('a return a few seconds after the last click does not count as that click (review)', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [id(1)] } })
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      const start = Date.now() + PRESENCE_WINDOW_MS * 5
+      const now = vi.spyOn(Date, 'now').mockReturnValue(start)
+      document.dispatchEvent(new Event('keydown')) // Ctrl+Tab, say
+      visibility.mockReturnValue('hidden')
+      document.dispatchEvent(new Event('visibilitychange'))
+      now.mockReturnValue(start + 3000)
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      rerender({ ids: [id(1), id(2)] }) // the refetch on return brings a round's alert
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1)
+      now.mockRestore()
+      visibility.mockRestore()
+    })
+
+    it('the window losing focus to another app ends the window; rows arriving then wait (review)', async () => {
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [id(1)] } })
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      document.dispatchEvent(new Event('pointerdown'))
+      window.dispatchEvent(new Event('blur'))
+      rerender({ ids: [id(1), id(2)] })
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1)
+      document.dispatchEvent(new Event('pointerdown'))
+      await waitFor(() => expect(api.markSeen).toHaveBeenLastCalledWith([id(2)]))
+    })
+
+    it('Back to the page, restored from the back-forward cache, is opening it again (review)', async () => {
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [id(1)] } })
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      window.dispatchEvent(new Event('pagehide'))
+      const now = later()
+      rerender({ ids: [id(1), id(2)] })
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1)
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
+      await waitFor(() => expect(api.markSeen).toHaveBeenLastCalledWith([id(2)]))
+      now.mockRestore()
+    })
+
+    it('a failed report is not retried by coming back, only by a sign', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+      api.markSeen.mockRejectedValueOnce(new Error('offline'))
+      renderHook(() => useReportSeen([id(1)]), { wrapper })
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledTimes(1))
+      await settle()
+      const now = later()
+      visibility.mockReturnValue('hidden')
+      document.dispatchEvent(new Event('visibilitychange'))
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1)
+      document.dispatchEvent(new Event('wheel'))
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledTimes(2))
+      now.mockRestore()
+      visibility.mockRestore()
+    })
+
+    it('a page opened in a background tab is opened once: a later return is not a sign', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: [id(1)] } })
+      const now = later()
+      await settle()
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange')) // first seen: the opening
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      now.mockReturnValue(Date.now() + PRESENCE_WINDOW_MS * 5)
+      visibility.mockReturnValue('hidden')
+      document.dispatchEvent(new Event('visibilitychange'))
+      rerender({ ids: [id(1), id(2)] })
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await settle()
+      expect(api.markSeen).toHaveBeenCalledTimes(1)
+      now.mockRestore()
+      visibility.mockRestore()
+    })
+
+    it('a page whose list arrives while hidden is opened when first seen, even if it was visible while loading', async () => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+      const { rerender } = renderHook(({ ids }) => useReportSeen(ids), { wrapper, initialProps: { ids: null as string[] | null } })
+      visibility.mockReturnValue('hidden') // switched away before the list came back
+      document.dispatchEvent(new Event('visibilitychange'))
+      rerender({ ids: [id(1)] })
+      const now = later()
+      await settle()
+      expect(api.markSeen).not.toHaveBeenCalled()
+      visibility.mockReturnValue('visible')
+      document.dispatchEvent(new Event('visibilitychange'))
+      await waitFor(() => expect(api.markSeen).toHaveBeenCalledWith([id(1)]))
+      now.mockRestore()
+      visibility.mockRestore()
     })
 
     it('the page moving by itself (a scroll event alone) is not a sign', async () => {
