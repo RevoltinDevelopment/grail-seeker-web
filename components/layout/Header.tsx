@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { BrandLink } from '@/components/layout/BrandLink'
 import { useAccountSummary } from '@/hooks/useAccountSummary'
 import { useLogout } from '@/hooks/useLogout'
 import { useUnseenCount } from '@/hooks/useUnseenAlerts'
@@ -154,15 +154,7 @@ export default function Header({ user }: HeaderProps) {
         </button>
 
         {/* The chalice and the wordmark, a link to Searches */}
-        <Link
-          href="/searches"
-          className="flex min-h-11 items-center gap-2.5 justify-self-center text-ink no-underline"
-        >
-          <Image src="/images/chalice.png" alt="" width={34} height={34} priority />
-          <span className="whitespace-nowrap font-cinzel text-[17px] font-semibold tracking-[0.08em]">
-            GRAIL SEEKER
-          </span>
-        </Link>
+        <BrandLink href="/searches" className="justify-self-center" />
 
         {/* From 700 pixels: the main links */}
         <nav className="ml-4 hidden gap-1 tablet:flex" aria-label="Main">

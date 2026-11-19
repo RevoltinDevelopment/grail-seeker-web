@@ -1,7 +1,7 @@
 export function TermsContent() {
   return (
     <>
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-sm text-muted-foreground mb-4">
         <strong>Effective Date:</strong> November 18, 2025
         <br />
         <strong>Last Updated:</strong> September 8, 2026
@@ -148,7 +148,7 @@ export function TermsContent() {
 
       <hr />
 
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         By using Grail Seeker, you acknowledge that you have read, understood, and agree to be bound
         by these Terms of Service.
       </p>

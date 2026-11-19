@@ -36,12 +36,12 @@ export function HeritagePdfViewer({ url }: HeritagePdfViewerProps) {
         file={url}
         onLoadSuccess={({ numPages }) => setNumPages(numPages)}
         loading={
-          <div className="flex items-center justify-center p-12 text-slate-500">
+          <div className="flex items-center justify-center p-12 text-muted-foreground">
             Loading document…
           </div>
         }
         error={
-          <div className="flex items-center justify-center p-12 text-red-500">
+          <div className="flex items-center justify-center p-12 text-danger">
             Unable to load document. Please try again later.
           </div>
         }
@@ -51,7 +51,9 @@ export function HeritagePdfViewer({ url }: HeritagePdfViewerProps) {
             key={`page_${i + 1}`}
             pageNumber={i + 1}
             width={containerWidth || undefined}
-            className="border-b border-slate-200 last:border-b-0"
+            // Story 1.105 (U-16): white in both themes, like a printed page
+            className="border-b border-line bg-paper last:border-b-0"
+            loading={null}
             renderAnnotationLayer
             renderTextLayer
           />

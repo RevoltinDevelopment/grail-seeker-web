@@ -35,6 +35,8 @@ const DESIGN: Record<string, [string, string]> = {
   rule: ['#cbd5e1', '#334155'],
   'seg-other': ['#64748b', '#94a3b8'],
   'info-icon': ['#1e40af', '#93c5fd'],
+  // Story 1.105 (U-16): the design's PDF page "stays white in dark mode, like a printed page"
+  paper: ['#ffffff', '#ffffff'],
 }
 
 type Rgb = [number, number, number]

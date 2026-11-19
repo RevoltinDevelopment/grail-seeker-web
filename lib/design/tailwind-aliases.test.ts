@@ -42,6 +42,7 @@ const EXPECTED: Record<string, string> = {
   rule: '--rule',
   'seg-other': '--seg-other',
   'info-icon': '--info-icon',
+  paper: '--paper',
   foreground: '--ink',
   border: '--line',
   input: '--line-strong',

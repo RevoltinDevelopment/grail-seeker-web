@@ -81,6 +81,8 @@ const config: Config = {
         rule: token('--rule'),
         'seg-other': token('--seg-other'),
         'info-icon': token('--info-icon'),
+        // Story 1.105 (U-16): white in both themes, for a document's page
+        paper: token('--paper'),
         // Story 1.86 (S-12)
         kept: {
           DEFAULT: token('--kept-bg'),

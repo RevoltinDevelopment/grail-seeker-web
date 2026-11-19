@@ -70,6 +70,8 @@
     --rule: 203 213 225; /* #cbd5e1 */
     --seg-other: 100 116 139; /* #64748b */
     --info-icon: 30 64 175; /* #1e40af */
+    /* Story 1.105 (U-16): a document's page (the Heritage Auctions terms PDF), white in both themes, like a printed page */
+    --paper: 255 255 255; /* #ffffff */
     /* Story 1.86 (S-12): a kept card on the pick screen */
     --kept-bg: 239 246 255; /* #eff6ff */
     --kept-line: 30 64 175; /* #1e40af */
@@ -110,6 +112,7 @@
     --rule: 51 65 85; /* #334155 */
     --seg-other: 148 163 184; /* #94a3b8 */
     --info-icon: 147 197 253; /* #93c5fd */
+    --paper: 255 255 255; /* #ffffff */
     --kept-bg: 23 37 84; /* #172554 */
     --kept-line: 147 197 253; /* #93c5fd */
     --bar-shadow: 0 -6px 16px rgb(0 0 0 / 0.45);

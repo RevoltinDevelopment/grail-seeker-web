@@ -108,5 +108,10 @@ export const config = {
     '/settings/:path*',
     '/login',
     '/register/:path*',
+    // Story 1.105 (code review): the legal pages read the session to choose their header, so the
+    // session is refreshed and its cookies saved here first (lib/supabase/currentUser.ts)
+    '/terms',
+    '/privacy',
+    '/heritage-terms',
   ],
 }
