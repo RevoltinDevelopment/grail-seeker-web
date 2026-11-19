@@ -246,7 +246,7 @@ describe('Settings (Story 1.104)', () => {
 
   it('password: the current one is sent; a wrong one reads "That isn\'t your current password."', async () => {
     state.updateUser.mockResolvedValueOnce({
-      error: { code: 'current_password_mismatch', message: 'raw provider text' },
+      error: { code: 'current_password_invalid', message: 'raw provider text' },
     })
     await page()
     fireEvent.click(

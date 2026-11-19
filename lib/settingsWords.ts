@@ -165,6 +165,9 @@ export type PasswordAnswer = { field: 'current' | 'new' | 'form'; text: string }
 
 export function passwordError(code: string | null | undefined): PasswordAnswer {
   switch (code) {
+    // Hosted Supabase answers current_password_invalid (seen 2026-11-18); the open-source server's
+    // names are kept in case the two are brought in line
+    case 'current_password_invalid':
     case 'current_password_mismatch':
     case 'current_password_required':
       return { field: 'current', text: 'That isn’t your current password.' }

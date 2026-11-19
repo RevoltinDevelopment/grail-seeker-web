@@ -161,6 +161,11 @@ describe('settingsWords (Story 1.104)', () => {
       text: 'That isn’t your current password.',
     })
     expect(passwordError('current_password_required').field).toBe('current')
+    // What hosted Supabase really answers (Mahan's test, 2026-11-18)
+    expect(passwordError('current_password_invalid')).toEqual({
+      field: 'current',
+      text: 'That isn’t your current password.',
+    })
     expect(passwordError('same_password')).toEqual({
       field: 'new',
       text: 'That’s the password you have now. Choose a new one.',
