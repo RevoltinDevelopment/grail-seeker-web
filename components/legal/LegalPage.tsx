@@ -9,12 +9,21 @@ import { currentUserOrNull } from '@/lib/supabase/currentUser'
  * Terms and Heritage Auctions boards). Signed in: the app header and "← Back to Searches".
  * Signed out: the public header and "← Back", to sign-in (where the signed-out way in is).
  */
-export async function LegalPage({ title, children }: { title: string; children: React.ReactNode }) {
+export async function LegalPage({
+  title,
+  wide = false,
+  children,
+}: {
+  title: string
+  /** As wide as Searches (1200 px), for a document shown as pages (Mahan, 2026-11-19) */
+  wide?: boolean
+  children: React.ReactNode
+}) {
   const user = await currentUserOrNull()
   return (
     <div className="min-h-screen bg-background">
       {user ? <Header user={user} /> : <PublicHeader />}
-      <LegalColumn signedIn={user !== null} title={title}>
+      <LegalColumn signedIn={user !== null} title={title} wide={wide}>
         {children}
       </LegalColumn>
     </div>
@@ -25,14 +34,18 @@ export async function LegalPage({ title, children }: { title: string; children: 
 export function LegalColumn({
   signedIn,
   title,
+  wide = false,
   children,
 }: {
   signedIn: boolean
   title: string
+  wide?: boolean
   children: React.ReactNode
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-[824px] flex-col gap-5 px-4 pb-12 pt-5 tablet:px-8">
+    <main
+      className={`mx-auto flex w-full ${wide ? 'max-w-[1200px]' : 'max-w-[824px]'} flex-col gap-5 px-4 pb-12 pt-5 tablet:px-8`}
+    >
       <Link
         href={signedIn ? '/searches' : '/login'}
         className="inline-flex min-h-11 items-center gap-1.5 self-start text-[15px] font-semibold text-link no-underline hover:underline"

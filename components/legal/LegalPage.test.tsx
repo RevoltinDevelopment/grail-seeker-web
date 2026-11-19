@@ -34,6 +34,21 @@ describe('LegalColumn', () => {
     )
     expect(screen.getByRole('link', { name: '← Back' })).toHaveAttribute('href', '/login')
   })
+
+  it('a text page is 824 px; a wide one (the Heritage terms PDF) is as wide as Searches', () => {
+    const { rerender } = render(
+      <LegalColumn signedIn title="Terms of Service">
+        <p>Text</p>
+      </LegalColumn>
+    )
+    expect(screen.getByRole('main').className).toContain('max-w-[824px]')
+    rerender(
+      <LegalColumn signedIn title="Heritage" wide>
+        <p>PDF</p>
+      </LegalColumn>
+    )
+    expect(screen.getByRole('main').className).toContain('max-w-[1200px]')
+  })
 })
 
 describe('LegalProse', () => {

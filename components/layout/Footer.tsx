@@ -1,10 +1,20 @@
-
 import Link from 'next/link'
 
 /**
- * Story 1.105 (U-16): on the design tokens, contents and words unchanged (Mahan, 2026-11-19).
+ * Story 1.105 (U-16): on the design tokens (Mahan, 2026-11-19). Privacy and Terms open the app's own
+ * pages (they pointed at the landing site, where those addresses don't exist); "Launching Q1 2027"
+ * and the copyright years (Mahan, 2026-11-19).
  * No design draws an app footer yet; whether the app keeps one is for a later design pass.
  */
+/** The first year the site was up, through this year in Eastern (Decision #108): "2025–2026". */
+export function copyrightYears(now: Date = new Date()): string {
+  const first = 2025
+  const year = Number(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric' }).format(now)
+  )
+  return year > first ? `${first}–${year}` : String(first)
+}
+
 export default function Footer() {
   return (
     <footer className="border-t border-line bg-surface">
@@ -22,9 +32,7 @@ export default function Footer() {
 
           {/* Product Column */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink">
-              Product
-            </h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink">Product</h3>
             <ul className="space-y-3">
               <li>
                 <a
@@ -37,33 +45,27 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://grailseeker.io/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/privacy"
                   className="text-sm text-muted-foreground transition-colors hover:text-link"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="https://grailseeker.io/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/terms"
                   className="text-sm text-muted-foreground transition-colors hover:text-link"
                 >
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Company Column */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink">
-              Company
-            </h3>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink">Company</h3>
             <ul className="space-y-3">
               <li>
                 <a
@@ -126,9 +128,9 @@ export default function Footer() {
         <div className="mt-12 border-t border-line pt-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-sm text-muted-foreground">
-              © 2025 Grail Seeker IO, LLC. All rights reserved.
+              © {copyrightYears()} Grail Seeker IO, LLC. All rights reserved.
             </p>
-            <p className="text-sm font-medium text-primary">Beta launching Q2 2026</p>
+            <p className="text-sm font-medium text-primary">Launching Q1 2027</p>
           </div>
           {/* GCD Attribution (required by CC BY-SA 4.0 license) */}
           <p className="mt-4 text-center text-xs text-muted-foreground">
@@ -153,10 +155,7 @@ export default function Footer() {
             .
           </p>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            <Link
-              href="/heritage-terms"
-              className="underline hover:text-link"
-            >
+            <Link href="/heritage-terms" className="underline hover:text-link">
               Heritage Terms and Conditions of Auction
             </Link>
           </p>
