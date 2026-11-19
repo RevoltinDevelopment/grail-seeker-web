@@ -18,6 +18,14 @@ describe('Footer', () => {
     expect(screen.getByText('Launching Q1 2027')).toBeInTheDocument()
   })
 
+  it('Community links to Collector Syndicate (the CBCS forum closed), in a new tab', () => {
+    render(<Footer />)
+    const link = screen.getByRole('link', { name: 'Collector Syndicate' })
+    expect(link).toHaveAttribute('href', 'https://collectorsyndicate.com')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(screen.queryByText('CBCS Forum')).toBeNull()
+  })
+
   it('copyright runs from 2025 to this year in Eastern', () => {
     expect(copyrightYears(new Date('2025-06-01T12:00:00Z'))).toBe('2025')
     expect(copyrightYears(new Date('2026-11-19T12:00:00Z'))).toBe('2025–2026')

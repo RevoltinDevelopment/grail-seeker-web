@@ -112,12 +112,12 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.cbcscomics.com/forum"
+                  href="https://collectorsyndicate.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground transition-colors hover:text-link"
                 >
-                  CBCS Forum
+                  Collector Syndicate
                 </a>
               </li>
             </ul>
