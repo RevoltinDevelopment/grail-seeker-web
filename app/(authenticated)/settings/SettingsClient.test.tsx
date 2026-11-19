@@ -156,7 +156,13 @@ describe('Settings (Story 1.104)', () => {
     const deleteLinks = screen
       .getAllByRole('link', { name: 'Delete account' })
       .map((a) => a.getAttribute('href'))
-    expect(deleteLinks).toEqual(['#delete', '/settings/delete']) // the section list (desktop), then the section's own
+    expect(deleteLinks).toEqual(['#delete', '/settings/delete'])
+    const nav = screen.getByRole('navigation', { name: 'Settings sections' })
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href'))
+    ).toEqual(['#account', '#plan', '#texts', '#alerts-s', '#password', '#delete']) // the section list (desktop), then the section's own
     expect(screen.getByText('(555) 014-2290')).toBeInTheDocument()
     expect(screen.getByText('August 12, 2026')).toBeInTheDocument()
     expect(

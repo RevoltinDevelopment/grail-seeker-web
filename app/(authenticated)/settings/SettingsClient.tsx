@@ -29,9 +29,10 @@ import { PLAN_NOTE, hasTexts, nearMissNote, planLine } from '@/lib/settingsWords
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
-const SECTIONS: { id: string; label: string; href?: string }[] = [
+const SECTIONS: { id: string; label: string }[] = [
   { id: 'account', label: 'Account' },
-  { id: 'plan', label: 'Plan and slots', href: '/plan' },
+  // Mahan, 2026-11-18: every entry jumps to its section; the section's own button opens the plan page
+  { id: 'plan', label: 'Plan and slots' },
   { id: 'texts', label: 'Texts' },
   { id: 'alerts-s', label: 'Alerts' },
   { id: 'password', label: 'Password' },
@@ -109,7 +110,7 @@ export default function SettingsClient() {
             {shownSections.map((s) => (
               <a
                 key={s.id}
-                href={s.href ?? `#${s.id}`}
+                href={`#${s.id}`}
                 aria-current={current === s.id ? 'true' : undefined}
                 className={`flex min-h-touch items-center rounded-lg px-3 text-[15px] no-underline ${
                   current === s.id
