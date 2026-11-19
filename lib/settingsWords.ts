@@ -8,6 +8,7 @@
  * the worker cannot disagree (Decision #108).
  */
 import type { AccountSummary, CheckTimes } from '@/lib/api/account'
+import { linkLifeWords } from '@/lib/auth/linkLifetime'
 
 const EASTERN = 'America/New_York'
 
@@ -207,7 +208,8 @@ export function emailPending(newEmail: string, current: string): { heading: stri
 
 export const EMAIL_FORM_NOTE =
   'We send a link to the new address and one to your current address. Your email stays the same until you open both.'
-export const EMAIL_IGNORE_NOTE = 'Didn’t mean to? Ignore the link. It stops working after 24 hours.'
+// Story 1.106: the link's life from the one constant (lib/auth/linkLifetime.ts)
+export const EMAIL_IGNORE_NOTE = `Didn’t mean to? Ignore the link. It stops working after ${linkLifeWords()}.`
 
 /** The delete confirm's first line; null with no searches (left out). */
 export function deleteSearchesLine(count: number): string | null {

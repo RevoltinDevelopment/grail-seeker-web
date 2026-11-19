@@ -16,7 +16,7 @@ import { useSearches } from '@/hooks/useSearches'
 import { APIError } from '@/lib/api/client'
 import { chooseBanner, NUDGE_DISMISS_KEY } from '@/lib/attention'
 import { searchesSummary } from '@/lib/utils/searches-summary'
-import { WELCOME_TITLE, welcomeWordsFor } from '@/lib/welcome'
+import { welcomeTitleFor, welcomeWordsFor } from '@/lib/welcome'
 
 // The marketplace nudge's dismissal lasts the browser session, as it did on the Dashboard.
 
@@ -56,10 +56,11 @@ export default function SearchesClient() {
   // The welcome toast (Story 1.89): once, for the arrival the address names, then the address is
   // cleaned so a reload does not repeat it.
   useEffect(() => {
-    const words = welcomeWordsFor(searchParams.get('welcome'))
+    const arrival = searchParams.get('welcome')
+    const words = welcomeWordsFor(arrival)
     if (!words || welcomed.current) return
     welcomed.current = true
-    showToast(WELCOME_TITLE, words, 'success', 12000)
+    showToast(welcomeTitleFor(arrival), words, 'success', 12000)
     // Only the marker goes; anything else in the address stays (code review).
     const rest = new URLSearchParams(searchParams.toString())
     rest.delete('welcome')

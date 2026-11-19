@@ -57,7 +57,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/searches') ||
     request.nextUrl.pathname.startsWith('/alerts') ||
     request.nextUrl.pathname.startsWith('/reports') ||
-    request.nextUrl.pathname.startsWith('/settings')
+    request.nextUrl.pathname.startsWith('/settings') ||
+    // Story 1.106 (code review): the plan page and the pick screen are signed-in pages too
+    request.nextUrl.pathname.startsWith('/plan')
   ) {
     if (!user) {
       // Preserve the original URL (with query params) for redirect after login
@@ -106,6 +108,7 @@ export const config = {
     '/alerts/:path*',
     '/reports/:path*',
     '/settings/:path*',
+    '/plan/:path*',
     '/login',
     '/register/:path*',
     // Story 1.105 (code review): the legal pages read the session to choose their header, so the
@@ -113,5 +116,11 @@ export const config = {
     '/terms',
     '/privacy',
     '/heritage-terms',
+    // Story 1.106 (U-18): the pages that read the session on the server: reset password, the
+    // guards' steps, and /welcome (Story 1.89, which was missing here)
+    '/reset-password',
+    '/welcome',
+    '/choose-plan',
+    '/verify-phone',
   ],
 }

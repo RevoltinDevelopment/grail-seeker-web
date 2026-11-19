@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { noStore, setRecoveryMark } from '@/lib/auth/recoveryMark'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 
@@ -16,8 +17,10 @@ import type { EmailOtpType } from '@supabase/supabase-js'
  * here.
  *
  * The token never reaches a page: a failure redirects with no detail. An invitation that failed
- * (expired, already used, or not an invitation) lands on /welcome's expired page; any other type
- * lands on sign-in as /auth/callback does.
+ * (expired, already used, or not an invitation) lands on /welcome's expired page; a password-reset
+ * link that failed lands on reset password's expired page (Story 1.106, U-18: the Reset Password
+ * template links here with type=recovery&next=/reset-password); any other type lands on sign-in as
+ * /auth/callback does.
  *
  * The token is used once, so a link checker or a browser prefetch must not spend it (code review):
  * a HEAD request and a request marked as a prefetch are answered without verifying.
@@ -33,6 +36,8 @@ const EMAIL_OTP_TYPES: readonly EmailOtpType[] = [
 
 // Not exported: a Next.js route file may export only its handlers.
 const INVITE_LANDING = '/welcome'
+const RECOVERY_LANDING = '/reset-password'
+const RECOVERY_EXPIRED = '/reset-password?error=link'
 
 function isEmailOtpType(value: string | null): value is EmailOtpType {
   return value !== null && (EMAIL_OTP_TYPES as readonly string[]).includes(value)
@@ -54,25 +59,37 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get('token_hash')
   const type = searchParams.get('type')
   const invite = type === 'invite'
-  const failed = () =>
-    NextResponse.redirect(
-      new URL(invite ? `${INVITE_LANDING}?error=link` : '/login?error=verification_failed', request.url)
-    )
+  const failedLanding = invite
+    ? `${INVITE_LANDING}?error=link`
+    : type === 'recovery'
+      ? RECOVERY_EXPIRED
+      : '/login?error=verification_failed'
+  const failed = () => noStore(NextResponse.redirect(new URL(failedLanding, request.url)))
 
   if (!tokenHash || !isEmailOtpType(type)) return failed()
 
+  let userId: string | null = null
   try {
     const supabase = await createClient()
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
     if (error) {
       console.error('Auth confirm error:', error.message)
       return failed()
     }
+    userId = data?.user?.id ?? null
   } catch (error) {
     console.error('Auth confirm failed:', error instanceof Error ? error.message : error)
     return failed()
   }
 
-  const next = invite ? INVITE_LANDING : safeRedirectPath(searchParams.get('next'))
-  return NextResponse.redirect(new URL(next, request.url))
+  // An invitation always lands on /welcome and a reset link on reset password, whatever `next`
+  // says (Story 1.106, code review: a reset that landed elsewhere would leave the old password).
+  const next = invite
+    ? INVITE_LANDING
+    : type === 'recovery'
+      ? RECOVERY_LANDING
+      : safeRedirectPath(searchParams.get('next'))
+  const response = noStore(NextResponse.redirect(new URL(next, request.url)))
+  if (type === 'recovery' && userId) setRecoveryMark(response, userId)
+  return response
 }

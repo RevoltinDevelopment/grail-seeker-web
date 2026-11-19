@@ -35,7 +35,7 @@ export function countLabel(count: number): string {
   return count > 99 ? '99+' : String(count)
 }
 
-function initialsOf(email: string): string {
+export function initialsOf(email: string): string {
   const name = email.split('@')[0]
   const parts = name.split(/[._-]/)
   if (parts.length >= 2 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase()

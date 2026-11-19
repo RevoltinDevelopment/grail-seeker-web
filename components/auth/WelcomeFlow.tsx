@@ -11,6 +11,8 @@ import { PrivacyContent } from '@/components/auth/PrivacyContent'
 import { TermsContent } from '@/components/auth/TermsContent'
 import { accountAPI } from '@/lib/api/account'
 import { APIError } from '@/lib/api/client'
+import { linkLifeWords } from '@/lib/auth/linkLifetime'
+import { PASSWORD_WORDS, passwordRefusalWords, sessionEnded } from '@/lib/auth/passwordWords'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -26,15 +28,13 @@ import { createClient } from '@/lib/supabase/client'
  */
 export const WELCOME_FLOW_WORDS = {
   expiredHeading: 'This invitation link has expired or was already used',
-  expiredLede: 'Invitation links work for 24 hours, and only once.',
+  // Story 1.106: the link's life from the one constant (lib/auth/linkLifetime.ts)
+  expiredLede: `Invitation links work for ${linkLifeWords()}, and only once.`,
   expiredSignedUp: "If you've already set a password, sign in.",
   expiredNew:
     "Otherwise, reply to your invitation email or write to support@grailseeker.io and we'll send a new one.",
   passwordHeading: 'Set your password',
-  short: 'Choose a longer password, at least 8 characters.',
-  weak: 'Choose a stronger password. That one is too easy to guess.',
-  same: 'That is already your password. Choose a different one.',
-  notSaved: 'Your password could not be saved. Try again.',
+  ...PASSWORD_WORDS,
   terms: 'Agree to the Terms of Service and Privacy Policy to continue.',
   planUnread: "Your password is saved. We couldn't load your plan just now.",
 } as const
@@ -47,22 +47,8 @@ const PRIMARY =
   'inline-flex min-h-touch w-full items-center justify-center rounded-button border-[1.5px] border-transparent bg-primary px-[18px] text-[15px] font-semibold text-primary-foreground no-underline disabled:cursor-not-allowed disabled:opacity-50'
 const HEADING = 'text-[22px] font-bold leading-tight text-ink'
 
-type ProviderError = { code?: string; message?: string; name?: string; status?: number } | null
-
-/** The provider's refusal of a password, in plain words. */
-export function passwordRefusalWords(error: ProviderError): string {
-  if (error?.code === 'same_password') return WELCOME_FLOW_WORDS.same
-  if (error?.code === 'weak_password' || /password should|weak/i.test(error?.message ?? '')) {
-    return /at least \d+ characters/i.test(error?.message ?? '')
-      ? WELCOME_FLOW_WORDS.short
-      : WELCOME_FLOW_WORDS.weak
-  }
-  return WELCOME_FLOW_WORDS.notSaved
-}
-
-function sessionEnded(error: ProviderError): boolean {
-  return error?.name === 'AuthSessionMissingError' || error?.status === 401
-}
+// Story 1.106: shared with reset password (lib/auth/passwordWords.ts); re-exported for its tests.
+export { passwordRefusalWords }
 
 function ExpiredInvitation() {
   return (
@@ -169,7 +155,10 @@ export function WelcomeFlow({ email, expired }: { email: string | null; expired:
         {email && <p className="text-[15px] text-muted-foreground">For {email}</p>}
       </div>
       {error && (
-        <div role="alert" className="rounded-md border border-danger bg-surface p-3 text-sm text-danger">
+        <div
+          role="alert"
+          className="rounded-md border border-danger bg-surface p-3 text-sm text-danger"
+        >
           {error}
         </div>
       )}
@@ -213,11 +202,19 @@ export function WelcomeFlow({ email, expired }: { email: string | null; expired:
           />
           <span>
             I agree to the{' '}
-            <button type="button" onClick={() => setLegal('terms')} className="text-link hover:underline">
+            <button
+              type="button"
+              onClick={() => setLegal('terms')}
+              className="text-link hover:underline"
+            >
               Terms of Service
             </button>{' '}
             and{' '}
-            <button type="button" onClick={() => setLegal('privacy')} className="text-link hover:underline">
+            <button
+              type="button"
+              onClick={() => setLegal('privacy')}
+              className="text-link hover:underline"
+            >
               Privacy Policy
             </button>
             .
@@ -227,10 +224,18 @@ export function WelcomeFlow({ email, expired }: { email: string | null; expired:
           {busy ? 'Saving…' : 'Save password'}
         </button>
       </form>
-      <LegalModal isOpen={legal === 'terms'} onClose={() => setLegal(null)} title="Terms of Service">
+      <LegalModal
+        isOpen={legal === 'terms'}
+        onClose={() => setLegal(null)}
+        title="Terms of Service"
+      >
         <TermsContent />
       </LegalModal>
-      <LegalModal isOpen={legal === 'privacy'} onClose={() => setLegal(null)} title="Privacy Policy">
+      <LegalModal
+        isOpen={legal === 'privacy'}
+        onClose={() => setLegal(null)}
+        title="Privacy Policy"
+      >
         <PrivacyContent />
       </LegalModal>
     </div>

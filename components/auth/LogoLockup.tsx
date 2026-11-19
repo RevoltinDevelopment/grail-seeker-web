@@ -15,9 +15,7 @@ export function LogoLockup({ className = '' }: LogoLockupProps) {
         className="mb-2"
         priority
       />
-      <h1 className="font-cinzel text-xl font-semibold tracking-wider text-collector-navy">
-        GRAIL SEEKER
-      </h1>
+      <h1 className="font-cinzel text-xl font-semibold tracking-wider text-ink">GRAIL SEEKER</h1>
     </div>
   )
 }

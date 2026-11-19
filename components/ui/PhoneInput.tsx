@@ -132,7 +132,7 @@ export function PhoneInput({ value, onChange, required, className, id }: PhoneIn
       <select
         value={countryCode}
         onChange={handleCountryCodeChange}
-        className="w-32 rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
+        className="min-h-touch w-32 rounded-md border border-line-strong bg-surface px-3 py-2 text-base text-ink focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
         aria-label="Country code"
       >
         {COUNTRIES.map((country) => (
@@ -149,7 +149,7 @@ export function PhoneInput({ value, onChange, required, className, id }: PhoneIn
         value={nationalNumber}
         onChange={handleNationalNumberChange}
         required={required}
-        className="flex-1 rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
+        className="min-h-touch flex-1 rounded-md border border-line-strong bg-surface px-3 py-2 text-base text-ink focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm"
         placeholder="555-123-4567"
         aria-label="Phone number"
       />
