@@ -25,6 +25,8 @@ export interface UserPreferences {
   quietHoursEnd: string
   timezone: string
   nearMissEnabled: boolean
+  /** Story 1.95 (need 61): the server's near-miss margin, 0.15 */
+  nearMissMargin?: number
   smsConsentGiven?: boolean
   smsConsentTimestamp?: string
   uiPreferences?: AlertsUiPreferences
@@ -59,4 +61,13 @@ export async function updateUserPreferences(
   preferences: Partial<UserPreferences>
 ): Promise<UpdatePreferencesResponse> {
   return apiClient.patch<UpdatePreferencesResponse>('/api/user/preferences', preferences)
+}
+
+/**
+ * Story 1.104: delete the signed-in account (today's behaviour: the provider's delete, which
+ * cascades; Decision #104 waits for S-20).
+ * @throws APIError if the request fails
+ */
+export async function deleteAccount(): Promise<{ success: boolean }> {
+  return apiClient.delete<{ success: boolean }>('/api/user')
 }

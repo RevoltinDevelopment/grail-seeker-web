@@ -14,13 +14,19 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+        setAll(cookiesToSet, headers) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
+          )
+          // Story 1.104 (@supabase/ssr 0.12): a response that sets the sign-in cookies carries the
+          // library's no-cache headers, so no cache in front of the app can hand one person's
+          // session to another
+          Object.entries(headers ?? {}).forEach(([key, value]) =>
+            supabaseResponse.headers.set(key, value)
           )
         },
       },
@@ -39,7 +45,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Story 1.82: the Dashboard is gone; old bookmarks land on Searches, the app's home.
-  if (request.nextUrl.pathname === '/dashboard' || request.nextUrl.pathname.startsWith('/dashboard/')) {
+  if (
+    request.nextUrl.pathname === '/dashboard' ||
+    request.nextUrl.pathname.startsWith('/dashboard/')
+  ) {
     return NextResponse.redirect(new URL('/searches', request.url))
   }
 

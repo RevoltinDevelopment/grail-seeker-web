@@ -4,7 +4,6 @@
   "app/(auth)/reset-password/page.tsx": 53,
   "app/(authenticated)/error.tsx": 22,
   "app/(authenticated)/layout.tsx": 1,
-  "app/(authenticated)/settings/SettingsClient.tsx": 154,
   "app/error.tsx": 18,
   "app/global-error.tsx": 27,
   "app/heritage-terms/page.tsx": 9,

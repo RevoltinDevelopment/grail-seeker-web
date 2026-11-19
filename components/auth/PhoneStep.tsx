@@ -19,18 +19,48 @@ export const RESEND_SECONDS = 60
 
 const FIELD =
   'w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:text-sm'
+const CANCEL =
+  'min-h-touch w-full text-[15px] font-semibold text-link underline underline-offset-[3px] disabled:opacity-60'
 const PRIMARY =
   'inline-flex min-h-touch w-full items-center justify-center rounded-button border-[1.5px] border-transparent bg-primary px-[18px] text-[15px] font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50'
+
+/**
+ * Story 1.104: the sign-in provider's errors in plain words, never its own text (need 68). Matched
+ * on the provider's code; anything unknown gets the step's general line.
+ */
+export function phoneErrorText(code: string | undefined, step: 'phone' | 'verify'): string {
+  switch (code) {
+    case 'phone_exists':
+      return 'That number is already used by another account.'
+    case 'otp_expired':
+      return 'That code is wrong or has expired. Check it, or send a new one.'
+    case 'over_sms_send_rate_limit':
+    case 'over_request_rate_limit':
+      return 'Too many codes asked for. Wait a minute, then try again.'
+    case 'validation_failed':
+      return 'That doesn’t look like a mobile number. Check it and try again.'
+    default:
+      return step === 'phone'
+        ? 'Couldn’t send the code. Try again.'
+        : 'Couldn’t check the code. Try again.'
+  }
+}
 
 export function PhoneStep({
   planName,
   onDone,
+  heading,
+  onCancel,
   className = '',
 }: {
   /** The plan that texts, named in the first line. */
   planName?: string | null
   /** The number is verified (and the consent recorded, or its failure logged). */
   onDone: () => void
+  /** Story 1.104: Settings' heading; given, the sign-up's first line ("Your plan texts you…") is left out. */
+  heading?: string
+  /** Story 1.104: a Cancel beside the button, on both steps (Settings). */
+  onCancel?: () => void
   className?: string
 }) {
   const [step, setStep] = useState<'phone' | 'verify'>('phone')
@@ -79,7 +109,7 @@ export function PhoneStep({
     // Adding the number sends the code
     const { error: updateError } = await supabase.auth.updateUser({ phone: phoneNumber })
     if (updateError) {
-      setError(updateError.message)
+      setError(phoneErrorText(updateError.code, 'phone'))
       setLoading(false)
       return
     }
@@ -99,7 +129,7 @@ export function PhoneStep({
       type: 'phone_change',
     })
     if (verifyError) {
-      setError(verifyError.message)
+      setError(phoneErrorText(verifyError.code, 'verify'))
       setLoading(false)
       return
     }
@@ -124,14 +154,17 @@ export function PhoneStep({
     })
     setLoading(false)
     if (resendError) {
-      setError(resendError.message)
+      setError(phoneErrorText(resendError.code, 'phone'))
       return
     }
     startCountdown()
   }
 
   const errorLine = error && (
-    <div role="alert" className="rounded-md border border-danger bg-surface p-3 text-sm text-danger">
+    <div
+      role="alert"
+      className="rounded-md border border-danger bg-surface p-3 text-sm text-danger"
+    >
       {error}
     </div>
   )
@@ -140,12 +173,18 @@ export function PhoneStep({
     return (
       <div className={`flex flex-col gap-4 ${className}`}>
         <div className="flex flex-col gap-2">
-          <h2 className="text-[22px] font-bold leading-tight text-ink">Where should we text your matches?</h2>
-          <p className="text-[15px] text-ink">
-            {planName ? `Your ${planName} plan texts` : 'Your plan texts'} you the moment we find a
-            match, so we need a mobile number that can receive texts. We'll send a code to check
-            it.
-          </p>
+          <h2 className="text-[22px] font-bold leading-tight text-ink">
+            {heading ?? 'Where should we text your matches?'}
+          </h2>
+          {heading ? (
+            <p className="text-[15px] text-ink">We&apos;ll send a code to check it.</p>
+          ) : (
+            <p className="text-[15px] text-ink">
+              {planName ? `Your ${planName} plan texts` : 'Your plan texts'} you the moment we find
+              a match, so we need a mobile number that can receive texts. We'll send a code to check
+              it.
+            </p>
+          )}
         </div>
         {errorLine}
         <form onSubmit={handlePhoneSubmit} aria-label="Your phone" className="flex flex-col gap-4">
@@ -185,6 +224,11 @@ export function PhoneStep({
           <button type="submit" disabled={loading || !phoneNumber || !agreed} className={PRIMARY}>
             {loading ? 'Sending code…' : 'Send code'}
           </button>
+          {onCancel && (
+            <button type="button" onClick={onCancel} disabled={loading} className={CANCEL}>
+              Cancel
+            </button>
+          )}
         </form>
       </div>
     )
@@ -247,6 +291,11 @@ export function PhoneStep({
       >
         &larr; Change phone number
       </button>
+      {onCancel && (
+        <button type="button" onClick={onCancel} disabled={loading} className={CANCEL}>
+          Cancel
+        </button>
+      )}
     </div>
   )
 }

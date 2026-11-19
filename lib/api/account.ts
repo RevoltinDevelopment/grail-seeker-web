@@ -70,7 +70,47 @@ export interface PickPreview {
   searches: { searchId: string; slots: number; fate: SearchFate | string; fateAt: string | null }[]
 }
 
+/** Story 1.104: GET /api/account/check-times (Story 1.81): when the searches are checked, on the subscriber's clock. */
+export interface CheckTime {
+  at: string
+  /** "06:00" */
+  local: string
+  /** "6:00 AM" */
+  label: string
+  withinQuietHours: boolean
+}
+
+export interface CheckTimes {
+  timezone: string
+  /** "Pacific Time" */
+  timezoneName: string
+  times: CheckTime[]
+}
+
+/** Quiet hours not yet saved, previewed by the worker's own rule; each one given replaces the stored value. */
+export interface QuietPreview {
+  quietEnabled?: boolean
+  quietStart?: string
+  quietEnd?: string
+  timezone?: string
+}
+
+function previewQuery(preview?: QuietPreview): string {
+  if (!preview) return ''
+  const q = new URLSearchParams()
+  if (preview.quietEnabled !== undefined) q.set('quietEnabled', String(preview.quietEnabled))
+  // An empty time is left out, never sent empty (the server refuses it, as the save does)
+  if (preview.quietStart) q.set('quietStart', preview.quietStart)
+  if (preview.quietEnd) q.set('quietEnd', preview.quietEnd)
+  if (preview.timezone) q.set('timezone', preview.timezone)
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+
 export const accountAPI = {
+  /** Story 1.104: with a preview, the answer for those quiet hours; nothing is saved. */
+  checkTimes: (preview?: QuietPreview) =>
+    apiClient.get<CheckTimes>(`/api/account/check-times${previewQuery(preview)}`),
   getEntitlement: () => apiClient.get<AccountSummary>('/api/account/entitlement'),
   /** Story 1.86: keepSearchIds is the full list of the searches to keep running */
   previewPick: (keepSearchIds: string[]) =>

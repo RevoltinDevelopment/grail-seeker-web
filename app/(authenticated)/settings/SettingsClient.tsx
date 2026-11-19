@@ -1,830 +1,268 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+/**
+ * Story 1.104 (U-15): Settings on one page of sections, as approved (docs/ux/mockups/subscriber-
+ * experience/settings-page.html in the backend repo): Account, Plan and slots (a pointer), Texts,
+ * Alerts, Password and Delete account. Switches save at once and say "Saved". App Only shows no text
+ * settings. Appearance waits for U-17 (Decision #109: a theme choice that changes nothing isn't
+ * shown). Light only until U-17; tokens only.
+ */
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { PhoneInput } from '@/components/ui/PhoneInput'
-import { APIError } from '@/lib/api/client'
-import { getUserPreferences, sendTestSms, updateUserPreferences } from '@/lib/api/user'
+import { AccountSection } from '@/components/settings/AccountSection'
+import { PasswordSection } from '@/components/settings/PasswordSection'
+import { SwitchRow, TextsSection } from '@/components/settings/TextsSection'
+import {
+  DANGER_OUTLINE,
+  KEY,
+  NOTE,
+  OUTLINE,
+  PANEL,
+  SECTION_TITLE,
+  VALUE,
+} from '@/components/settings/parts'
+import { useAccountSummary } from '@/hooks/useAccountSummary'
+import { useCheckTimes, usePreferences } from '@/hooks/useSettings'
+import { PLAN_NOTE, hasTexts, nearMissNote, planLine } from '@/lib/settingsWords'
 import { createClient } from '@/lib/supabase/client'
-
 import type { User } from '@supabase/supabase-js'
 
-// Curated common-zone list (mirrors NotificationService.ts's phone-country
-// inference map). Not the full IANA list — sufficient for the current
-// US-majority userbase; expand if international demand shows up.
-const TIMEZONE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'America/New_York', label: 'Eastern Time (US)' },
-  { value: 'America/Chicago', label: 'Central Time (US)' },
-  { value: 'America/Denver', label: 'Mountain Time (US)' },
-  { value: 'America/Phoenix', label: 'Arizona (no DST)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (US)' },
-  { value: 'America/Anchorage', label: 'Alaska Time (US)' },
-  { value: 'Pacific/Honolulu', label: 'Hawaii Time (US)' },
-  { value: 'America/Toronto', label: 'Canada (Eastern)' },
-  { value: 'Europe/London', label: 'United Kingdom' },
-  { value: 'Europe/Paris', label: 'France' },
-  { value: 'Europe/Berlin', label: 'Germany' },
-  { value: 'Australia/Sydney', label: 'Australia (Sydney)' },
-  { value: 'Pacific/Auckland', label: 'New Zealand' },
+const SECTIONS: { id: string; label: string; href?: string }[] = [
+  { id: 'account', label: 'Account' },
+  { id: 'plan', label: 'Plan and slots', href: '/plan' },
+  { id: 'texts', label: 'Texts' },
+  { id: 'alerts-s', label: 'Alerts' },
+  { id: 'password', label: 'Password' },
+  { id: 'delete', label: 'Delete account' },
 ]
 
 export default function SettingsClient() {
   const router = useRouter()
-  const supabase = createClient()
-  const [activeTab, setActiveTab] = useState<'account' | 'password' | 'notifications'>('account')
   const [user, setUser] = useState<User | null>(null)
+  const [userFailed, setUserFailed] = useState(false)
+  const { prefs, isLoading, error, refetch, save, invalidate } = usePreferences()
+  // Wait for the plan before drawing, so App Only never shows text settings for a moment
+  const { account, isLoading: accountLoading } = useAccountSummary()
+  const { checkTimes, refetch: refetchCheckTimes } = useCheckTimes()
 
-  // Get user on mount
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUser(user)
-      else router.push('/login')
-    })
-  }, [router, supabase])
-
-  if (!user) {
-    return (
-      <div className="container-custom pb-12 pt-5">
-        <div className="py-12 text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-          <p className="mt-4 text-slate-600">Loading settings...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container-custom pb-12 pt-5">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-950">Settings</h2>
-        <p className="mt-2 text-slate-600">Manage your account and preferences</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6 border-b border-slate-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('account')}
-            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'account'
-                ? 'border-collector-blue text-collector-blue'
-                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-            }`}
-          >
-            Account
-          </button>
-          <button
-            onClick={() => setActiveTab('password')}
-            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'password'
-                ? 'border-collector-blue text-collector-blue'
-                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-            }`}
-          >
-            Password
-          </button>
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'notifications'
-                ? 'border-collector-blue text-collector-blue'
-                : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-950'
-            }`}
-          >
-            Notifications
-          </button>
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        {activeTab === 'account' && <AccountTab user={user} />}
-        {activeTab === 'password' && <PasswordTab />}
-        {activeTab === 'notifications' && <NotificationsTab user={user} key={activeTab} />}
-      </div>
-    </div>
-  )
-}
-
-// Account Tab Component
-function AccountTab({ user }: { user: User }) {
-  const [email, setEmail] = useState(user.email || '')
-  const [phoneNumber, setPhoneNumber] = useState(user.phone || '')
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleUpdateAccount = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    const supabase = createClient()
-
+  // Only a missing or refused session goes to sign-in; a failed read keeps what is on screen
+  // (review, 2026-11-18: a network blip after a change must not sign the subscriber out)
+  const loadUser = useCallback(async () => {
     try {
-      // Build updates object
-      const updates: {
-        email?: string
-        phone?: string
-      } = {}
-
-      const currentPhone = user.phone
-
-      if (phoneNumber !== currentPhone) {
-        updates.phone = phoneNumber
-      }
-
-      if (email !== user.email) {
-        updates.email = email
-      }
-
-      // Only update if there are changes
-      if (Object.keys(updates).length > 0) {
-        const { error: updateError } = await supabase.auth.updateUser(updates)
-
-        if (updateError) throw updateError
-
-        if (email !== user.email) {
-          setSuccess('Account updated! Check your new email address for a verification link.')
-        } else {
-          setSuccess('Account updated successfully!')
-        }
-      } else {
-        setSuccess('No changes to save')
-      }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update account'
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState('')
-  const [deleting, setDeleting] = useState(false)
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE') {
-      setError('Please type DELETE to confirm account deletion')
-      return
-    }
-
-    setDeleting(true)
-    setError(null)
-
-    const supabase = createClient()
-
-    try {
-      // Get session token for API call
       const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
-        throw new Error('No active session')
+        data: { user: fresh },
+        error: readError,
+      } = await createClient().auth.getUser()
+      if (fresh) {
+        setUser(fresh)
+        setUserFailed(false)
+        return
       }
-
-      // Call backend API to delete account (requires service role)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Failed to delete account')
-      }
-
-      // Sign out and redirect
-      await supabase.auth.signOut()
-      window.location.href = '/login?deleted=true'
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete account'
-      setError(errorMessage)
-      setDeleting(false)
+      const signedOut =
+        !readError ||
+        readError.name === 'AuthSessionMissingError' ||
+        readError.status === 401 ||
+        readError.status === 403
+      if (signedOut) router.push('/login')
+      else setUserFailed(true)
+    } catch {
+      setUserFailed(true)
     }
-  }
+  }, [router])
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="mb-4 text-xl font-semibold text-slate-950">Account Information</h2>
-
-        {success && (
-          <div className="mb-4 rounded-md border border-success-green bg-green-50 p-3 text-sm text-success-green">
-            {success}
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-4 rounded-md border border-error-red bg-red-50 p-3 text-sm text-error-red">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleUpdateAccount} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-950">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-            />
-            <p className="mt-1 text-xs text-slate-600">Changing your email requires verification</p>
-          </div>
-
-          <div>
-            <label htmlFor="phoneNumber" className="mb-2 block text-sm font-medium text-slate-950">
-              Phone Number
-            </label>
-            <PhoneInput value={phoneNumber} onChange={setPhoneNumber} required />
-            <p className="mt-1 text-xs text-slate-600">
-              Used for SMS alert notifications. Number saved in international format (E.164).
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-950">Account Created</label>
-            <p className="text-sm text-slate-600">
-              {user.created_at
-                ? new Date(user.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
-                : 'Unknown'}
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-collector-blue px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </form>
-      </div>
-
-      {/* Account Deletion */}
-      <div className="border-t border-slate-200 pt-6">
-        <h2 className="mb-2 text-xl font-semibold text-error-red">Danger Zone</h2>
-        <p className="mb-4 text-sm text-slate-600">
-          Once you delete your account, there is no going back. All your searches and alert history
-          will be permanently deleted.
-        </p>
-
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="rounded-md border-2 border-error-red px-6 py-2 font-semibold text-error-red transition-colors hover:bg-error-red hover:text-white"
-          >
-            Delete Account
-          </button>
-        ) : (
-          <div className="rounded-lg border-2 border-error-red bg-red-50 p-4">
-            <p className="mb-3 font-semibold text-error-red">Are you absolutely sure?</p>
-            <p className="mb-4 text-sm text-slate-700">
-              Type <span className="font-mono font-bold">DELETE</span> to confirm account deletion:
-            </p>
-            <input
-              type="text"
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 focus:border-error-red focus:outline-none focus:ring-2 focus:ring-error-red"
-              placeholder="Type DELETE"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleting || deleteConfirmText !== 'DELETE'}
-                className="rounded-md bg-error-red px-6 py-2 font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Permanently Delete Account'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false)
-                  setDeleteConfirmText('')
-                }}
-                className="rounded-md border border-slate-300 px-6 py-2 font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Password Tab Component
-function PasswordTab() {
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match')
-      setLoading(false)
-      return
-    }
-
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters')
-      setLoading(false)
-      return
-    }
-
-    const supabase = createClient()
-
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      })
-
-      if (updateError) throw updateError
-
-      setSuccess('Password changed successfully!')
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to change password'
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div>
-      <h2 className="mb-4 text-xl font-semibold text-slate-950">Change Password</h2>
-
-      {success && (
-        <div className="mb-4 rounded-md border border-success-green bg-green-50 p-3 text-sm text-success-green">
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 rounded-md border border-error-red bg-red-50 p-3 text-sm text-error-red">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleChangePassword} className="space-y-4">
-        <div>
-          <label
-            htmlFor="currentPassword"
-            className="mb-2 block text-sm font-medium text-slate-950"
-          >
-            Current Password
-          </label>
-          <div className="relative">
-            <input
-              id="currentPassword"
-              type={showCurrentPassword ? 'text' : 'password'}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-            />
-            <button
-              type="button"
-              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none"
-              aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
-            >
-              {showCurrentPassword ? '👁️' : '👁️‍🗨️'}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="newPassword" className="mb-2 block text-sm font-medium text-slate-950">
-            New Password
-          </label>
-          <div className="relative">
-            <input
-              id="newPassword"
-              type={showNewPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-            />
-            <button
-              type="button"
-              onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none"
-              aria-label={showNewPassword ? 'Hide password' : 'Show password'}
-            >
-              {showNewPassword ? '👁️' : '👁️‍🗨️'}
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-slate-600">Min 8 characters</p>
-        </div>
-
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="mb-2 block text-sm font-medium text-slate-950"
-          >
-            Confirm New Password
-          </label>
-          <div className="relative">
-            <input
-              id="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 pr-10 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none"
-              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-            >
-              {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-            </button>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-collector-blue px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Changing...' : 'Change Password'}
-        </button>
-      </form>
-    </div>
-  )
-}
-
-// Notifications Tab Component
-function NotificationsTab({ user }: { user: User }) {
-  const [enableSMS, setEnableSMS] = useState(true)
-  const [enableNearMiss, setEnableNearMiss] = useState(true)
-  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false)
-  const [quietHoursStart, setQuietHoursStart] = useState('22:00')
-  const [quietHoursEnd, setQuietHoursEnd] = useState('08:00')
-  const [timezone, setTimezone] = useState('America/New_York')
-  const [smsConsentGiven, setSmsConsentGiven] = useState(false)
-  const [smsConsentTimestamp, setSmsConsentTimestamp] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [loadingPreferences, setLoadingPreferences] = useState(true)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [testSmsLoading, setTestSmsLoading] = useState(false)
-
-  // Load preferences from API on mount
   useEffect(() => {
-    async function loadPreferences() {
-      try {
-        const prefs = await getUserPreferences()
-        setEnableSMS(prefs.smsNotificationsEnabled)
-        setEnableNearMiss(prefs.nearMissEnabled)
-        setQuietHoursEnabled(prefs.quietHoursEnabled)
-        setQuietHoursStart(prefs.quietHoursStart.slice(0, 5)) // Convert "22:00:00" to "22:00"
-        setQuietHoursEnd(prefs.quietHoursEnd.slice(0, 5)) // Convert "08:00:00" to "08:00"
-        setTimezone(prefs.timezone || 'America/New_York')
-        setSmsConsentGiven(prefs.smsConsentGiven || false)
-        setSmsConsentTimestamp(prefs.smsConsentTimestamp || null)
-      } catch (err) {
-        console.error('Failed to load preferences:', err)
-        // Use defaults if loading fails
-      } finally {
-        setLoadingPreferences(false)
-      }
-    }
-    loadPreferences()
-  }, [])
+    loadUser()
+  }, [loadUser])
 
-  const handleTestSms = async () => {
-    setTestSmsLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const response = await sendTestSms()
-      setSuccess(`✅ Test SMS sent! Check your phone (${response.phoneNumber})`)
-    } catch (err) {
-      if (err instanceof APIError) {
-        // Handle specific error codes
-        if (err.code === 'SERVICE_DISABLED') {
-          setError('SMS notifications are temporarily disabled. Please try again later.')
-        } else if (err.code === 'NO_PHONE_NUMBER') {
-          setError('Please add a phone number to your account first.')
-        } else if (err.code === 'SMS_DELIVERY_FAILED') {
-          setError(`SMS delivery failed: ${err.message}`)
-        } else {
-          setError(err.message || 'Failed to send test SMS')
-        }
-      } else {
-        setError('Network error. Please check your connection and try again.')
-      }
-    } finally {
-      setTestSmsLoading(false)
-    }
-  }
-
-  const handleSaveNotifications = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      await updateUserPreferences({
-        smsNotificationsEnabled: enableSMS,
-        nearMissEnabled: enableNearMiss,
-        quietHoursEnabled: quietHoursEnabled,
-        quietHoursStart: quietHoursStart + ':00', // Convert "22:00" to "22:00:00"
-        quietHoursEnd: quietHoursEnd + ':00', // Convert "08:00" to "08:00:00"
-        timezone: timezone,
-      })
-
-      setSuccess('Notification preferences saved!')
-    } catch (err) {
-      if (err instanceof APIError) {
-        setError(err.message || 'Failed to save notification preferences')
-      } else {
-        setError('Network error. Please check your connection and try again.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loadingPreferences) {
-    return (
-      <div className="py-8 text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-collector-blue"></div>
-        <p className="mt-2 text-sm text-slate-600">Loading preferences...</p>
-      </div>
-    )
-  }
+  const ready = !!user && !!prefs && !accountLoading
+  const shownSections = SECTIONS.filter((s) => s.id !== 'plan' || planLine(account))
+  const current = useSectionInView(ready ? shownSections.map((s) => s.id) : [])
 
   return (
-    <div>
-      <h2 className="mb-4 text-xl font-semibold text-slate-950">Notification Preferences</h2>
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-4 pb-12 pt-5 tablet:px-8">
+      <div>
+        <h1 className="text-page-title-sm font-bold leading-[1.2] tracking-[-0.01em] text-ink tablet:text-page-title">
+          Settings
+        </h1>
+        <p className="mt-1 text-[15px] text-muted-foreground">Your account, texts and alerts</p>
+      </div>
 
-      {success && (
-        <div className="mb-4 rounded-md border border-success-green bg-green-50 p-3 text-sm text-success-green">
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 rounded-md border border-error-red bg-red-50 p-3 text-sm text-error-red">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSaveNotifications} className="space-y-6">
-        {/* SMS Notifications */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-slate-950">SMS Notifications</h3>
-            <p className="text-sm text-slate-600">Receive text messages when grails are found</p>
-          </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              checked={enableSMS}
-              onChange={(e) => setEnableSMS(e.target.checked)}
-              className="peer sr-only"
-            />
-            <div className="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-collector-blue peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-          </label>
-        </div>
-
-        {/* Test SMS Button */}
-        <div className="ml-4 rounded-md border border-slate-200 bg-slate-50 p-4">
-          <div className="mb-3">
-            <p className="text-sm text-slate-700">
-              {user.phone ? (
-                <>
-                  Phone number on file:{' '}
-                  <span className="font-medium">{user.phone}</span>
-                </>
-              ) : (
-                <span className="text-error-red">
-                  No phone number on file. Please add one in Account settings.
-                </span>
-              )}
-            </p>
-            <p className="mt-1 text-xs text-slate-600">
-              Send a test message to verify your phone number is configured correctly.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleTestSms}
-            disabled={testSmsLoading || !user.phone}
-            className="inline-flex items-center rounded-md border border-collector-blue bg-white px-4 py-2 text-sm font-semibold text-collector-blue transition-colors hover:bg-collector-blue hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      {(error && !prefs) || (userFailed && !user) ? (
+        <LoadError
+          onRetry={() => {
+            if (error && !prefs) refetch()
+            if (!user) loadUser()
+          }}
+        />
+      ) : !ready || isLoading ? (
+        <p role="status" aria-busy="true" className="text-[15px] text-muted-foreground">
+          Loading your settings…
+        </p>
+      ) : (
+        <div className="grid items-start gap-5 desktop:grid-cols-[220px_minmax(0,760px)]">
+          <nav
+            aria-label="Settings sections"
+            className="sticky top-4 hidden flex-col gap-0.5 desktop:flex"
           >
-            {testSmsLoading ? (
-              <>
-                <svg
-                  className="mr-2 h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Sending...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="mr-2 h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                Send Test SMS
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* SMS Consent Status (Read-Only) */}
-        {smsConsentGiven && smsConsentTimestamp && (
-          <div className="ml-4 rounded-md border border-green-200 bg-green-50 p-4">
-            <div className="flex items-start">
-              <svg
-                className="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {shownSections.map((s) => (
+              <a
+                key={s.id}
+                href={s.href ?? `#${s.id}`}
+                aria-current={current === s.id ? 'true' : undefined}
+                className={`flex min-h-touch items-center rounded-lg px-3 text-[15px] no-underline ${
+                  current === s.id
+                    ? 'bg-primary-tint font-semibold text-ink'
+                    : 'font-medium text-muted-foreground hover:text-ink'
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <p className="text-sm font-medium text-green-900">SMS Consent Verified</p>
-                <p className="mt-1 text-xs text-green-700">
-                  You gave express written consent to receive SMS notifications on{' '}
-                  {new Date(smsConsentTimestamp).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: 'numeric',
-                  })}
-                  .
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+                {s.label}
+              </a>
+            ))}
+          </nav>
 
-        {/* Near Miss Notifications */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-slate-950">Near Miss Alerts</h3>
-            <p className="text-sm text-slate-600">
-              Get notified when books are within 15% of your price threshold
-            </p>
-          </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              checked={enableNearMiss}
-              onChange={(e) => setEnableNearMiss(e.target.checked)}
-              className="peer sr-only"
+          <div className="flex min-w-0 flex-col gap-5">
+            <AccountSection user={user} onUserChanged={loadUser} onPhoneVerified={invalidate} />
+
+            {planLine(account) && (
+              <section id="plan" aria-labelledby="pl-h" className={PANEL}>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                  <div>
+                    <h2 id="pl-h" className={SECTION_TITLE}>
+                      Plan and slots
+                    </h2>
+                    <p className={VALUE}>{planLine(account)}</p>
+                    <p className={NOTE}>{PLAN_NOTE}</p>
+                  </div>
+                  <Link href="/plan" className={OUTLINE}>
+                    Plan and slots
+                  </Link>
+                </div>
+              </section>
+            )}
+
+            <TextsSection
+              appOnly={!hasTexts(account)}
+              prefs={prefs}
+              save={save}
+              phone={user.phone}
+              checkTimes={checkTimes}
+              onQuietSaved={() => refetchCheckTimes()}
             />
-            <div className="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-collector-blue peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-          </label>
-        </div>
 
-        {/* Quiet Hours */}
-        <div>
-          <div className="mb-3 flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-950">Quiet Hours</h3>
-              <p className="text-sm text-slate-600">Pause notifications during specific hours</p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={quietHoursEnabled}
-                onChange={(e) => setQuietHoursEnabled(e.target.checked)}
-                className="peer sr-only"
-              />
-              <div className="peer h-6 w-11 rounded-full bg-slate-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-collector-blue peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300"></div>
-            </label>
-          </div>
-
-          {quietHoursEnabled && (
-            <div className="ml-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-950">Start Time</label>
-                  <input
-                    type="time"
-                    value={quietHoursStart}
-                    onChange={(e) => setQuietHoursStart(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-950">End Time</label>
-                  <input
-                    type="time"
-                    value={quietHoursEnd}
-                    onChange={(e) => setQuietHoursEnd(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                  />
-                </div>
-              </div>
+            <section id="alerts-s" aria-labelledby="al-h" className={PANEL}>
+              <h2 id="al-h" className={SECTION_TITLE}>
+                Alerts
+              </h2>
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-950">Timezone</label>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-collector-blue focus:outline-none focus:ring-2 focus:ring-collector-blue"
-                >
-                  {TIMEZONE_OPTIONS.map((tz) => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-slate-600">
-                  Start and end times above are in this timezone.
-                </p>
+                <SwitchRow
+                  id="sw-near"
+                  title="Near misses"
+                  note={nearMissNote(prefs.nearMissMargin)}
+                  checked={prefs.nearMissEnabled}
+                  onSave={(on) => save({ nearMissEnabled: on })}
+                />
               </div>
-            </div>
-          )}
-        </div>
+            </section>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-collector-blue px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Saving...' : 'Save Preferences'}
-        </button>
-      </form>
+            <PasswordSection />
+
+            <section id="delete" aria-labelledby="del-h" className={PANEL}>
+              <h2 id="del-h" className={SECTION_TITLE}>
+                Delete account
+              </h2>
+              <p className={NOTE}>
+                Deletes your account and everything in it: your searches, your alerts and their
+                archive, and your reports. It can’t be undone.
+              </p>
+              <Link href="/settings/delete" className={DANGER_OUTLINE}>
+                Delete account
+              </Link>
+            </section>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+/**
+ * Which section is in view, for the section list's mark (desktop): the first section in the band
+ * near the top of the window; at the very bottom of the page, the last one (a short last section
+ * never reaches the band).
+ */
+function useSectionInView(ids: string[]): string | null {
+  const [current, setCurrent] = useState<string | null>(null)
+  const key = ids.join(',')
+  useEffect(() => {
+    if (!key || typeof IntersectionObserver === 'undefined') return
+    const order = key.split(',')
+    const visible = new Set<string>()
+    const atBottom = () =>
+      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2
+    const pick = () => {
+      if (atBottom() && window.scrollY > 0) return setCurrent(order[order.length - 1])
+      const first = order.find((id) => visible.has(id))
+      if (first) setCurrent(first)
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) visible.add(e.target.id)
+          else visible.delete(e.target.id)
+        }
+        pick()
+      },
+      { rootMargin: '-10% 0px -55% 0px' }
+    )
+    for (const id of order) {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    }
+    window.addEventListener('scroll', pick, { passive: true })
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', pick)
+    }
+  }, [key])
+  return current && ids.includes(current) ? current : ids[0] || null
+}
+
+/** A failed read, as Story 1.98's archive draws it: never the error's text. */
+function LoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <section
+      aria-labelledby="settings-error-h"
+      className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-card border border-line-strong bg-surface p-4 text-ink tablet:grid-cols-[auto_minmax(0,1fr)_auto] tablet:px-6 tablet:py-5"
+    >
+      <div className="pt-0.5 text-info-icon">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5M12 16h.01" />
+        </svg>
+      </div>
+      <div className="flex flex-col gap-2">
+        <h2 id="settings-error-h" className={KEY}>
+          We couldn’t load your settings
+        </h2>
+        <p className="text-[15px]">Try again in a moment.</p>
+      </div>
+      <div className="col-span-2 flex items-center tablet:col-span-1">
+        <button type="button" onClick={onRetry} className={OUTLINE}>
+          Try again
+        </button>
+      </div>
+    </section>
   )
 }
