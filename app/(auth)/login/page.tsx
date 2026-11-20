@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
 import { DOOR_LINK, Door, LANDING_URL } from '@/components/auth/Door'
-import { GalleryPanel } from '@/components/auth/GalleryPanel'
+import { HeroBanner, HeroPanel } from '@/components/auth/HeroPanel'
 import { SignInForm } from '@/components/auth/SignInForm'
 import { WaitlistJoin } from '@/components/auth/WaitlistJoin'
 
@@ -44,8 +44,10 @@ function AccountDeleted() {
 }
 
 /**
- * Story 1.106 (U-18): sign-in is the quiet column beside the Grail Seeker Gallery
- * (front-door-sign-in.html). The March hero, the "How it works" modal and the tabs are gone.
+ * Story 1.106 (U-18): sign-in is the quiet column (front-door-sign-in.html), the tabs gone. Beside
+ * it, the March hero ("Stop searching. Start finding.") with How it works, put back by Mahan on
+ * 2026-11-19 in place of the drawn Grail Seeker Gallery until he and Sally redo it; on a phone, its
+ * headline as a banner.
  * Until launch the way in for someone new is the waitlist (Decision #99): `/login?tab=signup` and
  * `/register` show it in the same column (Story 1.89, AC 1), and sign-in's last line points to it
  * (Mahan, 2026-11-19: "…or join the waitlist" until U-21's sign-up exists).
@@ -74,7 +76,8 @@ function LoginContent() {
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      <GalleryPanel />
+      <HeroPanel className="hidden lg:flex lg:w-3/5" />
+      <HeroBanner />
       <Door>
         {deleted && <AccountDeleted />}
         {waitlist ? (

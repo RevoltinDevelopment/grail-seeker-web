@@ -1,5 +1,8 @@
 {
   "app/page.tsx": 8,
+  "components/auth/HeroPanel.tsx": 13,
+  "components/auth/HowItWorksModal.tsx": 7,
+  "components/auth/TestimonialBlock.tsx": 4,
   "components/ui/dialog.tsx": 1,
   "components/ui/sheet.tsx": 1,
   "components/ui/Toast.tsx": 8
